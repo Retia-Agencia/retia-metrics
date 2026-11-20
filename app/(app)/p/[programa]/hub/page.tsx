@@ -32,6 +32,7 @@ import { num, fecha, hoyEnBogota } from "@/lib/format";
 import { cohorteDeLaPauta, resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
 import { EsqueletoDelHub, EsqueletoDelNorte } from "@/components/hub/esqueleto-del-hub";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
+import { filtrosDeSkuDeLaUrl, opcionesDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
@@ -176,6 +177,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         periodo: parsearPeriodoUrl(busqueda, { porDefecto: "desde_el_inicio" }),
         // El filtro de cohorte es del Hub y va a la consulta (377); Hoy no lo usa (viene de `armarVistaDeHoy`).
         filtroDeCohorte: { parametro: cohorteDeLaUrl(busqueda.cohorte) },
+        filtrosDeSku: filtrosDeSkuDeLaUrl(busqueda),
         preset: texto(busqueda.rango) ?? "hoy",
         desde: texto(busqueda.desde),
         hasta: texto(busqueda.hasta),
@@ -187,7 +189,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const reporteDeHoy = esHoy ? armarReporteDiario({ programId: programa.id, dia: diaDelReporte, ventanaRitmo, contexto: contextoPendiente }) : null;
   reporteDeHoy?.catch(() => undefined);
   const contexto = await contextoPendiente;
-  const closersDelFiltro = !esHoy && veEquipo ? await contexto.closers() : [];
+  const [closersDelFiltro, opcionesDeSku] = await Promise.all([
+    !esHoy && veEquipo ? contexto.closers() : [],
+    !esHoy ? opcionesDeFiltrosDeSku(db, programa.id) : Promise.resolve({ nombres: [], skus: [] }),
+  ]);
 
   const { elegida, opciones, ventas } = contexto.filtroDeCohorte;
   const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero" || seccion === "pauta";
@@ -254,6 +259,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               closers={closersDelFiltro}
               filtraCloser={veEquipo}
               cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
+              sku={conFiltroDeCohorte ? { valor: contexto.filtrosDeSku, opciones: opcionesDeSku } : undefined}
               lineaDeCohorte={lineaDeCohorte}
               corte={seccion === "pauta" ? { opciones: opcionesDeCorte, elegido: corte } : undefined}
             />

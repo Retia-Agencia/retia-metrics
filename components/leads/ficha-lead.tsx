@@ -195,6 +195,44 @@ export function FichaLeadDeals({ ficha, slug, origen, abreFicha }: { ficha: Fich
   );
 }
 
+export function FichaLeadCompras({ ficha, slug, origen }: { ficha: FichaDeLead; slug: string; origen: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          Compras · <span className="cifra">{num(ficha.compras.length)}</span>
+        </CardTitle>
+      </CardHeader>
+      {ficha.compras.length === 0 ? (
+        <Vacio>Sin compras</Vacio>
+      ) : (
+        <ul className="divide-y border-t">
+          {ficha.compras.map((compra) => (
+            <li key={compra.lineaId}>
+              <Enlace
+                precarga="al-pasar"
+                href={enlaceConVuelta(`/p/${slug}/deals/${compra.dealId}`, origen)}
+                className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm outline-none transition-colors duration-150 hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-marca-texto">{compra.skuNombre}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {compra.skuCodigo} · Ciclo {compra.ciclo} · {dia(compra.asignadaEn)}
+                  </p>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-right">
+                  <Dato etiqueta="Precio de lista (USD)"><span className="cifra">{monto(compra.precioListaUsd, "USD")}</span></Dato>
+                  <Dato etiqueta="Valor vendido (USD)"><span className="cifra">{monto(compra.valorVendidoUsd, "USD")}</span></Dato>
+                </dl>
+              </Enlace>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 /** Los abonos del lead con su comprobante: lo que el customer success revisa de un student. */
 export function FichaLeadAbonos({ abonos, slug }: { abonos: AbonoDelLead[]; slug: string }) {
   return (

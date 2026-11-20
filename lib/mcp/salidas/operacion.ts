@@ -93,6 +93,19 @@ const dealDePersona = z.object({
   enlace: z.string().describe("Enlace al deal en el CRM."),
 }).strict().describe("Deal visible de la persona.");
 
+const compraDePersona = z.object({
+  id_de_la_linea: z.string().describe("Identificador opaco de la línea de compra."),
+  id_del_deal: z.string().describe("Identificador opaco del deal de la compra."),
+  id_del_sku: z.string().describe("Identificador opaco del SKU comprado."),
+  nombre_del_sku: z.string().describe("Nombre del SKU comprado."),
+  codigo_del_sku: z.string().describe("Código del SKU comprado."),
+  ciclo: z.string().describe("Código del ciclo del SKU."),
+  precio_de_lista: dinero.describe("Precio de lista almacenado, en USD."),
+  valor_vendido: dinero.describe("Valor vendido almacenado, en USD."),
+  asignada_en: instante.describe("Instante de asignación de la línea."),
+  enlace: z.string().describe("Enlace al deal de la compra en el CRM."),
+}).strict().describe("Línea vigente de compra de un deal vigente de la persona.");
+
 const valorDeCampo = z.object({
   estado: z.enum(["no_habia", "vacio", "valor"]).describe("Estado del valor en el envío."),
   texto: z.string().nullable().describe("Texto de la respuesta, o null cuando no había un valor."),
@@ -132,6 +145,7 @@ export const salidaDeFichaDeLead = z.object({
     envios: z.array(envioDePersona).describe("Envíos visibles; en la proyección básica sus detalles sensibles se ocultan en la fuente."),
     contactos: z.array(contacto).describe("Contactos visibles de la persona."),
     deals: z.array(dealDePersona).describe("Deals visibles de la persona."),
+    compras: z.array(compraDePersona).describe("Líneas de compra vigentes de la persona, de la más reciente a la más antigua."),
     enlace: z.string().describe("Enlace a la ficha de la persona en el CRM."),
   }).strict().describe("Ficha de la persona con la proyección autorizada para el rol."),
 }).strict();
@@ -150,6 +164,7 @@ export function aSalidaDeFichaDeLead(resultado: { ficha: FichaDeLead; basico: bo
     envios: f.envios.map((e) => ({ id: e.id, numero: e.numero, es_parcial: e.esParcial, empezo_como_parcial_en: e.empezoComoParcial?.toISOString() ?? null, fecha: e.fecha.toISOString(), fecha_es_de_llegada: e.fechaEsDeLlegada, calificacion: e.calificacion, fuente: e.fuente, canal: e.canal, ...(detalleVisible === "completa" ? { campos: e.campos.map((x) => ({ campo: x.campo, valor: valor(x.valor) })), cambios: e.cambios?.map((x) => ({ campo: x.campo, antes: valor(x.antes), despues: valor(x.despues) })) ?? null } : {}) })),
     contactos: f.contactos.map((c) => ({ id: c.id, tipo: c.tipo, valor: c.valor, es_principal: c.esPrincipal, confirmado: c.confirmado, envio: c.envioNumero, agregado_a_mano: c.agregadoAMano, creado_en: c.creadoEn.toISOString() })),
     deals: f.deals.map((d) => ({ id_del_deal: d.id, etapa: { clave: d.etapa, nombre: nombreDeEtapa(d.etapa) }, pendiente: d.pendiente, cerrado: d.cerrado, ...(resultado.basico ? {} : { dueno: d.ownerNombre }), cohorte: d.cohorteCodigo, envio: d.envioNumero, creado_en: d.creadoEn.toISOString(), llamadas: d.llamadas, anulado: d.anulado ? { en: d.anulado.en.toISOString(), motivo: d.anulado.motivo } : null, enlace: enlaces.deal(d.id) })),
+    compras: f.compras.map((compra: FichaDeLead["compras"][number]) => ({ id_de_la_linea: compra.lineaId, id_del_deal: compra.dealId, id_del_sku: compra.skuId, nombre_del_sku: compra.skuNombre, codigo_del_sku: compra.skuCodigo, ciclo: compra.ciclo, precio_de_lista: comoDinero(compra.precioListaUsd, "USD"), valor_vendido: comoDinero(compra.valorVendidoUsd, "USD"), asignada_en: compra.asignadaEn.toISOString(), enlace: enlaces.deal(compra.dealId) })),
     enlace: enlaces.persona(f.id),
   }};
 }

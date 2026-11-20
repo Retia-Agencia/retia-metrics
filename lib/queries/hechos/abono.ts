@@ -8,6 +8,7 @@ import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 import { closerDeAbono, filtroCaja } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { condicionDeSkuParaDeal } from "@/lib/queries/filtros-de-sku";
 
 export type DimensionAbono = "dia" | "semana" | "mes" | "moneda" | "plataforma" | "registrado_por" | "dueno" | "cohorte";
 export type MedidaAbono = "abonos" | "monto";
@@ -41,7 +42,7 @@ export interface FilaAbono {
  */
 export async function gruposDeCajaPorCloser(
   db: Db,
-  opciones: { programId: string; rango: { desde: string; hasta: string }; cohorteId?: string | null; hoy: string },
+  opciones: { programId: string; rango: { desde: string; hasta: string }; cohorteId?: string | null; nombreDeSku?: string | null; skuId?: string | null; hoy: string },
 ) {
   const edad = sql<number>`greatest(0, ${opciones.hoy}::date - (${abonos.fecha})::date)`;
   const bucket = sql<string>`case
@@ -77,16 +78,17 @@ export async function gruposDeCajaPorCloser(
       ),
     )
     .where(and(
-      filtroCaja({ programId: opciones.programId, rango: opciones.rango, cohorteId: opciones.cohorteId }, db),
+      filtroCaja({ programId: opciones.programId, rango: opciones.rango, cohorteId: opciones.cohorteId, nombreDeSku: opciones.nombreDeSku, skuId: opciones.skuId }, db),
       vigente(abonos),
       vigente(deals),
     ))
     .groupBy(claveDeReparto, claveOriginal, deals.etapa, sql`"bucket_antiguedad"`, abonos.moneda);
 }
 
-function alcance(db: Db, opciones: { programId: string; rango: { desde: string; hasta: string }; filtros?: Partial<Record<DimensionAbono, readonly (string | null)[]>> }) {
+function alcance(db: Db, opciones: Pick<ConsultaDeLista<DimensionAbono, string>, "programId" | "rango" | "filtros" | "filtrosDeSku">) {
   return and(
     filtroCaja({ programId: opciones.programId, rango: opciones.rango }, db),
+    condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
     condicionesDeFiltros(dimensiones, opciones.filtros),
   );
 }

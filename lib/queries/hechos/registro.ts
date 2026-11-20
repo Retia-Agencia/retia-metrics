@@ -12,6 +12,7 @@ import type { DimensionGasto, MedidaGasto } from "@/lib/queries/hechos/gasto";
 import type { DimensionVenta, MedidaVenta } from "@/lib/queries/hechos/venta";
 import type { Db } from "@/lib/db/tipos";
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
+import { FILTROS_DE_SKU } from "@/lib/queries/filtros-de-sku";
 
 export type HechoConsultable = "envio" | "agenda" | "cita" | "venta" | "abono" | "gasto";
 
@@ -28,10 +29,10 @@ const envioConsultable = {
 };
 
 const dimensionesEnvio = listaExacta<DimensionEnvio>()(["tipo", "dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"] as const);
-const dimensionesAgenda = listaExacta<DimensionAgenda>()(["dia", "semana", "mes", "hora", "area", "canal", "cuenta", "utm_source", "utm_medium", "categoria", "tiene_envio", "dueno", "cohorte", "etapa"] as const);
-const dimensionesCita = listaExacta<DimensionCita>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"] as const);
-const dimensionesVenta = listaExacta<DimensionVenta>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte"] as const);
-const dimensionesAbono = listaExacta<DimensionAbono>()(["dia", "semana", "mes", "moneda", "plataforma", "registrado_por", "dueno", "cohorte"] as const);
+const dimensionesAgenda = [...listaExacta<DimensionAgenda>()(["dia", "semana", "mes", "hora", "area", "canal", "cuenta", "utm_source", "utm_medium", "categoria", "tiene_envio", "dueno", "cohorte", "etapa"] as const), ...FILTROS_DE_SKU];
+const dimensionesCita = [...listaExacta<DimensionCita>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"] as const), ...FILTROS_DE_SKU];
+const dimensionesVenta = [...listaExacta<DimensionVenta>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte"] as const), ...FILTROS_DE_SKU];
+const dimensionesAbono = [...listaExacta<DimensionAbono>()(["dia", "semana", "mes", "moneda", "plataforma", "registrado_por", "dueno", "cohorte"] as const), ...FILTROS_DE_SKU];
 const dimensionesGasto = listaExacta<DimensionGasto>()(["dia", "semana", "mes", "moneda", "objeto_de_pauta", "cuenta_meta"] as const);
 
 interface DefinicionDeHecho {

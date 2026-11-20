@@ -1,5 +1,5 @@
-import { and, asc, count, eq, inArray } from "drizzle-orm";
-import { calls, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
+import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { calls, cohorts, dealLineas, deals, leadContactos, leads, skus, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -87,6 +87,18 @@ export interface DealDeLaFicha {
   anulado: { en: Date; motivo: string } | null;
 }
 
+export interface CompraDeLaFicha {
+  lineaId: string;
+  dealId: string;
+  skuId: string;
+  skuNombre: string;
+  skuCodigo: string;
+  ciclo: string;
+  precioListaUsd: number;
+  valorVendidoUsd: number;
+  asignadaEn: Date;
+}
+
 export interface FichaDeLead {
   id: string;
   programId: string;
@@ -109,6 +121,8 @@ export interface FichaDeLead {
   contactos: ContactoDeLaFicha[];
   /** Abiertos primero; dentro de cada grupo, el mas reciente arriba. */
   deals: DealDeLaFicha[];
+  /** Una por línea vigente de los deals vigentes, de la más reciente a la más antigua. */
+  compras: CompraDeLaFicha[];
 }
 
 /** Oculta enlaces guardados como respuestas antes de entregar la ficha a una vista básica. */
@@ -286,6 +300,48 @@ export async function fichasDeLeads(
     .from(deals)
     .where(and(inArray(deals.leadId, idsPresentes), eq(deals.programId, programId), incluyendoAnulados(deals)));
 
+  const comprasFilas = await db
+    .select({
+      leadId: deals.leadId,
+      lineaId: dealLineas.id,
+      dealId: deals.id,
+      skuId: skus.id,
+      skuNombre: skus.nombre,
+      skuCodigo: skus.codigo,
+      ciclo: cohorts.codigo,
+      precioListaUsd: dealLineas.precioListaUsd,
+      valorVendidoUsd: dealLineas.valorVendidoUsd,
+      asignadaEn: dealLineas.asignadaEn,
+    })
+    .from(dealLineas)
+    .innerJoin(
+      deals,
+      and(
+        eq(dealLineas.dealId, deals.id),
+        eq(dealLineas.programId, deals.programId),
+        eq(deals.programId, programId),
+        vigente(deals),
+      ),
+    )
+    .innerJoin(
+      skus,
+      and(
+        eq(dealLineas.skuId, skus.id),
+        eq(dealLineas.programId, skus.programId),
+        eq(skus.programId, programId),
+      ),
+    )
+    .innerJoin(
+      cohorts,
+      and(
+        eq(skus.cohortId, cohorts.id),
+        eq(skus.programId, cohorts.programId),
+        eq(cohorts.programId, programId),
+      ),
+    )
+    .where(and(inArray(deals.leadId, idsPresentes), eq(dealLineas.programId, programId), isNull(dealLineas.anuladaEn)))
+    .orderBy(desc(dealLineas.asignadaEn), desc(dealLineas.id));
+
   const idsDeDeals = dealsFilas.map((d) => d.id);
   const llamadasFilas = idsDeDeals.length > 0
     ? await db
@@ -395,6 +451,13 @@ export async function fichasDeLeads(
       envios: envios.reverse(),
       contactos,
       deals: dealsDeLaFicha,
+      compras: comprasFilas
+        .filter((compra) => compra.leadId === lead.id)
+        .map(({ leadId: _leadId, ...compra }) => ({
+          ...compra,
+          precioListaUsd: Number(compra.precioListaUsd),
+          valorVendidoUsd: Number(compra.valorVendidoUsd),
+        })),
     });
   }
   return salida;

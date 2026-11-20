@@ -32,6 +32,7 @@ import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
+import type { FiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 
 async function comisionDelPrograma(db: Db, programId: string) {
   return unaVezPorSolicitud(db, claveDe("comisionDelPrograma", programId), () =>
@@ -74,6 +75,7 @@ export interface EntradaDeVista {
    * o nada = la activa). Ausente = sin filtro de cohorte.
    */
   filtroDeCohorte?: { parametro?: string };
+  filtrosDeSku?: FiltrosDeSku;
   ahora?: Date;
 }
 
@@ -98,6 +100,7 @@ export interface VistaDelDashboard {
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
   filtroDeCohorte: FiltroDeCohorteResuelto;
+  filtrosDeSku: FiltrosDeSku;
   /** El closer al que se acoto la vista (su `users.id`), o null si se mira todo. */
   claveCloser: string | null;
   /** Los closers CON CUENTA que puede elegir el selector (valor = `users.id`). */
@@ -142,6 +145,7 @@ export interface ContextoDeVista {
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
   filtroDeCohorte: FiltroDeCohorteResuelto;
+  filtrosDeSku: FiltrosDeSku;
   claveCloser: string | null;
   cohorte: VistaDeCohorte | null;
   cohorteIdDeB: string | null;
@@ -199,6 +203,7 @@ export async function resolverContextoDeVista(entrada: EntradaDeVista, db: Db = 
     periodo,
     anteriorDisponible: contexto.anterior !== null,
     filtroDeCohorte,
+    filtrosDeSku: entrada.filtrosDeSku ?? {},
     claveCloser,
     cohorte,
     cohorteIdDeB,
@@ -213,11 +218,11 @@ export async function armarVistaDelDashboard(
 ): Promise<VistaDelDashboard> {
   const { programId, hoy } = entrada;
   const contextoDeVista = await (contextoPrevio ?? resolverContextoDeVista(entrada, db));
-  const { seleccion, periodo, filtroDeCohorte, claveCloser, cohorte, cohorteIdDeB } = contextoDeVista;
+  const { seleccion, periodo, filtroDeCohorte, filtrosDeSku, claveCloser, cohorte, cohorteIdDeB } = contextoDeVista;
   const { cohorteId } = filtroDeCohorte;
   const rango = periodo.a;
 
-  const alcance = { programId, rango, claveCloser, cohorteId };
+  const alcance = { programId, rango, claveCloser, cohorteId, ...filtrosDeSku };
   const ahora = entrada.ahora ?? new Date();
 
   const [
@@ -255,9 +260,9 @@ export async function armarVistaDelDashboard(
     comisionDelPrograma(db, programId),
     periodo.b
       ? Promise.all([
-          embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db, ahora),
-          cajaRecaudada({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
-          dineroDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
+          embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB, ...filtrosDeSku }, db, ahora),
+          cajaRecaudada({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB, ...filtrosDeSku }, db),
+          dineroDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB, ...filtrosDeSku }, db),
         ]).then(([embudoAnterior, cajaAnterior, dineroAnterior]) => ({
           embudo: embudoAnterior,
           caja: cajaAnterior,
@@ -291,6 +296,7 @@ export async function armarVistaDelDashboard(
     periodo,
     anteriorDisponible: contextoDeVista.anteriorDisponible,
     filtroDeCohorte,
+    filtrosDeSku,
     claveCloser,
     closers,
     embudo,

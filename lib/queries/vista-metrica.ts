@@ -96,6 +96,8 @@ export function urlDeLista({
   claveCloser,
   moneda,
   cohorteId,
+  nombreDeSku,
+  skuId,
   subconjunto,
   filtrosDeOrigen,
   escalera,
@@ -109,6 +111,8 @@ export function urlDeLista({
   claveCloser?: string | null;
   moneda?: string;
   cohorteId?: string | null;
+  nombreDeSku?: string | null;
+  skuId?: string | null;
   subconjunto?: SubconjuntoDelEmbudo;
   filtrosDeOrigen?: { source?: string | null; medium?: string | null; campaign?: string | null; resultado?: "show" | "no_show"; categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida"; tipo?: "completo" | "parcial"; area?: string; canal?: string | null };
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
@@ -140,6 +144,8 @@ export function urlDeLista({
   if (claveCloser) q.set("closer", codigoDeCloser(claveCloser));
   if (moneda) q.set("moneda", moneda);
   if (cohorteId) q.set("cohorte", cohorteId);
+  if (nombreDeSku) q.set("sku_nombre", nombreDeSku);
+  if (skuId) q.set("sku", skuId);
   if (origenDeal) q.set("origen", origenDeal);
   if (filtrosDeOrigen?.source !== undefined) q.set("source", filtrosDeOrigen.source ?? "__null__");
   if (filtrosDeOrigen?.medium !== undefined) q.set("medium", filtrosDeOrigen.medium ?? "__null__");
@@ -161,6 +167,8 @@ export interface EntradaDeDetalles {
   claveCloser: string | null;
   /** El filtro de cohorte del Hub (377): `null` o ausente = todas. Acota la cifra y viaja a su lista. */
   cohorteId?: string | null;
+  nombreDeSku?: string | null;
+  skuId?: string | null;
   origenDeal?: OrigenEmbudoComercial;
   area?: string;
   /**
@@ -179,7 +187,7 @@ export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalle
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
   const href = urlDeLista({
     slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser,
-    cohorteId: entrada.cohorteId, origenDeal: entrada.origenDeal,
+    cohorteId: entrada.cohorteId, nombreDeSku: entrada.nombreDeSku, skuId: entrada.skuId, origenDeal: entrada.origenDeal,
     filtrosDeOrigen: entrada.area ? { area: entrada.area } : undefined,
   });
   return {
@@ -252,6 +260,8 @@ async function detallesDelComparativoConDinero(
       programId: entrada.programId,
       rango: entrada.periodo.a,
       cohorteId: entrada.cohorteId,
+      nombreDeSku: entrada.nombreDeSku,
+      skuId: entrada.skuId,
       hoy: entrada.hoy,
     }),
     dineroPendiente ?? dineroPorCloserDelRango(
@@ -351,7 +361,7 @@ function detalleDeDeals(
   claveCloser: string | null,
   subconjunto?: SubconjuntoDelEmbudo,
 ): DetalleDeCifra {
-  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId, subconjunto });
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId, nombreDeSku: entrada.nombreDeSku, skuId: entrada.skuId, subconjunto });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
@@ -544,6 +554,8 @@ export interface EntradaDeLista {
   codigoCloser?: string;
   moneda?: string;
   cohorteId?: string | null;
+  nombreDeSku?: string | null;
+  skuId?: string | null;
   origenDeal?: OrigenEmbudoComercial;
   /** Solo el embudo por etapas (ticket 188). */
   etapa?: string;
@@ -572,7 +584,7 @@ export interface EntradaDeLista {
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, nombreDeSku, skuId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   // Un id de cohorte que no es de este programa se ignora: la lista no se filtra (el programa es frontera).
   const delHub = await cohorteDelHub(db, programId, { parametro: cohorteId ?? undefined, cohorteVieja: seleccion.cohorteVieja });
@@ -587,7 +599,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
     : resuelto;
   const corte = (metrica === "pauta_meta" || listaDeTablaAdmiteCorte(metrica, area) || listaDelEmbudoComercialAdmiteCorte(metrica)) && typeof entrada.busqueda.corte === "string" && typeof entrada.busqueda.corte_id === "string"
     ? resolverCorteDePauta(await opcionesDeCorteDePauta(db, programId), entrada.busqueda.corte, entrada.busqueda.corte_id) : null;
-  const filtros = { ...(corte ? { corte } : {}), programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
+  const filtros = { ...(corte ? { corte } : {}), programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, nombreDeSku, skuId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

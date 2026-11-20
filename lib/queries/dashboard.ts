@@ -20,9 +20,6 @@ import {
   citaPorVenir,
   citaVencidaSinResultado,
   llamadaOcurrio,
-  dealsDeLaCohorte,
-  porCohorteDeDeal,
-  idsDeVentasEn,
 } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
@@ -116,6 +113,8 @@ export function conteosDeLlamadas(ahora: Date) {
 export interface AlcanceDePrograma {
   programId: string;
   claveCloser?: string | null;
+  nombreDeSku?: string | null;
+  skuId?: string | null;
   /**
    * La cohorte del filtro del Hub (377): solo los hechos de los deals de esa cohorte. Ausente o `null`
    * = "Todas". Se filtra en SQL por `deals.cohort_id` (`metricas-filtros.ts`), nunca en memoria.
@@ -237,16 +236,16 @@ async function ventasDelRango(
   alcance: Alcance,
   db: Db,
 ): Promise<number> {
-  const { programId, rango, claveCloser, cohorteId } = alcance;
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("ventasDelRango", programId, rango.desde, rango.hasta,
-    claveCloser ?? null, cohorteId ?? null), () => leerVentasDelRango(alcance, db));
+    claveCloser ?? null, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () => leerVentasDelRango(alcance, db));
 }
 
 async function leerVentasDelRango(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
+  alcance: Alcance,
   db: Db,
 ): Promise<number> {
-  const condiciones = filtroCierres({ programId, rango, claveCloser, cohorteId }, db);
+  const condiciones = filtroCierres(alcance, db);
   const [fila] = await db
     .select({ ventas: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
@@ -259,28 +258,29 @@ export async function contarCortesias(
   alcance: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<number> {
-  const { programId, rango, claveCloser, cohorteId } = alcance;
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("contarCortesias", programId, rango.desde, rango.hasta,
-    claveCloser ?? null, cohorteId ?? null), () => leerCortesias(alcance, db));
+    claveCloser ?? null, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () => leerCortesias(alcance, db));
 }
 
 async function leerCortesias(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
+  alcance: Alcance,
   db: Db,
 ): Promise<number> {
   const [fila] = await db
     .select({ cortesias: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(filtroCortesias({ programId, rango, claveCloser, cohorteId }, db), vigente(deals)));
+    .where(and(filtroCortesias(alcance, db), vigente(deals)));
   return fila?.cortesias ?? 0;
 }
 
 function ventasPorCloser(
-  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
+  alcance: Omit<Alcance, "claveCloser">,
   db: Db,
 ): Promise<{ clave: string; closerId: string | null; cierres: number }[]> {
-  return unaVezPorSolicitud(db, claveDe("ventasPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null), () => db
+  const { programId, rango, cohorteId, nombreDeSku, skuId } = alcance;
+  return unaVezPorSolicitud(db, claveDe("ventasPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () => db
     .select({
       clave: claveCloserSql(users.id, users.closerId),
       closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
@@ -290,9 +290,7 @@ function ventasPorCloser(
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(
       and(
-        eq(deals.programId, programId),
-        inArray(deals.id, idsDeVentasEn(db, rango)),
-        porCohorteDeDeal(cohorteId),
+        filtroCierres(alcance, db),
         vigente(deals),
       ),
     )
@@ -318,7 +316,8 @@ export async function ventasDelRangoConValor(
   db: Db = dbDeLaApp,
 ): Promise<VentaDelRangoConValor[]> {
   return unaVezPorSolicitud(db, claveDe("ventasDelRangoConValor", alcance.programId, alcance.rango.desde,
-    alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null), () => db
+    alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null,
+    alcance.nombreDeSku ?? null, alcance.skuId ?? null), () => db
     .select({
       dealId: deals.id,
       claveCloser: claveCloserSql(users.id, users.closerId),
@@ -392,7 +391,7 @@ export interface VentasDeCohorte {
 /** Ventas del rango por cohorte, incluidas las que aún no iniciaron clases. */
 export function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Promise<VentasDeCohorte[]> {
   return unaVezPorSolicitud(db, claveDe("ventasPorCohorte", alcance.programId, alcance.rango.desde, alcance.rango.hasta,
-    alcance.claveCloser ?? null, alcance.cohorteId ?? null), () => leerVentasPorCohorte(alcance, db));
+    alcance.claveCloser ?? null, alcance.cohorteId ?? null, alcance.nombreDeSku ?? null, alcance.skuId ?? null), () => leerVentasPorCohorte(alcance, db));
 }
 
 async function leerVentasPorCohorte(alcance: Alcance, db: Db): Promise<VentasDeCohorte[]> {
@@ -458,11 +457,12 @@ export async function sinResultadoDelRango(
  * programa con 0 (D-3, `cajaConMonedaDelPrograma`).
  */
 export async function cajaRecaudada(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
+  alcance: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<CajaPorMoneda[]> {
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("cajaRecaudada", programId, rango.desde, rango.hasta,
-    claveCloser ?? null, cohorteId ?? null), () => db
+    claveCloser ?? null, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () => db
     .select({
       moneda: abonos.moneda,
       total: sql<number>`${sumaDeAbonos()}::float8`,
@@ -470,7 +470,7 @@ export async function cajaRecaudada(
     .from(abonos)
     .where(
       and(
-        filtroCaja({ programId, rango, claveCloser, cohorteId }, db),
+        filtroCaja(alcance, db),
         vigente(abonos),
       ),
     )
@@ -493,16 +493,17 @@ export function embudoDelRango(
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<EmbudoDelRango> {
-  const { programId, rango, claveCloser, cohorteId } = alcance;
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("embudoDelRango", programId, rango.desde, rango.hasta,
-    claveCloser ?? null, cohorteId ?? null, ahora), () => leerEmbudoDelRango(alcance, db, ahora));
+    claveCloser ?? null, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null, ahora), () => leerEmbudoDelRango(alcance, db, ahora));
 }
 
 async function leerEmbudoDelRango(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
+  alcance: Alcance,
   db: Db,
   ahora: Date,
 ): Promise<EmbudoDelRango> {
+  const { claveCloser } = alcance;
   const [llamadas] = await db
     .select({
       ...conteosDeLlamadas(ahora),
@@ -511,7 +512,7 @@ async function leerEmbudoDelRango(
     .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
     .where(
       and(
-        filtroLlamadas({ programId, rango, claveCloser, cohorteId }, db),
+        filtroLlamadas(alcance, db),
         vigente(calls),
       ),
     );
@@ -521,8 +522,8 @@ async function leerEmbudoDelRango(
   const reagendadas = llamadas?.reagendadas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
   const [cierres, grupo] = await Promise.all([
-    ventasDelRango({ programId, rango, claveCloser, cohorteId }, db),
-    grupoDeCitas(db, { programId, rango, ahora, cohorteId }),
+    ventasDelRango(alcance, db),
+    grupoDeCitas(db, { ...alcance, ahora }),
   ]);
   const tasas = tasasDelAlcance(grupo, claveCloser);
 
@@ -612,17 +613,18 @@ export function embudoPorCloser(
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
-  const { programId, rango, cohorteId } = alcance;
+  const { programId, rango, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("embudoPorCloser", programId, rango.desde, rango.hasta,
-    cohorteId ?? null, ahora), () => leerEmbudoPorCloser(alcance, db, ahora));
+    cohorteId ?? null, nombreDeSku ?? null, skuId ?? null, ahora), () => leerEmbudoPorCloser(alcance, db, ahora));
 }
 
 /** La caja del rango por closer y moneda: no depende del instante, así que el Hub la lee una vez por solicitud. */
 function cajaPorCloser(
-  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
+  alcance: Omit<Alcance, "claveCloser">,
   db: Db,
 ): Promise<{ clave: string; closerId: string | null; moneda: string; total: number }[]> {
-  return unaVezPorSolicitud(db, claveDe("cajaPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null), () =>
+  const { programId, rango, cohorteId, nombreDeSku, skuId } = alcance;
+  return unaVezPorSolicitud(db, claveDe("cajaPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () =>
     db
       .select({
         clave: claveCloserSql(users.id, abonos.closerId),
@@ -643,9 +645,7 @@ function cajaPorCloser(
       )
       .where(
         and(
-          eq(abonos.programId, programId),
-          between(abonos.fecha, rango.desde, rango.hasta),
-          cohorteId ? inArray(abonos.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+          filtroCaja(alcance, db),
           vigente(abonos),
         ),
       )
@@ -653,7 +653,7 @@ function cajaPorCloser(
 }
 
 async function leerEmbudoPorCloser(
-  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
+  alcance: Omit<Alcance, "claveCloser">,
   db: Db,
   ahora: Date,
 ): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
@@ -669,14 +669,14 @@ async function leerEmbudoPorCloser(
       .leftJoin(users, eq(users.id, calls.closerUserId))
       .where(
         and(
-          filtroLlamadas({ programId, rango, cohorteId }, db),
+          filtroLlamadas(alcance, db),
           vigente(calls),
         ),
       )
       .groupBy(claveCloserSql(users.id)),
-    cajaPorCloser({ programId, rango, cohorteId }, db),
-    ventasPorCloser({ programId, rango, cohorteId }, db),
-    grupoDeCitas(db, { programId, rango, ahora, cohorteId }),
+    cajaPorCloser(alcance, db),
+    ventasPorCloser(alcance, db),
+    grupoDeCitas(db, { ...alcance, ahora }),
   ]);
 
   const porClave = new Map<
@@ -824,15 +824,16 @@ export async function leadsDelRango(
   alcance: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
-  const { programId, rango, claveCloser, cohorteId } = alcance;
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return unaVezPorSolicitud(db, claveDe("leadsDelRango", programId, rango.desde, rango.hasta,
-    claveCloser ?? null, cohorteId ?? null), () => leerLeadsDelRango(alcance, db));
+    claveCloser ?? null, cohorteId ?? null, nombreDeSku ?? null, skuId ?? null), () => leerLeadsDelRango(alcance, db));
 }
 
 async function leerLeadsDelRango(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
+  alcance: Alcance,
   db: Db,
 ): Promise<LeadsDelRango> {
+  const { programId, rango, claveCloser } = alcance;
   // Filtrado por closer no hay a que preguntarle: la atribucion vivia en
   // `responsableCloserId` y se fue con el ADR 0035. Ver la nota de `LeadsDelRango`.
   const [fila] = claveCloser
@@ -841,7 +842,7 @@ async function leerLeadsDelRango(
         .select({ n: sql<number>`count(*)::int` })
         .from(leads)
         .where(
-          filtroLeads({ programId, rango, claveCloser, cohorteId }, db),
+          filtroLeads(alcance, db),
         );
   const conteoLeads = claveCloser ? null : (fila?.n ?? 0);
 

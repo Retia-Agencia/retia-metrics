@@ -149,6 +149,8 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
       hoy: hoyEnBogota(),
       codigoCloser: entrada.closer,
       moneda: entrada.moneda,
+      nombreDeSku: entrada.nombre_del_sku,
+      skuId: entrada.sku,
       origenDeal: entrada.origen,
       etapa: entrada.etapa,
       antiguedad: entrada.antiguedad,
@@ -227,6 +229,10 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
         programa: { nombre: programa.nombre, slug: programa.slug },
         metrica: entrada.metrica,
         periodo: { desde: vista.periodo.a.desde, hasta: vista.periodo.a.hasta },
+        filtros_aplicados: [
+          ...(entrada.nombre_del_sku ? [{ campo: "nombre_del_sku" as const, id: entrada.nombre_del_sku, nombre: entrada.nombre_del_sku, origen: "pedido" as const }] : []),
+          ...(entrada.sku ? [{ campo: "sku" as const, id: entrada.sku, nombre: entrada.sku, origen: "pedido" as const }] : []),
+        ],
         resumen: {
           disponible: lista.disponible,
           total: lista.subtotal.cantidad,

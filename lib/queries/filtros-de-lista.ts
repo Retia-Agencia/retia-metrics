@@ -4,6 +4,7 @@ import { BUCKETS_DE_ANTIGUEDAD, esMetricaDeEmbudo } from "@/lib/queries/embudo-c
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
 import { ESCALONES, GRUPOS_DE_CIERRE } from "@/lib/queries/escalera";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
+import { camposMcpDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 
 export const METRICAS_DE_LISTA = [
   "caja", "agendas", "canceladas", "citas_debidas", "citas_sin_marcar", "shows", "no_shows",
@@ -23,6 +24,7 @@ type _MetricasCubiertasEnAmbasDirecciones = Exigir<
 >;
 
 export const camposDeFiltrosDeLista = {
+  ...camposMcpDeFiltrosDeSku,
   etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION, "ganado"])] as [string, ...string[]]).optional(),
   antiguedad: z.enum(BUCKETS_DE_ANTIGUEDAD as [string, ...string[]]).optional(),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),

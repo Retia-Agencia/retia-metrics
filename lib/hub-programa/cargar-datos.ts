@@ -97,7 +97,7 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
 
   const entradaDetalles = {
     programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo,
-    claveCloser: vista.claveCloser, cohorteId, origen,
+    claveCloser: vista.claveCloser, cohorteId, ...vista.filtrosDeSku, origen,
   };
   const comparativoClaves = vista.comparativo.map((fila) => fila.clave);
   const dineroPorCloserPendiente = seccion === "comercial" && !sinActividad && veEquipo
@@ -231,7 +231,7 @@ async function cargarVistaComercial(
   const areaPedida = texto(busqueda.area);
   const areaEmbudo: AreaEmbudoComercial | "todas" = AREAS.find((area) => area === areaPedida) ?? "todas";
   const filtroDeArea: AreaEmbudoComercial | undefined = areaEmbudo === "todas" ? undefined : areaEmbudo;
-  const datos = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
+  const datos = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, ...vista.filtrosDeSku, origen };
   const metricas = ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"] as const;
   const [dealsContraAgendas, pasos, detallesEmbudo, escalera, dineroPorCloser] = await Promise.all([
     vistaDealsContraAgendas({ ...datos, cohorteIdDeB }, db),

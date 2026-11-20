@@ -129,7 +129,7 @@ async function leerSerieDealsContraAgendas(
   origen?: OrigenDeDeal,
 ): Promise<SerieDealsContraAgendas> {
   const alcance = { programId, rango, cohorteId };
-  const dealsCreados = origen ? filtroDealsDesde(origen, alcance) : filtroDealsCreados(alcance);
+  const dealsCreados = origen ? filtroDealsDesde(origen, alcance, db) : filtroDealsCreados(alcance, db);
   const dealsQueAgendaron = origen ? filtroDealsDesdeQueAgendaron(origen, alcance, db) : filtroDealsQueAgendaron(alcance, db);
   const [porDiaDeDeal, porDiaDeAgenda, primerasAgendas] = await Promise.all([
     db

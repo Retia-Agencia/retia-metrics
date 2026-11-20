@@ -1,4 +1,5 @@
 import type { Rango } from "@/lib/queries/dashboard";
+import type { FiltrosDeSkuMultiples } from "@/lib/queries/filtros-de-sku";
 
 export type Dimension = string;
 export type ValorFiltro = string | null;
@@ -16,6 +17,7 @@ export type Pagina =
 export interface AlcanceDeHecho {
   programId: string;
   rango: Rango;
+  filtrosDeSku?: FiltrosDeSkuMultiples;
 }
 
 export interface ConsultaAgrupada<D extends Dimension, C extends string> extends AlcanceDeHecho {
