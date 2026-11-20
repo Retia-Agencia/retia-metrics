@@ -12,7 +12,11 @@ import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { dineroPorCloserDelRango } from "@/lib/queries/dashboard";
-import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import {
+  cargarEmbudoComercial,
+  type AreaEmbudoComercial,
+  type OrigenEmbudoComercial,
+} from "@/lib/queries/embudo-comercial";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
@@ -222,12 +226,23 @@ async function cargarVistaComercial(
   const origenPedido = texto(busqueda.origen);
   const origenEmbudo = origenPedido === "completo" || origenPedido === "parcial" ? origenPedido : "todos";
   const filtroDeOrigen: OrigenEmbudoComercial | undefined = origenEmbudo === "todos" ? undefined : origenEmbudo;
+  const areaPedida = texto(busqueda.area);
+  const areaEmbudo: AreaEmbudoComercial | "todas" =
+    areaPedida === "paid" || areaPedida === "organico" || areaPedida === "referidos" || areaPedida === "sin_utm"
+      ? areaPedida
+      : "todas";
+  const filtroDeArea: AreaEmbudoComercial | undefined = areaEmbudo === "todas" ? undefined : areaEmbudo;
   const datos = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
   const metricas = ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"] as const;
   const [dealsContraAgendas, pasos, detallesEmbudo, escalera, dineroPorCloser] = await Promise.all([
     vistaDealsContraAgendas({ ...datos, cohorteIdDeB }, db),
-    cargarEmbudoComercial(db, { programId: programa.id, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId }, filtroDeOrigen),
-    Promise.all(metricas.map((metrica) => detalleDeCifra(metrica, { ...datos, origenDeal: filtroDeOrigen }, db))),
+    cargarEmbudoComercial(
+      db, { programId: programa.id, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId },
+      filtroDeOrigen, filtroDeArea,
+    ),
+    Promise.all(metricas.map((metrica) => detalleDeCifra(
+      metrica, { ...datos, origenDeal: filtroDeOrigen, area: filtroDeArea }, db,
+    ))),
     vistaDeEscalera({ ...datos, cohorteIdDeB, conEquipo: veEquipo }, db),
     dineroPorCloserPendiente ?? Promise.resolve(new Map()),
   ]);
@@ -237,6 +252,14 @@ async function cargarVistaComercial(
     else url.searchParams.set("origen", valor);
     return [valor, `${url.pathname}${url.search}`];
   })) as Record<"todos" | "completo" | "parcial", string>;
+  const enlacesDeArea = Object.fromEntries(([
+    "todas", "paid", "organico", "referidos", "sin_utm",
+  ] as const).map((valor) => {
+    const url = new URL(origen, "http://retia.local");
+    if (valor === "todas") url.searchParams.delete("area");
+    else url.searchParams.set("area", valor);
+    return [valor, `${url.pathname}${url.search}`];
+  })) as Record<"todas" | AreaEmbudoComercial, string>;
   const proyectar = <T,>(valor: T): T => proyectarDashboardSegunRol(valor, rol);
   return {
     dealsContraAgendas: proyectar(dealsContraAgendas),
@@ -247,6 +270,8 @@ async function cargarVistaComercial(
     }))),
     origenEmbudo: origenEmbudo as "todos" | "completo" | "parcial",
     enlacesDeOrigen,
+    areaEmbudo,
+    enlacesDeArea,
     escalera: proyectar(escalera),
     dineroPorCloser: Object.fromEntries(dineroPorCloser),
   };

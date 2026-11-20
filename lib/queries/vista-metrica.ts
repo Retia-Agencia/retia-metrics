@@ -115,6 +115,7 @@ export function urlDeLista({
   escalera?: { escalon?: string; grupo?: string; calidad?: string; pago?: "completo" | "parcial" };
   pauta?: { nivel: NivelPauta; id?: string; paso: PasoPauta };
   origenDeal?: OrigenEmbudoComercial;
+  area?: string;
 }): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (subconjunto?.etapa) q.set("etapa", subconjunto.etapa);
@@ -161,6 +162,7 @@ export interface EntradaDeDetalles {
   /** El filtro de cohorte del Hub (377): `null` o ausente = todas. Acota la cifra y viaja a su lista. */
   cohorteId?: string | null;
   origenDeal?: OrigenEmbudoComercial;
+  area?: string;
   /**
    * El origen de la pantalla que arma estos detalles (ticket 174, 197): se pega como
    * `?desde=` al href de cada lista para que su "Volver" regrese a la pestaña y el filtro
@@ -175,7 +177,11 @@ export interface EntradaDeDetalles {
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
   const claveCloser = entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
-  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId, origenDeal: entrada.origenDeal });
+  const href = urlDeLista({
+    slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser,
+    cohorteId: entrada.cohorteId, origenDeal: entrada.origenDeal,
+    filtrosDeOrigen: entrada.area ? { area: entrada.area } : undefined,
+  });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),

@@ -10,6 +10,7 @@ const CLASE_POR_TONO = {
   alerta: "bg-tono-alerta",
   peligro: "bg-tono-peligro",
   exito: "bg-tono-exito",
+  neutro: "bg-tono-neutro",
 } as const;
 
 const TONOS_DEL_EMBUDO = [
@@ -58,6 +59,8 @@ export interface PasoDeBarra {
   cifraDelPct?: CifraDeMetrica;
   etiquetaDelPct?: string;
   perdidos?: { cantidad: number; detalle?: DetalleDeCifra; cifra?: CifraDeMetrica };
+  composicion?: readonly { clave: string; etiqueta: string; cantidad: number; tono: TonoDeBarra }[];
+  contenidoInferior?: ReactNode;
 }
 
 export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
@@ -78,17 +81,31 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
             ) : <div className="h-8 flex-1 rounded-md bg-muted">
               <span
                 className={
-                  "flex h-8 items-center justify-end rounded-md px-2 text-sm text-primary-foreground " +
+                  "flex h-8 items-center justify-end overflow-hidden rounded-md text-sm text-primary-foreground " +
                   `[&>button]:h-full [&>button]:w-full ${TONOS_DEL_EMBUDO[indice % TONOS_DEL_EMBUDO.length]}`
                 }
                 style={{ width: `${paso.cantidad === 0 ? 0 : Math.max(6, (paso.cantidad / maximo) * 100)}%` }}
               >
                 <Abrible titulo={paso.etiqueta} detalle={paso.detalle} cifra={paso.cifra}>
-                  <span className="cifra">{num(paso.cantidad)}</span>
+                  {paso.composicion ? <span className="relative flex h-8 w-full overflow-hidden rounded-md">
+                    {paso.composicion.filter((segmento) => segmento.cantidad > 0).map((segmento) => (
+                      <span
+                        key={segmento.clave}
+                        className={CLASE_POR_TONO[segmento.tono]}
+                        style={{ width: `${(segmento.cantidad / paso.cantidad) * 100}%` }}
+                        aria-label={`${segmento.etiqueta}: ${num(segmento.cantidad)}`}
+                      />
+                    ))}
+                    <span className="cifra absolute inset-0 flex items-center justify-end px-2">{num(paso.cantidad)}</span>
+                  </span> : <span className="cifra px-2">{num(paso.cantidad)}</span>}
                 </Abrible>
               </span>
             </div>}
           </div>
+          {paso.composicion ? <div className="pl-32"><LeyendaDeBarras items={paso.composicion.map((segmento) => ({
+            etiqueta: `${segmento.etiqueta}: ${num(segmento.cantidad)}`,
+            tono: segmento.tono,
+          }))} /></div> : null}
           {paso.perdidos && paso.perdidos.cantidad > 0 ? (
             <p className="pl-32 text-xs text-muted-foreground">
               Se perdieron:{" "}
@@ -97,6 +114,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
               </Abrible>
             </p>
           ) : null}
+          {paso.contenidoInferior ? <div className="pl-32">{paso.contenidoInferior}</div> : null}
         </div>
       ))}
       <div className="sr-only"><table>

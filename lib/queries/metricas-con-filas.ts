@@ -46,6 +46,7 @@ import { fechaDeInstanteEnBogota } from "@/lib/format";
 import {
   cargarEmbudoComercial,
   esMetricaDelEmbudoComercial,
+  type AreaEmbudoComercial,
   type MetricaDelEmbudoComercial,
   type OrigenEmbudoComercial,
   type PasoEmbudoComercial,
@@ -944,7 +945,9 @@ async function leerMetricaDelEmbudoComercial(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
-  const pasos = await cargarEmbudoComercial(db, alcance, filtros.origenDeal);
+  const pasos = await cargarEmbudoComercial(
+    db, alcance, filtros.origenDeal, filtros.area as AreaEmbudoComercial | undefined,
+  );
   const ids = pasos.find((paso) => paso.paso === PASO_POR_METRICA_COMERCIAL[metrica])!.dealIds;
   if (ids.length === 0) return [];
   const filas = await db.select({

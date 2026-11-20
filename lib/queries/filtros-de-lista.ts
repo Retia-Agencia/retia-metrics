@@ -74,7 +74,10 @@ const SUBCONJUNTO_DEL_EMBUDO = {
 } as const;
 
 /** Listas que no son de origen y aceptan el filtro de área: las de ventas (`dealsDelArea`). */
-const METRICAS_CON_AREA: readonly string[] = ["cierres", "contratado"];
+const METRICAS_CON_AREA: readonly string[] = [
+  "cierres", "contratado", "embudo_comercial_creados", "embudo_comercial_agendaron",
+  "embudo_comercial_shows", "embudo_comercial_compraron",
+];
 /** Las listas del grupo de citas aceptan solo el área Paid (`grupoDeCitas`), la de la tabla semanal de Pauta. */
 const METRICAS_DE_GRUPO_CON_AREA: readonly string[] = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"];
 
