@@ -6,7 +6,6 @@ import { actorOperativo, alcanceDeInbox } from "@/lib/auth/contexto-operativo";
 import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
 import { fichaDeLead, fichaSinDetalleDeCitas } from "@/lib/queries/ficha-lead";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero } from "@/lib/queries/kanban";
 import { inboxDelPrograma, perdidosEnCalendly } from "@/lib/queries/inbox";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
@@ -45,14 +44,14 @@ export async function tableroDeDealsParaActor(
   busqueda: Record<string, string | string[] | undefined>,
   vistaRecordada: string | null = null,
 ) {
-  const [alcance, activa] = await Promise.all([alcanceDeDeals(session), cohorteActiva(programId, db)]);
+  const alcance = await alcanceDeDeals(session);
   const vista = vistaDelTablero(busqueda, vistaRecordada);
-  const filtros = { ...parsearFiltros(busqueda, undefined, activa?.id ?? null), vista };
+  const filtros = { ...parsearFiltros(busqueda), vista };
   const [tablero, opciones] = await Promise.all([
     tableroKanban(db, programId, alcance, filtros),
     opcionesDeTablero(db, programId),
   ]);
-  return { alcance, activa, vista, filtros, tablero, opciones };
+  return { alcance, vista, filtros, tablero, opciones };
 }
 
 export async function bandejaParaActor(
