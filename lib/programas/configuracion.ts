@@ -25,7 +25,6 @@ export function seccionDeLaFicha(valor: string | undefined): string | undefined 
 }
 
 export type HechosDeConfiguracion = {
-  comisionCargada: boolean;
   pagoRapidoDefinido: boolean;
   tieneTokenCalendly: boolean;
   tieneFuentePrincipal: boolean;
@@ -48,10 +47,10 @@ export const PASOS_DE_CONFIGURACION: Record<
 > = {
   datos: {
     titulo: "Datos comerciales",
-    explicacion: "La comisión del closer y el corte de pago rápido.",
+    explicacion: "El corte de pago rápido.",
     exigidoParaActivar: false,
     seccion: "programa",
-    hecho: (h) => h.comisionCargada && h.pagoRapidoDefinido,
+    hecho: (h) => h.pagoRapidoDefinido,
   },
   calendly: {
     titulo: "Calendly",

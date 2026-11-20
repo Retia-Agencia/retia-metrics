@@ -8,6 +8,7 @@ import { filtroCaja, ventasDelAlcance } from "@/lib/queries/metricas-filtros";
 import { leerMetasDelMes } from "@/lib/queries/metas";
 import { sumaDeAbonos, valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
+import { precioDeReferenciaDelCiclo } from "@/lib/cohortes/precio-de-referencia";
 
 /** Lo que pasó cada día de una ventana: el insumo de toda gráfica de Dinero (ticket 370). */
 export interface VentanaDeDinero {
@@ -98,11 +99,12 @@ async function leerMeta(
   { programId, cohorteId, hasta, hoy }: { programId: string; cohorteId: string | null; hasta: string; hoy: string },
 ): Promise<MetaDeSerie> {
   if (cohorteId) {
-    const [cohorte] = await db.select({ codigo: cohorts.codigo, metaCupos: cohorts.metaCupos, precioUsd: cohorts.precioUsd })
+    const [cohorte] = await db.select({ codigo: cohorts.codigo, metaCupos: cohorts.metaCupos })
       .from(cohorts)
       .where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId)));
     if (!cohorte) return { etiqueta: "Meta", cupos: null, usd: null };
-    return { etiqueta: `Meta de ${cohorte.codigo}`, cupos: cohorte.metaCupos, usd: cohorte.metaCupos * Number(cohorte.precioUsd) };
+    const precioUsd = await precioDeReferenciaDelCiclo(db, cohorteId);
+    return { etiqueta: `Meta de ${cohorte.codigo}`, cupos: cohorte.metaCupos, usd: precioUsd === null ? null : cohorte.metaCupos * precioUsd };
   }
   const mes = (hasta < hoy ? hasta : hoy).slice(0, 7);
   const metas = await leerMetasDelMes(programId, mes, hoy, db);

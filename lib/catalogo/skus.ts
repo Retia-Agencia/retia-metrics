@@ -121,35 +121,6 @@ async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programa
   }
 }
 
-/**
- * ponytail: retirar cuando el 461 reemplace los lectores de `cohorts.precio_usd`.
- * Hasta entonces esa columna refleja el menor precio de un SKU activo con cupo.
- */
-async function sincronizarPrecioDeCohorte(tx: Db, actorId: string, cohortId: string): Promise<void> {
-  const [cohorte] = await tx.select({ codigo: cohorts.codigo, precioUsd: cohorts.precioUsd })
-    .from(cohorts).where(eq(cohorts.id, cohortId));
-  if (!cohorte) throw new ErrorDeApp("No existe la cohorte del SKU.", 404);
-  const [resultado] = await tx.select({ precio: min(skus.precioListaUsd) }).from(skus).where(and(
-    eq(skus.cohortId, cohortId), eq(skus.activo, true), eq(skus.cuentaComoCupo, true),
-  ));
-  if (resultado?.precio == null) {
-    throw new ErrorDeApp(`La cohorte ${cohorte.codigo} necesita al menos un SKU activo que cuente como cupo.`, 400);
-  }
-  const precio = String(resultado.precio);
-  if (Number(precio) === Number(cohorte.precioUsd)) return;
-  await tx.update(cohorts).set({ precioUsd: precio }).where(eq(cohorts.id, cohortId));
-  await tx.insert(changeLog).values({
-    tabla: "cohorts",
-    registroId: cohortId,
-    etiqueta: cohorte.codigo,
-    campo: "precioUsd",
-    valorAnterior: cohorte.precioUsd,
-    valorNuevo: precio,
-    origen: "app",
-    userId: actorId,
-  });
-}
-
 export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
   return normalizando(async () => {
     const datos = esquemaSku.parse(input);
@@ -186,7 +157,6 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
         await tx.insert(changeLog).values(rastroDeAlta("cohorts", cohortId, codigoCohorte, actorId, valoresCohorte));
       }
       const creado = await insertarSku(tx, actorId, datos, programa.slug, cohorte.id);
-      await sincronizarPrecioDeCohorte(tx, actorId, cohorte.id);
       return creado;
     });
   });
@@ -242,7 +212,6 @@ export async function editarSku(db: Db, actorId: string, id: string, input: Entr
           userId: actorId,
         })));
       }
-      await sincronizarPrecioDeCohorte(tx, actorId, actual.sku.cohortId);
       return (await leerSkuConContexto(tx, objetivoId))!.sku;
     });
   });
@@ -268,7 +237,6 @@ async function cambiarActivo(db: Db, actorId: string, id: string, activo: boolea
           userId: actorId,
         });
       }
-      await sincronizarPrecioDeCohorte(tx, actorId, actual.sku.cohortId);
       return (await leerSkuConContexto(tx, objetivoId))!.sku;
     });
   });

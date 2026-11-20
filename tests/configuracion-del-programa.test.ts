@@ -18,7 +18,6 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const SIN_CONFIGURAR: HechosDeConfiguracion = {
-  comisionCargada: false,
   pagoRapidoDefinido: false,
   tieneTokenCalendly: false,
   tieneFuentePrincipal: false,
@@ -45,15 +44,14 @@ describe("registro de configuración del programa", () => {
     );
   });
 
-  it("datos comerciales exige comisión y corte de pago rápido", () => {
+  it("datos comerciales exige el corte de pago rápido", () => {
     const estado = (hechos: Partial<HechosDeConfiguracion>) =>
       pasosDeConfiguracion({ ...SIN_CONFIGURAR, ...hechos }).find(
         (paso) => paso.clave === "datos",
       )!.hecho;
 
-    expect(estado({ comisionCargada: true })).toBe(false);
-    expect(estado({ pagoRapidoDefinido: true })).toBe(false);
-    expect(estado({ comisionCargada: true, pagoRapidoDefinido: true })).toBe(true);
+    expect(estado({ pagoRapidoDefinido: false })).toBe(false);
+    expect(estado({ pagoRapidoDefinido: true })).toBe(true);
   });
 
   it.each([

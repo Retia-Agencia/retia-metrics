@@ -142,8 +142,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     id: programa.id,
     slug: programa.slug,
     nombre: programa.nombre,
-    ticketUsd: programa.ticketUsd,
-    comisionPorcentaje: programa.comisionPorcentaje,
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
     diasSinActividad: programa.diasSinActividad,
@@ -329,17 +327,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
           {!enRecorrido && seccion === "programa" ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi etiqueta="Ticket de referencia">
-                  <p className="cifra text-2xl font-semibold">{usd(Number(programa.ticketUsd))}</p>
-                </Kpi>
-                {presentacion.muestraComision ? <Kpi etiqueta="Comisión del closer">
-                  {programa.comisionPorcentaje == null ? (
-                    <Badge variant="alerta">Sin cargar</Badge>
-                  ) : (
-                    <p className="cifra text-2xl font-semibold">{num(Number(programa.comisionPorcentaje), 2)} %</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">del valor vendido</p>
-                </Kpi> : null}
                 <Kpi etiqueta="Cohorte activa">
                   {activa ? (
                     <p className="cifra text-2xl font-semibold">{activa.codigo}</p>
@@ -616,7 +603,7 @@ function ListaDeCohortes({ cohortes }: { cohortes: CohorteVista[] }) {
                 {" "}· <span className="cifra text-foreground">{num(c.metaLeadsDia)}</span> leads por día
               </>
             ) : null}{" "}
-            · precio <span className="cifra text-foreground">{usd(Number(c.precioUsd))}</span>
+            · precio <span className="cifra text-foreground">{c.precioUsd === null ? "Sin precio" : usd(c.precioUsd)}</span>
           </p>
         </li>
       ))}

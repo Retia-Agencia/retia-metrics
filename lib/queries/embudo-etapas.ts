@@ -8,6 +8,7 @@ import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
 import { vigente } from "@/lib/queries/vigente";
 import { etiquetaDeCloser } from "@/lib/closers/identidad";
+import { preciosDeReferenciaDeCiclos } from "@/lib/cohortes/precio-de-referencia";
 
 /**
  * Lecturas del embudo por etapas (ticket 065).
@@ -484,6 +485,10 @@ async function leerEntradaDelEmbudo(
     historialParaEntradaDelEmbudo(db, programId, cohorteId ?? null),
     cerradosEn(db, programId, rango, cohorteId),
   ]);
+  const precios = await preciosDeReferenciaDeCiclos(
+    db,
+    filasDeal.flatMap((deal) => deal.cohortId ? [deal.cohortId] : []),
+  );
 
   return {
     deals: filasDeal.map((deal) => ({
@@ -495,7 +500,7 @@ async function leerEntradaDelEmbudo(
         ? null
         : etiquetaDeCloser({ closerId: deal.ownerCloserId, nombre: deal.ownerNombre, email: deal.ownerEmail }),
       createdAt: deal.createdAt,
-      precioUsd: deal.precioUsd === null ? null : Number(deal.precioUsd),
+      precioUsd: deal.cohortId === null ? null : precios.get(deal.cohortId) ?? null,
       motivoNombre: deal.motivoNombre,
       cortesia: deal.cortesia,
     })),
@@ -515,7 +520,7 @@ async function dealsParaEntradaDelEmbudo(db: Db, programId: string, cohorteId: s
     ownerNombre: users.nombre,
     ownerEmail: users.email,
     createdAt: deals.createdAt,
-    precioUsd: cohorts.precioUsd,
+    cohortId: deals.cohortId,
     motivoNombre: motivos.nombre,
     cortesia: deals.cortesia,
   })

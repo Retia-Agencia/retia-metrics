@@ -170,7 +170,6 @@ describe("fichaDelPrograma", () => {
     const ficha = await fichaDelPrograma(programaA, db);
     expect(ficha).not.toBeNull();
     expect(ficha!.programa.nombre).toBe("A");
-    expect(ficha!.programa.comisionPorcentaje).toBe("10.04");
     expect(ficha!.cohortes.map((c) => c.codigo)).toEqual(["A-C1"]);
     expect(ficha!.fuentes.map((f) => f.nombre)).toEqual(["Typeform A"]);
     expect(ficha!.checkouts.map((c) => c.url)).toEqual(["https://paypal.me/a"]);

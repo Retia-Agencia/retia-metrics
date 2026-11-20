@@ -27,7 +27,7 @@ import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-d
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
-import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
+import { descuentosDeDeals, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { columnasCohorteConEstado, estadoDeCohorteSql } from "@/lib/cohortes/estado";
 import { esEtapaVendida } from "@/lib/deals/etapas";
@@ -39,6 +39,7 @@ import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 import { telefonosEnComun } from "@/lib/queries/leads";
 import { cambiosDeDeals } from "@/lib/queries/cambios-de-dueno";
+import { precioDeReferenciaDelCiclo } from "@/lib/cohortes/precio-de-referencia";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -234,7 +235,7 @@ export interface FichaDeDeal {
   linkAgenda: string | null;
   tieneCitaVigente: boolean;
   valorVendidoUsd: number | null;
-  ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
+  ticket: { cohorteId: string; codigo: string; precioUsd: number | null; esActivaSugerida: boolean } | null;
   descuento: DescuentoDeDeal | null;
   vendido: boolean;
   /** `inicioClases`: nulo si la cohorte futura esta "por definir" (ticket 227). */
@@ -723,6 +724,10 @@ export async function fichaDeDeal(
   const activaSugerida = deal.cohortId == null ? await cohorteActiva(deal.programId, db) : null;
   const cohorteDelTicket = cohorte ?? activaSugerida;
   const valorVendidoUsd = deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd);
+  const [precioDelTicket, descuentos] = await Promise.all([
+    cohorteDelTicket ? precioDeReferenciaDelCiclo(db, cohorteDelTicket.id) : Promise.resolve(null),
+    descuentosDeDeals(db, [deal.id]),
+  ]);
 
   return {
     dealId: deal.id,
@@ -767,11 +772,11 @@ export async function fichaDeDeal(
       ? {
           cohorteId: cohorteDelTicket.id,
           codigo: cohorteDelTicket.codigo,
-          precioUsd: Number(cohorteDelTicket.precioUsd),
+          precioUsd: precioDelTicket,
           esActivaSugerida: cohorte == null,
         }
       : null,
-    descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
+    descuento: descuentos.get(deal.id) ?? null,
     // 392: el mismo predicado de venta que Students y el Hub (`etapaVendida`, DA-1). Antes tambien contaba un
     // deal con abonos en cualquier etapa: un perdido con abono seguia "vendido" solo en esta ficha.
     vendido: esEtapaVendida(deal.etapa),

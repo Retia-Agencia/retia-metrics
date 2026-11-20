@@ -305,7 +305,6 @@ export interface VentaDelRangoConValor {
   /** La clave que usaría el filtro histórico del mismo dueño; null si su cuenta no tiene texto de closer. */
   claveCloserHistorica: string | null;
   cohortId: string | null;
-  ticketUsd: string | null;
   valorVendidoUsd: string | null;
   /** Base de la comisión: valor vendido sin las líneas de SKUs con 0 % de comisión (ADR 0137, enmienda del 20-nov). */
   valorComisionableUsd: string | null;
@@ -328,14 +327,12 @@ export async function ventasDelRangoConValor(
         else null
       end`,
       cohortId: deals.cohortId,
-      ticketUsd: cohorts.precioUsd,
       valorVendidoUsd: deals.valorVendidoUsd,
       valorComisionableUsd: valorComisionableSql(),
       comisionPorcentaje: deals.comisionPorcentaje,
     })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
     .where(and(filtroCierres(alcance, db), vigente(deals))));
 }
 
