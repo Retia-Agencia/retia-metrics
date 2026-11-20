@@ -72,11 +72,11 @@ beforeEach(async () => {
     .returning();
   cohortId = c.id;
   const [producto] = await db.insert(productos).values({
-    programId, nombre: "Programa virtual", slug: "programa_virtual", cuentaComoCupo: true,
+    programId, nombre: "Programa virtual", slug: "programa_virtual",
   }).returning();
   await db.insert(skus).values({
     programId, productoId: producto.id, cohortId, codigo: `p_programa_virtual_${crypto.randomUUID()}`,
-    precioListaUsd: "1000",
+    precioListaUsd: "1000", cuentaComoCupo: true,
   });
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;

@@ -121,7 +121,7 @@ export async function saldosDeLineas(db: Db, dealIds: readonly string[]): Promis
   const [lineas, sumas] = await Promise.all([
     db.select({
       lineaId: dealLineas.id, dealId: dealLineas.dealId, precio: dealLineas.valorVendidoUsd,
-      etapa: deals.etapa, cortesia: deals.cortesia, cuentaComoCupo: productos.cuentaComoCupo,
+      etapa: deals.etapa, cortesia: deals.cortesia, cuentaComoCupo: skus.cuentaComoCupo,
     }).from(dealLineas)
       .innerJoin(deals, and(eq(deals.id, dealLineas.dealId), vigente(deals)))
       .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))

@@ -8,19 +8,18 @@ import { filtroCierres } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
 
 /**
- * Base de la comision del deal: su valor vendido sin las lineas vendidas del SKU `sin_clasificar`,
- * que paga 0 % hasta que exista su SKU real (ADR 0137, enmienda del 20-nov). Nulo si el deal no
- * tiene valor vendido.
+ * Base de la comision del deal: su valor vendido sin las lineas vendidas de SKUs con 0 % de comision
+ * (el 1:1 y `sin_clasificar`, ADR 0137, enmienda del 20-nov). Un SKU con % nulo no se excluye: paga el
+ * % congelado del deal. Nulo si el deal no tiene valor vendido.
  */
 export function valorComisionableSql() {
   return sql<string | null>`(${deals.valorVendidoUsd} - coalesce((
     select sum(dl.valor_vendido_usd)
     from deal_lineas dl
     join skus s on s.id = dl.sku_id
-    join productos p on p.id = s.producto_id
     where dl.deal_id = ${deals.id}
       and dl.anulada_en is null
-      and p.slug = 'sin_clasificar'
+      and s.comision_porcentaje = 0
       and exists (select 1 from abonos a where a.linea_id = dl.id and a.anulado_en is null)
   ), 0))`;
 }

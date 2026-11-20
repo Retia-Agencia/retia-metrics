@@ -31,7 +31,7 @@ export async function skuVirtualDePrueba(db: Db, cohortId: string) {
   if (!producto) {
     [producto] = await db.insert(productos).values({
       programId: cohorte.programId, nombre: "Programa virtual",
-      slug: "programa_virtual", cuentaComoCupo: true,
+      slug: "programa_virtual",
     }).onConflictDoNothing().returning();
     if (!producto) {
       [producto] = await db.select().from(productos).where(and(
@@ -51,7 +51,7 @@ export async function skuVirtualDePrueba(db: Db, cohortId: string) {
     [sku] = await db.insert(skus).values({
       programId: cohorte.programId, productoId: producto.id, cohortId: cohorte.id,
       codigo: `${programa.slug.replaceAll("-", "_")}_programa_virtual_${cohorte.codigo.toLowerCase()}`,
-      precioListaUsd: cohorte.precioUsd,
+      precioListaUsd: cohorte.precioUsd, cuentaComoCupo: true,
     }).onConflictDoNothing().returning();
     if (!sku) {
       [sku] = await db.select().from(skus).where(and(

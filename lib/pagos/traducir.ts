@@ -30,7 +30,7 @@ export async function traducirCompra(db: Db, programId: string, compra: EventoHo
     .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
     .where(and(
       eq(skus.programId, programId), eq(skus.cohortId, cohorte.cohortId!), eq(skus.activo, true),
-      eq(productos.activo, true), eq(productos.cuentaComoCupo, true),
+      eq(productos.activo, true), eq(skus.cuentaComoCupo, true),
     ));
   const skuResuelto = resolverCohorte(skusConCupo);
   if (skuResuelto.motivoRevision) {
