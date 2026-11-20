@@ -143,6 +143,22 @@ la pantalla de cohortes no se toca (es la única puerta para crear la C4, con el
 Orden: 459 → 460 + 464 (ADR 0140, prioridad de los closers) → 461 → 462 → 463. 460 y 461 no se pisan (ficha y formulario de abono contra lecturas de dinero) y
 pueden ir en paralelo después del 459.
 
+**Reparto en paralelo con el 459 (20-nov).** Dos piezas no esperan al 459 porque no tocan sus archivos (popup, tabla de
+SKUs, `cohortes-admin.tsx`, `lib/catalogo/`) ni tienen migración. `skus.precio_lista_usd` y `skus.cuenta_como_cupo` ya
+existen (corte 1 y `drizzle/0156`).
+
+- **Pieza A: 461 pasos 1 y 2** (precio de referencia del ciclo y descuento por línea). Archivos: `lib/cohortes/` (función
+  nueva) y los lectores de dinero en `lib/queries/`. Fuera: el paso 3 (comisión, espera D9 con Daniel Tovar y toca
+  `lib/deals/lineas.ts`) y el paso 4 (toca `acciones-programa.ts`, que el 459 también edita). Done: los dos tests de
+  paridad y de "sin precio" del 461.
+- **Pieza B: 464 paso 5** (filtros de Deals por Nombre del SKU, SKU, Ciclo y "Sin SKU", sin cohorte activa por defecto).
+  Archivos: `lib/queries/kanban.ts`, `components/deals/filtro-kanban.tsx`, `app/(app)/p/[programa]/deals/page.tsx`. No
+  necesita `skus.predeterminado`. Los deals que ya existen tienen línea del backfill del corte 1. Done: el test del
+  tablero del 464 y el recorrido como closer.
+
+Lo demás del 464 (columna, interruptor, `abrirDeal`) y el 460 esperan al 459: comparten la tabla de SKUs y
+`lib/deals/lineas.ts`.
+
 #### 459 — Popup "Nuevo SKU" y el ciclo nace con él (urgente, antes del 10-dic)
 
 **Marcado para salir en este ticket:** `components/cohortes-admin.tsx` (la pantalla de cohortes y su botón "Nueva
