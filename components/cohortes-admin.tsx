@@ -1,5 +1,9 @@
 "use client";
 
+// SALE en el ticket 459 (ADR 0139): la pantalla de cohortes y su "Nueva cohorte" se van; la cohorte nace desde el
+// popup "Nuevo SKU" y su ventana y metas se editan en Objetivos de la cohorte. No quitar antes de que el popup esté en
+// producción: hasta entonces es la única puerta para crear la C4 de Tactical (la C3 cierra ventas el 15-dic-2026).
+
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";

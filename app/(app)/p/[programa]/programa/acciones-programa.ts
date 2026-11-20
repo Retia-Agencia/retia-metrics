@@ -245,6 +245,7 @@ export async function conectarCalendlyAccion(id: string): Promise<ResultadoAccio
 
 // ─────────────────────────────────────────────────────────── cohortes
 
+// SALE en el ticket 459 (ADR 0139), junto con components/cohortes-admin.tsx: la cohorte nace desde el popup del SKU.
 export async function crearCohorteAccion(
   slug: string,
   input: EntradaCohorte,

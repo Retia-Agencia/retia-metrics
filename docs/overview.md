@@ -501,17 +501,18 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **El ciclo**
 
-- **Cohorte:** el ciclo de venta de un programa, con su meta, su precio y su ventana de venta (dos
-  cohortes del programa no comparten ningún día de venta, ADR 0123; nace con una meta de 50 leads por día). Se
-  nombran C1, C2, C3. **Activa** es la que tiene hoy dentro de su ventana (a lo sumo una por programa); nadie la
-  activa a mano, y nace con el primer SKU que nombra su número (ADR 0137). *Evitar: "corte".* En el Hub es un
-  **filtro propio**, separado del Periodo: elegir C3 deja solo los hechos de los deals de C3, sin importar la fecha
-  (377).
-- **Producto:** lo que se vende dentro de un programa, sin importar el ciclo: "Programa virtual", "Uno a uno". Un
-  producto tiene un SKU por cohorte. *Evitar: "servicio adicional", "aparte del programa".*
-- **SKU:** un producto de un programa en una cohorte, con su precio de lista y si cuenta como cupo
-  (`tactical_investor_uno_a_uno_c3`). Su código lo arma el sistema; solo gerencia lo crea, el closer lo asigna
-  (ADR 0137).
+- **Cohorte:** el ciclo de venta de un programa (C1, C2, C3), con su ventana de venta, su meta de cupos y su meta de
+  leads por día (dos cohortes del programa no comparten ningún día de venta, ADR 0123). No tiene precio ni pantalla
+  propia: **nace con el primer SKU que nombra su número**, y ahí se declaran su ventana y su meta; después se editan en
+  los objetivos de la vista del programa (ADR 0139). La que vende hoy es la que tiene hoy dentro de su ventana; nadie la
+  activa. *Evitar: "corte", "cohorte por definir".* En el Hub es un **filtro propio**, separado del Periodo: elegir C3
+  deja solo los hechos de los deals de C3, sin importar la fecha (377).
+- **SKU:** lo único que gerencia crea: un nombre ("Programa virtual", "Uno a uno") en una cohorte de un programa, con su
+  precio de lista, su % de comisión y si cuenta como cupo (`tactical_investor_uno_a_uno_c3`). Su código lo arma el
+  sistema; el closer lo asigna (ADR 0137, 0139). **Nombre del SKU** agrupa el mismo nombre en todas las cohortes.
+  *Evitar: "producto", "servicio adicional", "aparte del programa".*
+- **Precio de referencia del ciclo:** el menor precio de lista entre los SKUs activos de la cohorte que cuentan como
+  cupo. Es lo que vale un cupo para la meta en USD, la proyección y el ticket perdido (ADR 0139).
 - **SKU del deal:** un SKU asignado a un deal. **Propuesto** mientras no tiene abonos (muestra su saldo, no cuenta);
   **vendido** desde su primer abono vigente, por su valor vendido completo. *No confundir con la Venta, que es el
   deal.*
@@ -530,12 +531,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **El dinero**
 
-- **Ticket base:** el precio de lista de una cohorte, en USD. Contra él se mide la meta en cash y el
-  descuento. Puede cambiar de una cohorte a otra (ADR 0065). Con SKUs, cada SKU tiene su precio de lista
-  (ADR 0137).
+- **Ticket base:** retirado (ADR 0139). Lo que antes era el precio de la cohorte es el precio de lista de cada SKU;
+  la meta en USD usa el precio de referencia del ciclo.
 - **Valor vendido:** lo que el closer escribe que vendió en un deal, en USD. Vacío hasta que lo escribe;
   obligatorio para que el deal sea venta. *No confundir con el ticket base ni con lo abonado.*
-- **Descuento:** ticket base de la cohorte menos el valor vendido, en número y %.
+- **Descuento:** precio de lista del SKU menos el valor vendido de su línea, en número y % (ADR 0139).
 - **Calidad del lead:** el `lead_quality` que mandó el formulario, tal como llegó (High, Mid, Low o «sin calidad»). El código
   solo decide con `High` (puerta de entrada, ADR 0069); es texto de la fuente, no un tipo cerrado (`docs/metricas.md` §3.6).
 - **Bandera del pulso:** deal atendido al que le falta algo: sin valor vendido o con una llamada sin Grain. Foto de hoy; el
