@@ -79,3 +79,9 @@ de links del CRM que nadie va a abrir es solamente fricción»*; Paid Media nece
 campaña. Lo que no cambia: el archivo **nunca** lleva closer ni deal para quien no cumple `veEquipoComercial`, la
 pantalla de la lista conserva la proyección de la enmienda del 29-oct, y deals, llamadas y abonos sueltos siguen fuera
 de su alcance. La proyección del archivo vive en `lib/hub/csv-historia.ts` y la ruta en `hub/lista.csv`.
+
+## Enmienda 2026-11-20 (ticket 458; Mani)
+
+Pauta abre las cuatro listas del embudo comercial (`embudo_comercial_*`) con la capacidad del tablero y la proyección de
+persona (sin closer, deal ni monto), y el Hub conserva solo esos detalles para quien ve el tablero. El detalle vive en
+el [ADR 0138](./0138-pauta-abre-las-listas-del-embudo-comercial.md).

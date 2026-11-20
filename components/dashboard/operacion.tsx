@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
 import { ETIQUETA_CRITERIO_DE_CLOSER } from "@/lib/criterios-de-closer";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
+import { AREAS, ETIQUETA_DE_AREA } from "@/lib/atribucion/canal";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import type {
   AreaEmbudoComercial,
@@ -239,7 +240,7 @@ export function Operacion({
   const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
   const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
   const embudoCortado = areaEmbudo !== "todas" || origenEmbudo !== "todos";
-  const opcionesDeArea = [{ clave: "todas", etiqueta: "Todas" }, { clave: "paid", etiqueta: "Paid" }, { clave: "organico", etiqueta: "Orgánico" }, { clave: "referidos", etiqueta: "Referidos" }, { clave: "sin_utm", etiqueta: "Sin UTM" }] as const;
+  const opcionesDeArea = [{ clave: "todas", etiqueta: "Todas" }, ...AREAS.map((area) => ({ clave: area, etiqueta: ETIQUETA_DE_AREA[area] }))] as const;
   return <section id="operacion" className="scroll-mt-4 space-y-4">
     <div><h2 className="text-xl font-semibold">Comercial</h2>{cifras ? null : <p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p>}<ContextoDeCifra texto={contexto} /></div>
     <Card><CardHeader><Titulo id="cifras" sinInfo={!!cifras}>Cifras clave</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Citas creadas dentro del periodo. Más de 10 % sin marcar vuelve parcial la tasa. Esas citas nunca cuentan como no-show.</p> : null}</CardHeader><CardContent className="space-y-3">

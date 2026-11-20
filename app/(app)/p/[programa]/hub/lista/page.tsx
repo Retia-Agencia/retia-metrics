@@ -7,8 +7,9 @@ import { esAdministrador, veEquipoComercial, veLeadsDePauta } from "@/lib/auth/r
 import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { capacidadParaMetrica, esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { esMetricaDeEmbudo, METRICAS_DE_EMBUDO_SIN_PERIODO } from "@/lib/queries/embudo-con-filas";
+import { ETIQUETA_DE_AREA } from "@/lib/atribucion/canal";
 import { NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
-import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, listaDeTablaAdmiteCorte, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
+import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, listaDeTablaAdmiteCorte, listaDelEmbudoComercialAdmiteCorte, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -135,7 +136,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? (escalon === "ventas" ? "Ventas" : escalon === "despues" ? "Pagaron después" : escalon === "cita_sin_resultado" ? "Con la cita pasada sin resultado" : NOMBRE_DE_ESCALON[escalon]) : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
-  const corteQuery = (esListaDePauta || listaDeTablaAdmiteCorte(metrica, area)) && typeof busqueda.corte === "string" && typeof busqueda.corte_id === "string"
+  const corteQuery = (esListaDePauta || listaDeTablaAdmiteCorte(metrica, area) || listaDelEmbudoComercialAdmiteCorte(metrica)) && typeof busqueda.corte === "string" && typeof busqueda.corte_id === "string"
     ? `&${new URLSearchParams({ corte: busqueda.corte, corte_id: busqueda.corte_id })}` : "";
   const enlaceDePagina = (orden ? `${enlace}&orden=${orden}` : enlace) + corteQuery;
   const enlaceOrdenado = (campo: "envio" | "actividad") => `${enlace}&orden=${campo}`;
@@ -169,6 +170,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <Badge variant="secondary">{etiquetaCloser}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
           {cohorte ? <Badge variant="secondary">Cohorte filtrada</Badge> : null}
+          {area ? <Badge variant="secondary">Área: {ETIQUETA_DE_AREA[area]}</Badge> : null}
+          {corteQuery ? <Badge variant="secondary">{busqueda.corte === "campana" ? "Campaña del corte" : busqueda.corte === "anuncio" ? "Anuncio del corte" : "Corte de pauta"}</Badge> : null}
           {calidad ? <Badge variant="secondary">Calidad: {calidad}</Badge> : null}
           {resultado ? <Badge variant="secondary">{resultado === "no_show" ? "Solo no shows" : "Solo shows"}</Badge> : null}
           {pago ? <Badge variant="secondary">{pago === "completo" ? "Pago completo" : "Pago parcial"}</Badge> : null}

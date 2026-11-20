@@ -54,6 +54,8 @@ import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-f
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { pasoDeTablaDePauta } from "@/lib/queries/hechos/pauta-semanal";
 import { QueTraeVentas } from "@/components/pauta/que-trae-ventas";
+import { cargarEmbudoComercialPorPauta, type NivelDeEmbudoComercial } from "@/lib/queries/embudo-comercial-por-pauta";
+import { filasDeLaTablaDelEmbudo, type EnlaceDeCelda } from "@/lib/pauta/cifras-del-embudo-comercial";
 import { SinOrigen } from "@/components/pauta/sin-origen";
 import { DondeSeVaLaGente } from "@/components/pauta/embudo-del-formulario";
 import { VER_POR_ORIGEN, verPorOrigen, type VerPorOrigen } from "@/lib/pauta/cifras-de-origen";
@@ -701,9 +703,37 @@ async function SeccionPauta({
   const periodoEnPalabras = rango.desde === rango.hasta ? `el ${fecha(rango.desde)}` : `del ${fecha(rango.desde)} al ${fecha(rango.hasta)}`;
   const contexto = { vista: datos.roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras, corte };
 
+  // «Ver el embudo de pauta» (458): la pestaña Comercial con area=paid, el periodo y la cohorte activos; sin los
+  // parámetros propios de Pauta.
+  const hrefEmbudoBase = urlConSeccion(base, busqueda, "comercial", { limpiar: ["vista", "ver_por", "corte", "corte_id", "nivel", "tabla", "por_cuenta", "cumpl"] });
+  const hrefEmbudo = `${hrefEmbudoBase}${hrefEmbudoBase.includes("?") ? "&" : "?"}area=paid`;
+
+  // La tabla por campaña y anuncio (458): el universo de Comercial, no el del ROAS. Solo en Campaña o Anuncio.
+  const nivelDelEmbudo: NivelDeEmbudoComercial | null = verPor === "campana" ? "campana" : verPor === "anuncio" ? "anuncio" : null;
+  let tablaDelEmbudo: { nivel: NivelDeEmbudoComercial; filas: ReturnType<typeof filasDeLaTablaDelEmbudo> } | undefined;
+  if (nivelDelEmbudo) {
+    const [grupos, opcionesDeCorte] = await Promise.all([
+      cargarEmbudoComercialPorPauta(db, { programId, rango, cohorteId }, nivelDelEmbudo),
+      opcionesDeCorteDePauta(db, programId),
+    ]);
+    const corteIdPorMeta = new Map(opcionesDeCorte.filter((o) => o.nivel === nivelDelEmbudo).map((o) => [o.idMeta, o.id]));
+    const enlaceDeCelda: EnlaceDeCelda = (corteDeCelda, metrica) => {
+      const href = urlDeLista({ slug, metrica, periodo: { ...periodo, b: null }, origen, cohorteId });
+      return corteDeCelda ? `${href}&${new URLSearchParams({ corte: corteDeCelda.nivel, corte_id: corteDeCelda.corteId })}` : href;
+    };
+    tablaDelEmbudo = {
+      nivel: nivelDelEmbudo,
+      filas: filasDeLaTablaDelEmbudo(grupos, {
+        nivel: nivelDelEmbudo, programa: programaNombre, periodo: periodoEnPalabras,
+        corteId: (idMeta) => corteIdPorMeta.get(idMeta),
+        enlace: puedeAbrirLista ? enlaceDeCelda : undefined,
+      }),
+    };
+  }
+
   return (
     <section className="space-y-4" data-vista-de-pauta="calidad">
-      <QueTraeVentas contexto={contexto} verPor={verPor} hrefDeVerPor={hrefDeVerPor} enlace={enlaceRoas}
+      <QueTraeVentas contexto={contexto} verPor={verPor} hrefDeVerPor={hrefDeVerPor} enlace={enlaceRoas} hrefEmbudo={hrefEmbudo} tablaDelEmbudo={tablaDelEmbudo}
         hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1", ...(corte ? { corte: corte.nivel, corte_id: corte.uuid } : {}) })}`}
         canalesDeOrigen={verPor === "canal" ? { canales: canalesConEnlaces(datos.vistaOrigen, slug, periodo, origen), totalEnvios: datos.vistaOrigen.totalEnvios } : undefined} />
       <div className="grid gap-4 xl:grid-cols-2">

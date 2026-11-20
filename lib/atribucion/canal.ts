@@ -10,6 +10,9 @@ export const NOMBRE_DE_AREA: Record<Area, string> = {
   sin_utm: "Sin UTM",
 };
 
+/** La etiqueta legible de cada área para la fila de chips y el chip de la lista: una sola copia. */
+export const ETIQUETA_DE_AREA: Record<Area, string> = NOMBRE_DE_AREA;
+
 export const MEDIOS_PAGOS = ["cpc", "paid_social", "paid"] as const;
 export const UTM_SOURCE_CLOSER = "closer";
 /** La fuente del link fijo de un creador cuando no pertenece a una red concreta. */

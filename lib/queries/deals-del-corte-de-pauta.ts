@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { arbolDePauta } from "@/lib/pauta/arbol";
-import { atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, perteneceAlCorte, type CortePauta } from "@/lib/queries/atribucion-de-pauta";
+import { atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, perteneceAlCorte, type AtribucionDePauta, type CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { objetosParaAtribucionDePauta } from "@/lib/queries/objetos-para-atribucion";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -23,8 +23,20 @@ export async function filtrarDealsDelCorte(db: Db, programId: string, corte: Cor
 }
 
 async function atribuirLote(db: Db, programId: string, corte: CortePauta, filas: readonly DealConOrigen[]) {
+  const porDeal = await atribucionDePautaPorDeal(db, programId, filas);
+  return new Set([...porDeal].filter(([, envio]) => perteneceAlCorte(envio, corte)).map(([id]) => id));
+}
+
+/**
+ * La atribución de pauta de cada deal del lote: su envío de origen, con campaña, conjunto y anuncio del árbol de Meta.
+ * ÚNICA lectura de la atribución por deal; la reusan `atribuirLote` (que filtra por corte) y la tabla por campaña y
+ * anuncio del embudo comercial (458), que agrupa por el objeto atribuido.
+ */
+export async function atribucionDePautaPorDeal(
+  db: Db, programId: string, filas: readonly DealConOrigen[],
+): Promise<Map<string, AtribucionDePauta>> {
   const ids = [...new Set(filas.flatMap((d) => d.submissionOrigenId ? [d.submissionOrigenId] : []))];
-  if (ids.length === 0) return new Set<string>();
+  if (ids.length === 0) return new Map<string, AtribucionDePauta>();
   const columnas = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
     esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: sql<null>`null`,
     fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
@@ -43,8 +55,7 @@ async function atribuirLote(db: Db, programId: string, corte: CortePauta, filas:
   const [arbol, objetos] = await Promise.all([arbolDePauta(db, programId), objetosParaAtribucionDePauta(db, programId)]);
   const porEnvio = atribuirEnviosDePauta([...originales, ...completos], parejas, objetos, arbol,
     { desde: "0000-01-01", hasta: "9999-12-31" }).filaPorEnvioId;
-  const porDeal = atribucionPorDeal(porEnvio, filas);
-  return new Set([...porDeal].filter(([, envio]) => perteneceAlCorte(envio, corte)).map(([id]) => id));
+  return atribucionPorDeal(porEnvio, filas);
 }
 
 /** El origen puede preceder al rango operativo de la cita o la venta. */

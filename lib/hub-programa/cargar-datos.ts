@@ -1,7 +1,7 @@
 import { desc } from "drizzle-orm";
 import { AREAS } from "@/lib/atribucion/canal";
 import type { Rol } from "@/lib/auth/roles";
-import { veEquipoComercial } from "@/lib/auth/roles";
+import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { pautaSincronizaciones } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -39,6 +39,7 @@ import {
   detallesDeOperacion,
   detallesDelDashboard,
   proyectarDashboardSegunRol,
+  type DetalleDeCifra,
 } from "@/lib/queries/vista-metrica";
 import type { VentanaRitmo } from "@/lib/queries/proyeccion";
 
@@ -259,13 +260,22 @@ async function cargarVistaComercial(
     return [valor, `${url.pathname}${url.search}`];
   })) as Record<"todas" | AreaEmbudoComercial, string>;
   const proyectar = <T,>(valor: T): T => proyectarDashboardSegunRol(valor, rol);
+  // Solo los detalles del embudo comercial (sus listas) se conservan para quien ve el tablero aunque no vea el
+  // equipo comercial: pauta abre esas cuatro listas (ADR 0138). Todo lo demás de Comercial sigue cerrado.
+  // Para pauta queda el enlace y el conteo: sin los grupos ni el desglose por closer, que llevan closer y monto (ADR 0052).
+  const proyectarDetalleDelEmbudo = <T extends DetalleDeCifra | undefined>(valor: T): T =>
+    !valor || veEquipoComercial(rol) || !veTableroDelPrograma(rol) ? proyectarDashboardSegunRol(valor, rol) : {
+      ...valor,
+      resumen: { ...valor.resumen, dinero: undefined, grupos: [] },
+      desgloses: { ...valor.desgloses, porCloser: [] },
+    };
   return {
     dealsContraAgendas: proyectar(dealsContraAgendas),
-    embudo: proyectar(pasos.map((paso, indice) => ({
+    embudo: pasos.map((paso, indice) => ({
       ...paso,
-      detalle: detallesEmbudo[indice],
-      detallePerdidos: indice > 0 ? detallesEmbudo[indice - 1] : undefined,
-    }))),
+      detalle: proyectarDetalleDelEmbudo(detallesEmbudo[indice]),
+      detallePerdidos: indice > 0 ? proyectarDetalleDelEmbudo(detallesEmbudo[indice - 1]) : undefined,
+    })),
     origenEmbudo: origenEmbudo as "todos" | "completo" | "parcial",
     enlacesDeOrigen,
     areaEmbudo,

@@ -129,6 +129,9 @@ export function capacidadParaMetrica({
   const esListaDeOrigen = metrica === "registros" || metrica === "agendas_creadas"
     || (metrica === "escalera" && tieneOrigen);
   if (metrica === "pauta_meta" || esListaDeOrigen) return veTableroDelPrograma;
+  // Las cuatro listas del embudo comercial abren para pauta con la capacidad del tablero (ADR 0138,
+  // enmienda al 0052): su proyección conserva persona y etapa, sin closer, deal ni monto.
+  if (esMetricaDelEmbudoComercial(metrica)) return veTableroDelPrograma;
   if (metrica === "no_agendaron") return veEquipoComercial;
   return esAdministrador;
 }
@@ -284,6 +287,11 @@ export function proyectarListaSegunRol<T extends ListaDeMetrica>(
   },
 ): T {
   if (o.esListaDePauta || o.esListaDeOrigen) {
+    return proyectarParaPauta(lista, veEquipoComercial(o.rol));
+  }
+  // Las listas del embudo comercial abren para pauta con su proyección: persona y etapa, sin
+  // closer, deal ni monto (ADR 0138). Quien ve el equipo conserva la vista comercial.
+  if (esMetricaDelEmbudoComercial(o.metrica)) {
     return proyectarParaPauta(lista, veEquipoComercial(o.rol));
   }
   return proyectarParaTablero(
@@ -948,7 +956,14 @@ async function leerMetricaDelEmbudoComercial(
   const pasos = await cargarEmbudoComercial(
     db, alcance, filtros.origenDeal, filtros.area as AreaEmbudoComercial | undefined,
   );
-  const ids = pasos.find((paso) => paso.paso === PASO_POR_METRICA_COMERCIAL[metrica])!.dealIds;
+  const idsDelPaso = pasos.find((paso) => paso.paso === PASO_POR_METRICA_COMERCIAL[metrica])!.dealIds;
+  // El corte de pauta (campaña o anuncio) acota el universo a los deals atribuidos a ese objeto, para
+  // que la barra de la tabla por campaña y su lista den la misma cifra (458).
+  let ids = idsDelPaso;
+  if (filtros.corte) {
+    const delCorte = new Set(await idsDeDealsDelCorte(db, alcance.programId, filtros.corte));
+    ids = idsDelPaso.filter((id) => delCorte.has(id));
+  }
   if (ids.length === 0) return [];
   const filas = await db.select({
     dealId: deals.id,

@@ -118,3 +118,12 @@ export function normalizarFiltrosDeOrigen<T extends Pick<FiltrosDeLista, "source
 export function listaDeTablaAdmiteCorte(metrica: Metrica, area: string | undefined): boolean {
   return area === "paid" && ["agendas_creadas", "cierres", "grupo_shows", "grupo_vendidos"].includes(metrica);
 }
+
+/**
+ * Las cuatro listas del embudo comercial admiten el corte de pauta (campaña o anuncio): la tabla por
+ * campaña y anuncio de «¿Qué trae ventas?» abre cada celda con su corte (458). A diferencia de la tabla
+ * semanal de Pauta, el corte no exige el filtro de área.
+ */
+export function listaDelEmbudoComercialAdmiteCorte(metrica: Metrica): boolean {
+  return metrica.startsWith("embudo_comercial_");
+}
