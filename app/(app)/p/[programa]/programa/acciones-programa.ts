@@ -8,7 +8,7 @@ import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
-import { cohorts, miembrosPrograma, programs } from "@/lib/db/schema";
+import { cohorts, miembrosPrograma, programs, skus } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import {
   crearPrograma,
@@ -21,10 +21,18 @@ import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import { agregarMembresia, exigirUsuarioDentroDelAlcance, quitarMembresia } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import {
-  crearCohorte,
   editarCohorte,
+  editarVentanaDeCohorte,
   type EntradaCohorte,
+  type EntradaVentanaDeCohorte,
 } from "@/lib/catalogo/cohortes";
+import {
+  crearSku,
+  desactivarSku,
+  editarSku,
+  reactivarSku,
+  type EntradaSku,
+} from "@/lib/catalogo/skus";
 
 /**
  * Server actions de la administracion de programas y cohortes (ticket 014). Viven en la
@@ -86,6 +94,20 @@ async function exigirProgramaDeCohorte(actor: Awaited<ReturnType<typeof actorGer
   await exigirProgramaVisible(actor, cohorte?.programId);
 }
 
+async function exigirSkuDelPrograma(
+  actor: Awaited<ReturnType<typeof actorGerente>>,
+  slug: string,
+  skuId: string,
+): Promise<void> {
+  const [programa] = await db.select({ id: programs.id }).from(programs).where(eq(programs.slug, slug));
+  if (!programa) throw new ErrorDeApp("No existe el programa.", 404);
+  await exigirProgramaPorId(actor, programa.id);
+  const [sku] = await db.select({ id: skus.id }).from(skus).where(and(
+    eq(skus.id, skuId), eq(skus.programId, programa.id),
+  ));
+  if (!sku) throw new ErrorDeApp("El SKU no pertenece a este programa.", 404);
+}
+
 async function exigirProgramaDeMembresia(
   actor: Awaited<ReturnType<typeof actorGerente>>,
   input: { userId: string; programId: string },
@@ -97,7 +119,10 @@ async function exigirProgramaDeMembresia(
   await exigirProgramaVisible(actor, membresia?.programId);
 }
 
-type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug" | "ticketUsd">;
+type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug"> & {
+  /** Compatibilidad con clientes anteriores al paso 4; crearPrograma lo ignora. */
+  ticketUsd?: string;
+};
 type ResultadoCreacion = { ok: true; slug: string } | { ok: false; error: string };
 
 /** Crea el cascaron inactivo; se completa y activa desde su propia ficha. */
@@ -245,23 +270,6 @@ export async function conectarCalendlyAccion(id: string): Promise<ResultadoAccio
 
 // ─────────────────────────────────────────────────────────── cohortes
 
-// SALE en el ticket 459 (ADR 0139), junto con components/cohortes-admin.tsx: la cohorte nace desde el popup del SKU.
-export async function crearCohorteAccion(
-  slug: string,
-  input: EntradaCohorte,
-): Promise<ResultadoAccion> {
-  try {
-    const actor = await actorGerente();
-    await exigirProgramaPorId(actor, input.programId);
-    const { session } = actor;
-    await crearCohorte(db, session.user.id, input);
-    revalidarNav();
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
 export async function editarCohorteAccion(
   slug: string,
   id: string,
@@ -272,6 +280,78 @@ export async function editarCohorteAccion(
     await exigirProgramaDeCohorte(actor, id);
     const { session } = actor;
     await editarCohorte(db, session.user.id, id, input);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function editarVentanaDeCohorteAccion(
+  slug: string,
+  id: string,
+  input: EntradaVentanaDeCohorte,
+): Promise<ResultadoAccion> {
+  try {
+    const actor = await actorGerente();
+    await exigirProgramaDeCohorte(actor, id);
+    await editarVentanaDeCohorte(db, actor.session.user.id, id, input);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+// ─────────────────────────────────────────────────────────── SKUs
+
+export async function crearSkuAccion(slug: string, input: EntradaSku): Promise<ResultadoAccion> {
+  try {
+    const actor = await actorGerente();
+    await exigirProgramaPorId(actor, input.programId);
+    const [programa] = await db.select({ slug: programs.slug }).from(programs).where(eq(programs.id, input.programId));
+    if (programa?.slug !== slug) throw new ErrorDeApp("El programa no coincide con la ruta.", 404);
+    await crearSku(db, actor.session.user.id, input);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function editarSkuAccion(
+  slug: string,
+  id: string,
+  input: EntradaSku,
+): Promise<ResultadoAccion> {
+  try {
+    const actor = await actorGerente();
+    await exigirSkuDelPrograma(actor, slug, id);
+    await editarSku(db, actor.session.user.id, id, input);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function desactivarSkuAccion(slug: string, id: string): Promise<ResultadoAccion> {
+  try {
+    const actor = await actorGerente();
+    await exigirSkuDelPrograma(actor, slug, id);
+    await desactivarSku(db, actor.session.user.id, id);
+    revalidarNav();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function reactivarSkuAccion(slug: string, id: string): Promise<ResultadoAccion> {
+  try {
+    const actor = await actorGerente();
+    await exigirSkuDelPrograma(actor, slug, id);
+    await reactivarSku(db, actor.session.user.id, id);
     revalidarNav();
     return { ok: true };
   } catch (error) {

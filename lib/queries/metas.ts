@@ -9,12 +9,13 @@ import { leerVentasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { vigente } from "@/lib/queries/vigente";
+import { preciosDeReferenciaDeCiclos } from "@/lib/cohortes/precio-de-referencia";
 
 export interface CohorteParaMetas {
   id: string;
   codigo: string;
   metaCupos: number;
-  precioUsd: number;
+  precioUsd: number | null;
   fechaInicioVentas: string | null;
   /** Nula cuando la cohorte futura esta "por definir" (ticket 227): no vende, no tiene ventana. */
   fechaCierreVentas: string | null;
@@ -30,7 +31,7 @@ export interface FilaMetaDelMes {
   cohorteId: string | null;
   codigo: string;
   metaCupos: number;
-  metaUsd: number;
+  metaUsd: number | null;
   vendidos: number;
   esperado: number;
   deuda: number;
@@ -60,7 +61,7 @@ export interface MetasDelMesCalculadas {
   cohortesSinVentana: { id: string; codigo: string }[];
   mesSinVentana: boolean;
   metaCupos: number;
-  metaUsd: number;
+  metaUsd: number | null;
   vendidos: number;
   esperado: number;
   deuda: number;
@@ -177,7 +178,7 @@ export function armarMetasDelMes(args: {
     const vendidos = vendidosPorCohorte.get(cohorte.id) ?? 0;
     const v = ventana(cohorte);
     if (!v) {
-      return { cohorteId: cohorte.id, codigo: cohorte.codigo, metaCupos: 0, metaUsd: 0, vendidos, esperado: 0, deuda: 0, deudaPct: null, cumplimiento: null };
+      return { cohorteId: cohorte.id, codigo: cohorte.codigo, metaCupos: 0, metaUsd: cohorte.precioUsd === null ? null : 0, vendidos, esperado: 0, deuda: 0, deudaPct: null, cumplimiento: null };
     }
     const habilesTotales = diasHabilesEntre(v.inicio, v.cierre);
     const ritmo = metaLineal({ meta: cohorte.metaCupos, diasHabilesTotales: habilesTotales });
@@ -193,7 +194,7 @@ export function armarMetasDelMes(args: {
       cohorteId: cohorte.id,
       codigo: cohorte.codigo,
       metaCupos,
-      metaUsd: metaCupos * cohorte.precioUsd,
+      metaUsd: cohorte.precioUsd === null ? null : metaCupos * cohorte.precioUsd,
       vendidos,
       esperado,
       deuda,
@@ -218,7 +219,9 @@ export function armarMetasDelMes(args: {
   }
 
   const metaCupos = filas.reduce((total, fila) => total + fila.metaCupos, 0);
-  const metaUsd = filas.reduce((total, fila) => total + fila.metaUsd, 0);
+  const metaUsd = filas.some((fila) => fila.metaUsd === null)
+    ? null
+    : filas.reduce((total, fila) => total + fila.metaUsd!, 0);
   const vendidos = ventasDelMes.length;
   const esperado = filas.reduce((total, fila) => total + fila.esperado, 0);
   const deuda = Math.max(esperado - vendidos, 0);
@@ -291,9 +294,10 @@ export async function leerCohortesYVentas(
       ? []
       : await cohortesDeDealsVendidos(db, programId, idsVendidos);
 
+    const precios = await preciosDeReferenciaDeCiclos(db, filasCohortes.map((cohorte) => cohorte.id));
     const cohortes = filasCohortes.map<CohorteParaMetas>((cohorte) => ({
       ...cohorte,
-      precioUsd: Number(cohorte.precioUsd),
+      precioUsd: precios.get(cohorte.id) ?? null,
     }));
     const diaPorDeal = new Map(ventasConDia.map((venta) => [venta.dealId, diaDeCalendario(venta.dia)]));
     const ventas = dealsVendidos.map<VentaParaMetas>((venta) => ({
@@ -310,7 +314,6 @@ async function cohortesParaMetas(db: Db, programId: string) {
       id: cohorts.id,
       codigo: cohorts.codigo,
       metaCupos: cohorts.metaCupos,
-      precioUsd: cohorts.precioUsd,
       fechaInicioVentas: cohorts.fechaInicioVentas,
       fechaCierreVentas: cohorts.fechaCierreVentas,
     })

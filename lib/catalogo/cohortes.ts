@@ -1,7 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
-import { changeLog, cohorts, productos, programs, skus } from "@/lib/db/schema";
+import { changeLog, cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
@@ -95,6 +95,9 @@ export const esquemaCohorte = z.object({
     .nullable()
     .optional()
     .transform((v) => (v === undefined || v === "" ? null : v)),
+  /** Ausente = no se toca (el panel de Hoy edita la cohorte sin notas); vacío = se borra. */
+  notas: z.string().trim().max(500, "Máximo 500 caracteres.").nullable().optional()
+    .transform((v) => (v === "" ? null : v)),
 }).superRefine((datos, ctx) => {
   // El cierre no puede ser anterior al inicio de ventas (solo cuando ambas existen).
   if (
@@ -114,6 +117,27 @@ export const esquemaCohorte = z.object({
 export type EntradaCohorte = z.input<typeof esquemaCohorte>;
 /** Cohorte ya validada y normalizada. */
 export type CohorteValidada = z.output<typeof esquemaCohorte>;
+
+const esquemaVentanaDeCohorte = z.object({
+  fechaInicioVentas: fechaIso("La fecha de inicio de ventas"),
+  fechaCierreVentas: fechaIso("La fecha de cierre de ventas"),
+  metaCupos: z.coerce.number().int("Debe ser un entero.").nonnegative("No puede ser negativo."),
+  metaLeadsDia: z.coerce.number().int("Debe ser un entero.").nonnegative("No puede ser negativo.").nullable(),
+  fechaInicioClases: fechaIso("La fecha de inicio de clases").or(z.literal("")).nullable()
+    .transform((v) => (v === "" ? null : v)),
+  notas: z.string().trim().max(500, "Máximo 500 caracteres.").nullable().optional()
+    .transform((v) => (v === undefined || v === "" ? null : v)),
+}).superRefine((datos, ctx) => {
+  if (datos.fechaCierreVentas < datos.fechaInicioVentas) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fechaCierreVentas"],
+      message: "El cierre de ventas no puede ser anterior al inicio de ventas.",
+    });
+  }
+});
+
+export type EntradaVentanaDeCohorte = z.input<typeof esquemaVentanaDeCohorte>;
 
 /** Valida el id como uuid; un id invalido sale como ErrorDeApp 400, nunca como 500. */
 function idValido(id: string): string {
@@ -201,10 +225,8 @@ export async function listarCohortes(db: Db, programId: string) {
   return [...filas];
 }
 
-/**
- * Crea una cohorte; su estado se deduce de la ventana de ventas.
- * SALE como puerta propia en el ticket 459 (ADR 0139): la cohorte nace en la misma transacción que el primer SKU que
- * nombra su número, y el puente que crea aquí el SKU Programa virtual se retira.
+/** Crea una cohorte; su estado se deduce de la ventana de ventas.
+ * No es puerta de la app: el ciclo nace en crearSku (ADR 0139).
  */
 export async function crearCohorte(db: Db, actorId: string, input: EntradaCohorte) {
   return normalizando(async () => {
@@ -223,52 +245,29 @@ export async function crearCohorte(db: Db, actorId: string, input: EntradaCohort
           origen: "app" as const,
           userId: actorId,
       })));
-
-      let [producto] = await tx.select().from(productos).where(and(
-        eq(productos.programId, datos.programId), eq(productos.slug, "programa_virtual"),
-      ));
-      if (!producto) {
-        const productoId = crypto.randomUUID();
-        [producto] = await tx.insert(productos).values({
-          id: productoId, programId: datos.programId, nombre: "Programa virtual",
-          slug: "programa_virtual",
-        }).onConflictDoNothing().returning();
-        if (!producto) {
-          [producto] = await tx.select().from(productos).where(and(
-            eq(productos.programId, datos.programId), eq(productos.slug, "programa_virtual"),
-          ));
-        } else {
-          await tx.insert(changeLog).values([
-            ["programId", datos.programId], ["nombre", "Programa virtual"],
-            ["slug", "programa_virtual"],
-          ].map(([campo, valor]) => ({
-            tabla: "productos", registroId: productoId, etiqueta: "Programa virtual", campo,
-            valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,
-          })));
-        }
-      }
-      if (!producto) throw new Error("No se pudo crear el producto Programa virtual.");
-
-      const [programa] = await tx.select({ slug: programs.slug, comisionPorcentaje: programs.comisionPorcentaje })
-        .from(programs).where(eq(programs.id, datos.programId));
-      if (!programa) throw new Error("No existe el programa de la cohorte.");
-      // Puente del corte 1: el SKU virtual cuenta como cupo y toma el % del programa como valor inicial.
-      const comisionPorcentaje = programa.comisionPorcentaje;
-      const codigo = `${programa.slug.replaceAll("-", "_")}_programa_virtual_${datos.codigo.toLowerCase()}`;
-      const skuId = crypto.randomUUID();
-      const [sku] = await tx.insert(skus).values({
-        id: skuId, programId: datos.programId, productoId: producto.id, cohortId: id,
-        codigo, precioListaUsd: datos.precioUsd, cuentaComoCupo: true, comisionPorcentaje,
-      }).returning();
-      await tx.insert(changeLog).values(Object.entries({
-        programId: datos.programId, productoId: producto.id, cohortId: id,
-        codigo, precioListaUsd: datos.precioUsd, cuentaComoCupo: "true", comisionPorcentaje,
-      }).map(([campo, valor]) => ({
-        tabla: "skus", registroId: sku.id, etiqueta: codigo, campo,
-        valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,
-      })));
     });
     return (await leerCohorte(db, id))!;
+  });
+}
+
+/** Edita únicamente la ventana y las metas de un ciclo existente. */
+export async function editarVentanaDeCohorte(
+  db: Db,
+  actorId: string,
+  id: string,
+  input: EntradaVentanaDeCohorte,
+) {
+  return normalizando(async () => {
+    const objetivoId = idValido(id);
+    const datos = esquemaVentanaDeCohorte.parse(input);
+    const actual = await leerCohorte(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
+    return editarCohorte(db, actorId, objetivoId, {
+      programId: actual.programId,
+      codigo: actual.codigo,
+      precioUsd: String(actual.precioUsd),
+      ...datos,
+    });
   });
 }
 
@@ -281,7 +280,7 @@ export async function editarCohorte(db: Db, actorId: string, id: string, input: 
     if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
 
     const cambiados = Object.entries(datos).filter(
-      ([campo, valor]) =>
+      ([campo, valor]) => valor !== undefined &&
         aTexto((actual as Record<string, unknown>)[campo]) !== aTexto(valor),
     );
     if (cambiados.length === 0) return actual;

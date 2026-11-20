@@ -16,7 +16,8 @@ import { fecha, fechaHoraEnBogota, hoyEnBogota, num, usd } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
-import { CohortesAdmin } from "@/components/cohortes-admin";
+import { SkusDelPrograma } from "@/components/skus-del-programa";
+import { listarSkus, slugsDelPrograma } from "@/lib/catalogo/skus";
 import { FuentesAdmin } from "@/components/admin/fuentes-admin";
 import { puedeSerMiembro } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
@@ -77,9 +78,8 @@ export function presentacionDeLaFicha(rol: Rol | null) {
  *
  * Alcance (ADR 0048): un closer la ve solo en los programas donde tiene membresía activa; un
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
- * (`esAdministrador`: gerente o developer) edita las cohortes AQUÍ con el mismo
- * `CohortesAdmin` y las mismas acciones de Ajustes (A-10: las cohortes se encuentran desde el
- * programa). Las cuentas de Meta y el reporte por WhatsApp (265) también los configura quien administra.
+ * (`esAdministrador`: gerente o developer) edita los SKUs y ciclos AQUÍ (A-10: se encuentran
+ * desde el programa). Las cuentas de Meta y el reporte por WhatsApp (265) también los configura quien administra.
  * La reja de verdad son las acciones (`requireRole` y alcance del programa), no que el control aparezca.
  *
  * Ningún secreto llega aquí: la ficha dice SI hay token de Calendly y webhook conectado, nunca
@@ -133,13 +133,15 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     vistaPrevia,
   } = datos;
   const { programa, cohortes, checkouts, equipo, plataformas, plataformasDisponibles } = ficha;
+  const [skus, nombresDeSku] = configura
+    ? await Promise.all([listarSkus(db, programa.id), slugsDelPrograma(db, programa.id)])
+    : [[], []];
   const faltan = pasos.filter((paso) => paso.exigidoParaActivar && !paso.hecho);
   const recomendados = pasos.filter((paso) => !paso.exigidoParaActivar && !paso.hecho);
   const programaParaEditar = {
     id: programa.id,
     slug: programa.slug,
     nombre: programa.nombre,
-    ticketUsd: programa.ticketUsd,
     comisionPorcentaje: programa.comisionPorcentaje,
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
@@ -190,6 +192,12 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       id: cohorte.id,
       codigo: cohorte.codigo,
       estado: cohorte.estado,
+      metaCupos: cohorte.metaCupos,
+      metaLeadsDia: cohorte.metaLeadsDia,
+      fechaInicioClases: cohorte.fechaInicioClases,
+      fechaInicioVentas: cohorte.fechaInicioVentas,
+      fechaCierreVentas: cohorte.fechaCierreVentas,
+      notas: cohorte.notas,
       cuposSinAsignar: sinAsignar[i],
       tieneObjetivos: filas.length > 0,
       anteriorId: anterior?.id ?? null,
@@ -260,12 +268,15 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       />
     ),
     cohorte_activa: (
-      <CohortesAdmin
-        slug={programa.slug}
-        programId={programa.id}
-        ticketUsd={programa.ticketUsd}
-        cohortes={cohortes}
-      />
+      configura ? (
+        <SkusDelPrograma
+          slug={programa.slug}
+          programId={programa.id}
+          skus={skus}
+          nombres={nombresDeSku.flatMap((fila) => fila.nombre ? [fila.nombre] : [])}
+          codigosDeCohorte={cohortes.map((cohorte) => cohorte.codigo)}
+        />
+      ) : <ListaDeCohortes cohortes={cohortes} />
     ),
     plataforma_pago: (
       <PlataformasDelPrograma
@@ -317,17 +328,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
           {!enRecorrido && seccion === "programa" ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                <Kpi etiqueta="Ticket de referencia">
-                  <p className="cifra text-2xl font-semibold">{usd(Number(programa.ticketUsd))}</p>
-                </Kpi>
-                {presentacion.muestraComision ? <Kpi etiqueta="Comisión del closer">
-                  {programa.comisionPorcentaje == null ? (
-                    <Badge variant="alerta">Sin cargar</Badge>
-                  ) : (
-                    <p className="cifra text-2xl font-semibold">{num(Number(programa.comisionPorcentaje), 2)} %</p>
-                  )}
-                  <p className="text-xs text-muted-foreground">del valor vendido</p>
-                </Kpi> : null}
                 <Kpi etiqueta="Cohorte activa">
                   {activa ? (
                     <p className="cifra text-2xl font-semibold">{activa.codigo}</p>
@@ -484,17 +484,18 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
 
           {!enRecorrido && seccion === "ventas" ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card id="cohortes" className="scroll-mt-4">
+              <Card id="cohortes" className="scroll-mt-4 lg:col-span-2">
                 <CardHeader>
-                  <CardTitle className="text-base">Cohortes</CardTitle>
+                  <CardTitle className="text-base">SKUs y cohortes</CardTitle>
                 </CardHeader>
                 <CardContent className="md:max-h-[calc(100dvh-18rem)] md:overflow-y-auto">
                   {configura ? (
-                    <CohortesAdmin
+                    <SkusDelPrograma
                       slug={programa.slug}
                       programId={programa.id}
-                      ticketUsd={programa.ticketUsd}
-                      cohortes={cohortes}
+                      skus={skus}
+                      nombres={nombresDeSku.flatMap((fila) => fila.nombre ? [fila.nombre] : [])}
+                      codigosDeCohorte={cohortes.map((cohorte) => cohorte.codigo)}
                     />
                   ) : (
                     <ListaDeCohortes cohortes={cohortes} />
@@ -530,6 +531,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 </CardHeader>
                 <CardContent>
                   <ObjetivosDeLaCohorte
+                    slug={programa.slug}
                     cohortes={cohortesConObjetivos}
                     objetivos={objetivos}
                     metricas={metricasObjetivo}
@@ -576,7 +578,7 @@ function ListaDeCohortes({ cohortes }: { cohortes: CohorteVista[] }) {
   if (cohortes.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Este programa todavía no tiene cohortes. Quien administra las crea aquí mismo.
+        Este programa todavía no tiene cohortes. Quien administra las crea desde un SKU nuevo.
       </p>
     );
   }
@@ -602,7 +604,7 @@ function ListaDeCohortes({ cohortes }: { cohortes: CohorteVista[] }) {
                 {" "}· <span className="cifra text-foreground">{num(c.metaLeadsDia)}</span> leads por día
               </>
             ) : null}{" "}
-            · precio <span className="cifra text-foreground">{usd(Number(c.precioUsd))}</span>
+            · precio <span className="cifra text-foreground">{c.precioUsd === null ? "Sin precio" : usd(c.precioUsd)}</span>
           </p>
         </li>
       ))}

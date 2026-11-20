@@ -10,6 +10,7 @@ import { cargarRoasDePauta, type VistaRoasDePauta } from "@/lib/queries/roas-de-
 import { grupoDeCitas, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { vigente } from "@/lib/queries/vigente";
 import { muestraMinimaDelPrograma } from "@/lib/programas/hechos";
+import { preciosDeReferenciaDeCiclos } from "@/lib/cohortes/precio-de-referencia";
 
 /**
  * El ROAS proyectado (ticket 375, Daniel Tovar 3-nov): lo vendido a hoy más lo que se espera de las citas que
@@ -151,7 +152,7 @@ export async function calcularProyeccionDeRoas(
   const [duenos, grupo, [programa]] = await Promise.all([
     ids.length === 0 ? [] : db.select({
       callId: calls.id, clave: claveCloserSql(users.id), closer: etiquetaDeCloserSql(),
-      precio: cohorts.precioUsd,
+      cohortId: deals.cohortId,
     }).from(calls)
       .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
       .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
@@ -160,11 +161,15 @@ export async function calcularProyeccionDeRoas(
     grupoDeCitas(db, { programId, rango: { desde: sumarDias(hoy, -7 * SEMANAS_DE_MUESTRA), hasta: hoy }, ahora }),
     muestraMinimaDelPrograma(db, programId),
   ]);
+  const precios = await preciosDeReferenciaDeCiclos(
+    db,
+    duenos.flatMap((dueno) => dueno.cohortId ? [dueno.cohortId] : []),
+  );
   const dueno = new Map(duenos.map((d) => [d.callId, d]));
   const citas: CitaPendiente[] = pendientes.flatMap((p) => {
     const d = dueno.get(p.callId);
     return d ? [{ callId: p.callId, claveCloser: d.clave, closer: d.closer, fecha: p.fecha,
-      ticketUsd: d.precio === null ? null : Number(d.precio) }] : [];
+      ticketUsd: d.cohortId === null ? null : precios.get(d.cohortId) ?? null }] : [];
   });
   const pura = proyectarRoas({
     vendidoUsd: roas.total.valorVendidoUsd, gastoUsd: roas.total.gastoUsd, roasAHoy: roas.total.roas,

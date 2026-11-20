@@ -27,7 +27,7 @@ import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-d
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
-import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
+import { descuentosDeDeals, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { columnasCohorteConEstado, estadoDeCohorteSql } from "@/lib/cohortes/estado";
 import { esEtapaVendida } from "@/lib/deals/etapas";
@@ -39,6 +39,7 @@ import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 import { telefonosEnComun } from "@/lib/queries/leads";
 import { cambiosDeDeals } from "@/lib/queries/cambios-de-dueno";
+import { precioDeReferenciaDelCiclo } from "@/lib/cohortes/precio-de-referencia";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -234,7 +235,7 @@ export interface FichaDeDeal {
   linkAgenda: string | null;
   tieneCitaVigente: boolean;
   valorVendidoUsd: number | null;
-  ticket: { cohorteId: string; codigo: string; precioUsd: number; esActivaSugerida: boolean } | null;
+  ticket: { cohorteId: string; codigo: string; precioUsd: number | null; esActivaSugerida: boolean } | null;
   descuento: DescuentoDeDeal | null;
   vendido: boolean;
   /** `inicioClases`: nulo si la cohorte futura esta "por definir" (ticket 227). */
@@ -318,15 +319,9 @@ const NIVEL_DE_ALERTA: Record<MotivoAlertaDeal, "urgente" | "alerta"> = {
 
 /** Lo urgente y lo que falta para mover este deal, calculado por los módulos que deciden ambas cosas. */
 export async function alertasDelDeal(db: Db, programId: string, dealId: string): Promise<AlertasDelDeal | null> {
-  const [deal] = await db
-    .select()
-    .from(deals)
-    .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
-  if (!deal) return null;
-
-  const hechos = await leerHechos(db, deal, deal.motivoId, null);
-  const duplicadosFilas = await db
+  const filasDeal = await db
     .select({
+      deal: deals,
       contactoId: leadContactos.id,
       correoPrincipal: leads.emailNormalizado,
       correoSinConfirmar: leadContactos.valor,
@@ -335,16 +330,26 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       envioCreadoEn: submissions.createdAt,
       fuente: sources.nombre,
     })
-    .from(leadContactos)
-    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
-    .leftJoin(submissions, eq(submissions.id, leadContactos.submissionId))
-    .leftJoin(sources, eq(sources.id, submissions.sourceId))
-    .where(and(
-      eq(leadContactos.leadId, deal.leadId),
-      eq(leadContactos.programId, programId),
+    .from(deals)
+    .leftJoin(leadContactos, and(
+      eq(leadContactos.leadId, deals.leadId),
+      eq(leadContactos.programId, deals.programId),
       eq(leadContactos.tipo, "correo"),
       eq(leadContactos.confirmado, false),
-    ));
+    ))
+    .leftJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, leadContactos.submissionId))
+    .leftJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
+  const deal = filasDeal[0]?.deal;
+  if (!deal) return null;
+
+  const hechos = await leerHechos(db, deal, deal.motivoId, null);
+  const duplicadosFilas = filasDeal.filter((fila): fila is typeof fila & {
+    contactoId: string;
+    correoPrincipal: string;
+    correoSinConfirmar: string;
+  } => fila.contactoId != null && fila.correoPrincipal != null && fila.correoSinConfirmar != null);
   const telefonos = duplicadosFilas.length > 0 ? await telefonosEnComun(db, programId, [deal.leadId]) : new Map<string, string>();
   const posiblesDuplicados = duplicadosFilas.map((fila) => ({
     contactoId: fila.contactoId,
@@ -723,6 +728,10 @@ export async function fichaDeDeal(
   const activaSugerida = deal.cohortId == null ? await cohorteActiva(deal.programId, db) : null;
   const cohorteDelTicket = cohorte ?? activaSugerida;
   const valorVendidoUsd = deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd);
+  const [precioDelTicket, descuentos] = await Promise.all([
+    cohorteDelTicket ? precioDeReferenciaDelCiclo(db, cohorteDelTicket.id) : Promise.resolve(null),
+    descuentosDeDeals(db, [deal.id]),
+  ]);
 
   return {
     dealId: deal.id,
@@ -767,11 +776,11 @@ export async function fichaDeDeal(
       ? {
           cohorteId: cohorteDelTicket.id,
           codigo: cohorteDelTicket.codigo,
-          precioUsd: Number(cohorteDelTicket.precioUsd),
+          precioUsd: precioDelTicket,
           esActivaSugerida: cohorte == null,
         }
       : null,
-    descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
+    descuento: descuentos.get(deal.id) ?? null,
     // 392: el mismo predicado de venta que Students y el Hub (`etapaVendida`, DA-1). Antes tambien contaba un
     // deal con abonos en cualquier etapa: un perdido con abono seguia "vendido" solo en esta ficha.
     vendido: esEtapaVendida(deal.etapa),

@@ -1,8 +1,8 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { abonos, cohorts, deals, enlacesPago, plataformasPago, users } from "@/lib/db/schema";
+import { abonos, deals, enlacesPago, plataformasPago, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
-  descuentoDeDeal,
+  descuentosDeDeals,
   saldosDeDeals,
   type DescuentoDeDeal,
   type SaldoDeDeal,
@@ -52,17 +52,16 @@ export async function pagosDeStudents(
       valorVendidoUsd: deals.valorVendidoUsd,
       acuerdoPago: deals.acuerdoPago,
       fechaLimitePago: deals.fechaLimitePago,
-      ticketUsd: cohorts.precioUsd,
     })
     .from(deals)
-    .leftJoin(cohorts, eq(cohorts.id, deals.cohortId))
     .where(and(eq(deals.programId, programId), inArray(deals.id, [...dealIds]), vigente(deals)));
 
   const idsValidos = dealsFilas.map((fila) => fila.id);
   if (idsValidos.length === 0) return new Map();
 
-  const [saldos, abonosFilas] = await Promise.all([
+  const [saldos, descuentos, abonosFilas] = await Promise.all([
     saldosDeDeals(db, idsValidos),
+    descuentosDeDeals(db, idsValidos),
     db
       .select({
         id: abonos.id,
@@ -121,7 +120,7 @@ export async function pagosDeStudents(
       const valorVendidoUsd = deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd);
       return [[deal.id, {
         valorVendidoUsd,
-        descuento: descuentoDeDeal(deal.ticketUsd, deal.valorVendidoUsd),
+        descuento: descuentos.get(deal.id) ?? null,
         saldo,
         acuerdoPago: deal.acuerdoPago,
         fechaLimitePago: deal.fechaLimitePago,

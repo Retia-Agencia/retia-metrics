@@ -146,6 +146,9 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
     (total, fila) => total + fila.esperado * (fila.cohorteId ? precioPorCohorte.get(fila.cohorteId) ?? 0 : 0),
     0,
   );
+  const mesSinPrecio = metasMes.filas.some(
+    (fila) => fila.cohorteId !== null && precioPorCohorte.get(fila.cohorteId) == null,
+  );
   const mesSinMeta = metasMes.mesSinVentana || metasMes.metaCupos <= 0;
   const umbralMes = umbralDe("meta_mes");
   const mes: VamosALlegar["mes"] = {
@@ -159,8 +162,8 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
         antesDeHoy: ids.mesAntes.length, hoy, cierre: finDeMes, umbral: umbralMes,
       }),
       usd: celdaDeMeta({
-        llevamos: entrada.vendido.mes.vendido, meta: mesSinMeta ? null : metasMes.metaUsd,
-        esperado: esperadoUsdMes, antesDeHoy: entrada.vendido.mesAntes.vendido, hoy, cierre: finDeMes,
+        llevamos: entrada.vendido.mes.vendido, meta: mesSinMeta || mesSinPrecio ? null : metasMes.metaUsd,
+        esperado: mesSinPrecio ? null : esperadoUsdMes, antesDeHoy: entrada.vendido.mesAntes.vendido, hoy, cierre: finDeMes,
         umbral: umbralMes,
       }),
       ventasSinValorVendido: entrada.vendido.mes.sinValorVendido,
@@ -173,16 +176,18 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
   if (!activa || !entrada.cohorteActiva) return { hoy, mes, cohorte: null };
   const ventasCohorte = entrada.cohorteActiva.ventasDeLaCohorte;
   const metaCupos = activa.metaCupos;
-  const metaUsd = metaCupos * activa.precioUsd;
+  const metaUsd = activa.precioUsd === null ? null : metaCupos * activa.precioUsd;
   const ventana = activa.fechaInicioVentas && activa.fechaCierreVentas
     ? { inicio: activa.fechaInicioVentas, cierre: activa.fechaCierreVentas }
     : null;
   const esperadoCupos = ventana ? esperadoLineal({ meta: metaCupos, ...ventana, hasta: hoy }) : null;
-  const esperadoUsd = ventana ? esperadoLineal({ meta: metaUsd, ...ventana, hasta: hoy }) : null;
+  const esperadoUsd = ventana && metaUsd !== null ? esperadoLineal({ meta: metaUsd, ...ventana, hasta: hoy }) : null;
   const llevamosUsd = entrada.vendido.cohorte.vendido;
   const proyectados = entrada.proyeccion?.valor ?? null;
   // Los cupos que la proyeccion ve sin vender se valoran al precio de la cohorte: la misma regla de la meta.
-  const proyeccionUsd = proyectados === null ? null : llevamosUsd + Math.max(proyectados - ventasCohorte.length, 0) * activa.precioUsd;
+  const proyeccionUsd = proyectados === null || activa.precioUsd === null
+    ? null
+    : llevamosUsd + Math.max(proyectados - ventasCohorte.length, 0) * activa.precioUsd;
   const umbralCohorte = umbralDe("meta_cohorte");
   const sinMetaCohorte = metaCupos <= 0;
   return {

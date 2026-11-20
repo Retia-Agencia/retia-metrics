@@ -10,6 +10,7 @@ import { bandejaParaActor, fichaDeDealVisible, fichaDeLeadParaActor, tableroDeDe
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -60,6 +61,7 @@ beforeEach(async () => {
     fechaCierreVentas: "2026-12-01",
     fechaInicioClases: "2026-12-02",
   }).returning();
+  await skuVirtualDePrueba(db, cohorte.id);
   const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Formulario" }).returning();
   const [lead, leadAjeno] = await db.insert(leads).values([
     { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "ana@retia.test", nombre: "Ana", telefono: "3001234567" },

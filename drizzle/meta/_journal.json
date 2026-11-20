@@ -1100,6 +1100,13 @@
       "when": 1795186185883,
       "tag": "0156_sku_cupo_comision_376",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1795199248917,
+      "tag": "0157_sku_nombre_slug_459",
+      "breakpoints": true
     }
   ]
 }

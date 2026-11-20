@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
@@ -44,6 +44,7 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
     fechaInicioClases: "2026-11-01", }).returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohortId);
   contador = 0;
 });
 afterAll(async () => cerrar());
