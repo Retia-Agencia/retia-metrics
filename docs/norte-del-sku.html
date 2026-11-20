@@ -1,0 +1,431 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Norte del SKU</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout: una columna de lectura (~72ch) con tablas que se desbordan en su propio contenedor; los hallazgos llevan franja de severidad. */
+:root{
+  --bg:#f6f7f5; --panel:#ffffff; --fg:#1d2420; --muted:#5b665f; --line:#d9ded9;
+  --accent:#1f6f5c; --accent-soft:#e3efe9;
+  --crit:#b3261e; --crit-soft:#fbe9e7; --warn:#a15c00; --warn-soft:#fdf1df; --ok:#2e6b33; --ok-soft:#e6f2e6;
+  --code-bg:#eef1ee;
+  --f-display:"Fraunces", Georgia, serif; --f-body:"IBM Plex Sans", system-ui, -apple-system, sans-serif; --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --panel:#1a201d; --fg:#e4e9e5; --muted:#9aa59e; --line:#2d3631;
+  --accent:#6cc7ad; --accent-soft:#1d3029;
+  --crit:#ff8a80; --crit-soft:#3a1d1b; --warn:#f0b35a; --warn-soft:#352816; --ok:#8fd19a; --ok-soft:#1c2e1f;
+  --code-bg:#222a26; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#121614; --panel:#1a201d; --fg:#e4e9e5; --muted:#9aa59e; --line:#2d3631;
+  --accent:#6cc7ad; --accent-soft:#1d3029;
+  --crit:#ff8a80; --crit-soft:#3a1d1b; --warn:#f0b35a; --warn-soft:#352816; --ok:#8fd19a; --ok-soft:#1c2e1f;
+  --code-bg:#222a26; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+.prose{max-width:74ch}
+h1{font:600 clamp(28px,4.4vw,40px)/1.15 var(--f-display);margin:0;text-wrap:balance}
+h2{font:600 24px/1.25 var(--f-display);margin:0 0 12px;text-wrap:balance}
+h3{font:600 16px/1.35 var(--f-body);margin:0;text-wrap:balance}
+p{margin:0}
+.stack{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px}
+nav.toc a{font:500 13px/1 var(--f-body);text-decoration:none;color:var(--fg);border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:999px}
+nav.toc a:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.fact{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.fact b{font:600 22px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+.finding{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--warn);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.finding.crit{border-left-color:var(--crit)}
+.finding.ok{border-left-color:var(--ok)}
+.finding .head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pill{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 7px;border-radius:4px;white-space:nowrap}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.finding ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:14px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:13.5px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font:600 12px/1.3 var(--f-body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--code-bg);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.loc{font-family:var(--f-mono);font-size:12px;line-height:1.55;color:var(--muted);min-width:230px}
+td.sup{font-weight:600;min-width:140px}
+.cut{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.cut:first-of-type{border-top:0}
+.cut .id{font:600 18px/1.2 var(--f-mono);color:var(--accent)}
+.cut .id.new{color:var(--crit)}
+.cut ul{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 18px}
+.dec{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:14px 0;border-top:1px solid var(--line)}
+.dec:first-of-type{border-top:0}
+.dec .id{font:600 15px/1.4 var(--f-mono);color:var(--accent)}
+.rec{font-size:14px;background:var(--accent-soft);border-radius:6px;padding:8px 10px;margin-top:6px}
+footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:560px){.cut,.dec{grid-template-columns:1fr;gap:4px}}
+</style>
+
+<div class="wrap">
+
+<header class="stack prose">
+  <span class="eyebrow">Retia Metrics · audit · 20-nov-2026 · base en la migración 0156</span>
+  <h1>El SKU reemplaza a la cohorte, al ticket y al % del programa: qué falta y qué se contradice</h1>
+  <p>Contraste del ADR 0137 (con sus enmiendas del 19 y 20-nov), el ADR 0139 y el plan del ticket 376 (cortes 459 a 463) contra el código de <code>main</code> en <code>91963d31</code> y contra los datos vivos del CRM. No rediseña lo decidido: dice dónde el código todavía no lo cumple, qué rompe cada corte y qué hueco no tiene ticket. Todo lo citado es <code>archivo:línea</code> medido hoy con <code>git grep</code>; las cifras de deals y ventas salen del CRM en producción (vistas de lectura del MCP, 20-nov).</p>
+  <nav class="toc" aria-label="Secciones">
+    <a href="#hallazgos">Hallazgos que cambian el plan</a>
+    <a href="#inventario">Inventario por superficie</a>
+    <a href="#decisiones">Decisiones para Mani</a>
+    <a href="#cortes">Orden de los cortes</a>
+    <a href="#restricciones">Restricciones tocadas</a>
+  </nav>
+</header>
+
+<section class="stack" aria-labelledby="medida">
+  <h2 id="medida">Lo medido</h2>
+  <div class="facts">
+    <div class="fact"><b>254 · 62</b><span>usos de <code>cohortId</code> · archivos en lib, app, components, scripts</span></div>
+    <div class="fact"><b>42 · 16</b><span><code>cohorteActiva</code> · archivos</span></div>
+    <div class="fact"><b>53 · 21</b><span><code>precioUsd</code> (casi todo <code>cohorts.precio_usd</code>)</span></div>
+    <div class="fact"><b>45 · 16</b><span><code>ticketUsd</code> en código; 440 usos en 259 archivos de test</span></div>
+    <div class="fact"><b>56 · 17</b><span><code>comisionPorcentaje</code> (programa, deal y SKU)</span></div>
+    <div class="fact"><b>18 · 5</b><span><code>cuentaComoCupo</code> · <code>cohortesVendiendo</code> 8 · 4</span></div>
+    <div class="fact"><b>1.575 vs 173</b><span>deals abiertos de Tactical en C3 contra C4 tras la redistribución (CRM vivo, tarde del 20-nov)</span></div>
+    <div class="fact"><b>6</b><span>joins obligatorios a <code>productos</code> que el popup volvería ciegos</span></div>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="hallazgos">
+  <h2 id="hallazgos">Hallazgos que cambian el plan</h2>
+  <p class="prose muted">Ordenados por riesgo. Los tres primeros no están en ningún ticket o los rompe el 459 tal como está escrito.</p>
+
+  <article class="finding crit">
+    <div class="head"><span class="pill crit">Crítico · contradice el ADR 0139</span><h3>H0. Las ventanas que alguien mantiene a mano son el problema que Mani quiere quitar</h3></div>
+    <p>Dato de Mani (20-nov): las fechas del CRM estaban mal en los dos programas. Tactical C3 cerró ventas el <b>16-nov</b>, no el 10. ComunicArte C3 cerró el 10-nov y la C4 vende desde el 11, pero el CRM decía 13 y 14. Hubo que redistribuir cientos de deals entre C3 y C4 con un script, por fecha de creación o de primer abono. Lo que pide: <i>«que solo sea necesario crear los productos y los closers son los que asocian a los Deals y ya»</i>.</p>
+    <p>El ADR 0139 (puntos 3 y 8) hace la ventana <b>obligatoria</b> y la deja decidiendo a qué ciclo va cada cosa: la cohorte activa (<code>lib/cohortes/estado.ts:15</code>) alimenta el ciclo de un deal nuevo (<code>mover-etapa.ts:654</code>), el filtro por defecto del tablero y del Hub, Hotmart (<code>traducir.ts:26</code>), «Cambiar cohorte» (<code>estudiante.ts:181</code>), Juanito, semáforo y alertas. Una fecha mal escrita reubica deals en silencio. Mientras eso siga, el 459 solo cambia la pantalla donde se teclea la fecha equivocada. Es la decisión <b>D-0</b>; H1, D-2 y el 464 dependen de ella.</p>
+  </article>
+
+  <div class="grid2">
+  <article class="finding crit">
+    <div class="head"><span class="pill crit">Crítico · sin ticket</span><h3>H1. El ciclo de un deal se congela el día que nace</h3></div>
+    <p><code>abrirDeal</code> le pone la cohorte activa del día de creación y le asigna la línea con cupo de esa cohorte (<code>lib/deals/mover-etapa.ts:654</code>, <code>:713-718</code>). Nada la mueve después: el primer abono reutiliza esa línea (<code>lib/deals/abonos.ts:214</code> → <code>lib/deals/valor-vendido.ts:49-70</code>), así que vende el SKU viejo, a su precio, y cuenta en la meta de un ciclo cerrado.</p>
+    <ul>
+      <li>Tactical, después del script de redistribución: <b>1.575 deals abiertos en C3</b> contra 173 en C4; ComunicArte: 1.697 abiertos en C3 y 0 en C4 (CRM vivo, tarde del 20-nov).</li>
+      <li>Antes del script, 1 venta de Tactical (1.055 USD) y 1 de ComunicArte (597 USD) con primer pago desde el 11-nov estaban en C3; con las fechas corregidas (H0) hay que revisarlas una por una.</li>
+      <li>El tablero de Deals filtra por la activa por defecto (<code>lib/queries/kanban.ts:303</code>): los abiertos del ciclo anterior no se ven.</li>
+    </ul>
+    <p>El ADR 0139 asume que «la cohorte se lee de los SKUs», pero el SKU lo eligió el sistema con la fecha del día, no el closer. Propuesta: D-0 y ticket <b>464</b> (abajo).</p>
+  </article>
+
+  <article class="finding crit">
+    <div class="head"><span class="pill crit">Crítico · rompe con el 459</span><h3>H2. El código exige exactamente un SKU con cupo por ciclo</h3></div>
+    <p><code>skuConCupoDeCohorte</code> lanza 409 si hay 0 o más de 1 (<code>lib/deals/lineas.ts:31-45</code>); <code>lineaConCupoVigente</code> lanza 409 si un deal tiene dos líneas con cupo (<code>:55-63</code>); Hotmart manda a revisión con <code>cohorte_ambigua</code> (<code>lib/pagos/traducir.ts:29-37</code>).</p>
+    <p>El popup del 459 deja marcar «Cuenta como cupo» en cualquier SKU y la enmienda del 19-nov decía «pueden ser varios». El segundo SKU con cupo de un ciclo (p. ej. Virtual C4 y Presencial C4) rompe a la vez: abrir deal, primer abono, cambiar cohorte y toda compra de Hotmart de ese ciclo.</p>
+    <p>Decisión D-1. Si la respuesta es «uno», va como restricción de base en el 459.</p>
+  </article>
+
+  <article class="finding crit">
+    <div class="head"><span class="pill crit">Crítico · hueco en el 459</span><h3>H3. Un SKU sin producto es invisible</h3></div>
+    <p>El 459 vuelve nullable <code>skus.producto_id</code> y los SKUs del popup ya no tienen producto (ADR 0139 punto 2). Pero seis lecturas hacen <code>innerJoin(productos)</code>: <code>lib/deals/lineas.ts:34</code>, <code>:59</code>, <code>:77</code>, <code>:227</code>, <code>lib/pagos/traducir.ts:30</code>, <code>lib/queries/saldo.ts:128</code>.</p>
+    <p>Consecuencia: una línea de un SKU nuevo no suma a <code>deals.valor_vendido_usd</code> ni a la cohorte derivada (<code>escribirDerivados</code>), no aparece en saldos y no sirve como cupo. Silencioso: ningún error, cifras que bajan. El 459 tiene que quitar esos joins en el mismo corte (su paso 2 solo menciona el cupo). También <code>cambiarSkuDeLineaConCupo</code> busca «el mismo producto» por <code>productoId</code> (<code>lineas.ts:216-233</code>): pasa a <code>skus.slug</code>.</p>
+  </article>
+
+  <article class="finding crit">
+    <div class="head"><span class="pill crit">Crítico · orden</span><h3>H4. La comisión todavía es del programa</h3></div>
+    <p>Hoy se congela en el deal el % del programa (<code>lib/deals/mover-etapa.ts:361-374</code>) y se paga ese % sobre todo lo vendido (<code>lib/queries/comision.ts:61</code>, <code>:77</code>). El % del SKU solo actúa como interruptor: 0 % excluye la línea de la base (<code>comision.ts:15-25</code>). Un SKU al 5 % en un programa al 10 % paga 10 %. <code>deal_lineas</code> no tiene columna de %.</p>
+    <ul>
+      <li>Si el 463 retira <code>programs.comision_porcentaje</code> antes de que el 461 congele por línea, vender falla con 422 (<code>mover-etapa.ts:368</code>).</li>
+      <li>Un programa nuevo sin % no puede vender hoy (mismo 422). Aplica a los programas de Nicolás y Francisco.</li>
+      <li><code>lib/deals/rellenar-comision.ts:30-65</code> rellena desde el programa: sale con el 461.</li>
+    </ul>
+  </article>
+
+  <article class="finding">
+    <div class="head"><span class="pill warn">Alto · hasta el 460</span><h3>H5. «Adicional» recrea lo que 0156 borró</h3></div>
+    <p>Un abono «adicional» crea una línea en <code>sin_clasificar</code> y, si el producto no existe, lo vuelve a crear (<code>lib/deals/abonos.ts:226-231</code> → <code>lib/deals/lineas.ts:144-197</code>). La 0156 sacó <code>sin_clasificar</code> de ComunicArte (<code>drizzle/0156_sku_cupo_comision_376.sql:44-50</code>): el próximo pago del 1:1 con Rosario registrado como adicional vuelve ahí, a 0 USD de lista. El MCP solo conoce <code>ticket | adicional</code> (<code>lib/mcp/acciones/registrar-abono.ts:19</code>, <code>:57</code>) y el 460 no lo nombra.</p>
+    <p>Mientras llega el 460: instrucción operativa a closers (no usar «Aparte del programa» para el 1:1) o re-colgar a mano con rastro.</p>
+  </article>
+
+  <article class="finding">
+    <div class="head"><span class="pill warn">Alto · ya hoy</span><h3>H6. Dos precios que pueden divergir</h3></div>
+    <p><code>editarCohorte</code> cambia <code>cohorts.precio_usd</code> sin tocar el SKU (<code>lib/catalogo/cohortes.ts:278-340</code>, cero referencias a <code>skus</code>). La meta en USD lee la cohorte (<code>lib/queries/metas.ts:196</code>, <code>lib/queries/vamos-a-llegar.ts:176</code>, <code>lib/metas/cumplimiento-de-cohorte.ts:126-133</code>); el valor vendido lee el SKU (<code>valor-vendido.ts:71</code>). Además la pantalla puente prellena el precio de la cohorte con el ticket del programa (<code>components/cohortes-admin.tsx:130</code>). Viola <i>definición única</i> hasta que entre el 461.</p>
+  </article>
+
+  <article class="finding">
+    <div class="head"><span class="pill warn">Medio · hasta el 462</span><h3>H7. Cupos cuentan deals, no líneas con cupo</h3></div>
+    <p>«Cupos», meta, proyección y alertas salen de <code>ventasDeLaCohorte</code>, que filtra por <code>deals.cohort_id</code> (<code>lib/queries/ventas-de-la-cohorte.ts:41</code>). Y <code>escribirDerivados</code> conserva la cohorte de un deal sin línea con cupo (<code>lib/deals/lineas.ts:96-98</code>): un deal que solo compró un 1:1 cuenta como cupo. El ADR 0137 punto 9 dice lo contrario. El 462 lo corrige; hoy el caso real es raro (los 1:1 cuelgan de deals con virtual).</p>
+  </article>
+
+  <article class="finding">
+    <div class="head"><span class="pill warn">Medio · hueco en el 459</span><h3>H8. El ciclo nace sin umbrales</h3></div>
+    <p>Los objetivos (umbrales del semáforo, alertas y Juanito) se copian a mano con un botón (<code>app/(app)/p/[programa]/programa/objetivos-de-la-cohorte.tsx:179</code>). Juanito exige umbral en la activa al guardar (<code>lib/catalogo/reportes-whatsapp.ts:136-148</code>); semáforo y alertas leen la activa (<code>lib/semaforo/semaforo.ts:95</code>, <code>lib/queries/alertas.ts:123</code>). Un ciclo nacido del popup arranca sin umbrales y esas cifras quedan mudas. Verificar si la C4 de Tactical ya tiene objetivos.</p>
+  </article>
+
+  <article class="finding">
+    <div class="head"><span class="pill acc">Contradicción de fechas</span><h3>H9. La urgencia del 459 se calculó con una fecha vieja</h3></div>
+    <p>ADR 0139 punto 8 y el 376 (<code>docs/tasks/376-productos-y-skus.md:135-136</code>, <code>:168</code>) dicen que la C3 de Tactical cierra el 15-dic y que el popup existe para crear la C4. Según Mani, la C3 de Tactical cerró ventas el 16-nov y la C4 ya existe, creada por la pantalla puente (ComunicArte: C3 hasta el 10-nov, C4 desde el 11). El criterio «gerencia crea la C4 de Tactical desde el popup» ya no se puede cumplir. La fecha real la ponen el próximo ciclo que haya que crear (la C5 de Tactical o la siguiente de ComunicArte) y los programas nuevos.</p>
+  </article>
+
+  <article class="finding ok">
+    <div class="head"><span class="pill ok">En orden</span><h3>Lo que el código ya cumple</h3></div>
+    <ul>
+      <li>Activa, futura y cerrada salen solo de fechas, en JS y SQL gemelos (<code>lib/cohortes/estado.ts:15-29</code>).</li>
+      <li>Todo abono cuelga de una línea; el sobrepago y el saldo son por línea (<code>lib/queries/saldo.ts:124-158</code>).</li>
+      <li>Un solo escritor de derivados del deal (<code>lib/deals/lineas.ts:65</code>).</li>
+      <li>Cupo y % ya viven en el SKU (<code>lib/db/schema.ts:466-468</code>).</li>
+      <li>Comentario desactualizado: <code>lib/queries/cohortes.ts:23-25</code> sigue citando el índice parcial que salió en 0155.</li>
+    </ul>
+  </article>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="inventario">
+  <h2 id="inventario">Inventario de side effects por superficie</h2>
+  <p class="prose muted">Riesgo: <span class="pill crit">alto</span> rompe una venta, una cifra del Hub o el pago al closer; <span class="pill warn">medio</span> cifra o pantalla equivocada sin romper; <span class="pill ok">bajo</span> rótulo o limpieza. «Hueco» = ningún ticket del 459 al 463 lo cubre.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Superficie</th><th>Dónde</th><th>Qué cambia</th><th>Riesgo</th><th>Ticket</th></tr></thead>
+    <tbody>
+      <tr><td class="sup">Tablero de Deals: filtro</td>
+        <td class="loc">lib/queries/kanban.ts:303, :613, :698<br>kanban.ts:829-861 (opciones)<br>app/(app)/p/[programa]/deals/page.tsx:112</td>
+        <td>Por defecto filtra por la activa. Con el ciclo deducido, el cambio de ventana esconde todo el pipeline abierto del ciclo anterior. Las opciones de cohorte salen de los deals, no de los SKUs.</td>
+        <td><span class="pill crit">alto</span></td><td>Hueco → 464</td></tr>
+      <tr><td class="sup">Tablero: valor de la tarjeta</td>
+        <td class="loc">kanban.ts:349, :515</td>
+        <td>Sin líneas usa <code>cohorts.precio_usd</code>. Pasa a precio de referencia o al de la línea propuesta.</td>
+        <td><span class="pill ok">bajo</span></td><td>461</td></tr>
+      <tr><td class="sup">Próxima cohorte</td>
+        <td class="loc">lib/deals/asignar-proxima-cohorte.ts:31, :78<br>lib/deals/mover-etapa.ts (25 usos de cohorteDestinoId)<br>lib/queries/proxima-cohorte.ts:38-83<br>kanban.ts:837 (destinos = futuras)</td>
+        <td>La enmienda del 20-nov dice que el closer asigna el SKU del ciclo siguiente, pero el modelo sigue con <code>cohorte_destino_id</code> y el pendiente. Asignar un SKU de C(N+1) como línea propuesta mueve <code>deals.cohort_id</code> y el deal sale del filtro de la activa. Hoy hay 1 deal en el pendiente.</td>
+        <td><span class="pill warn">medio</span></td><td>Hueco → D-6</td></tr>
+      <tr><td class="sup">Cambiar cohorte (estudiante)</td>
+        <td class="loc">lib/deals/estudiante.ts:165-200<br>lib/deals/cambiar-cohorte.ts:40-61<br>lib/deals/lineas.ts:216-240</td>
+        <td>Edita el SKU de una línea con abonos, cosa que D10 prohíbe («con abonos solo se anula»). Busca el mismo producto por <code>productoId</code>. Es la única herramienta para corregir H1 hoy.</td>
+        <td><span class="pill crit">alto</span></td><td>Hueco (459 + D-5)</td></tr>
+      <tr><td class="sup">Hub: filtro Cohorte</td>
+        <td class="loc">lib/queries/cohorte-del-hub.ts:15-52<br>lib/queries/metricas-filtros.ts:314-345, :430-486</td>
+        <td>Filtra por <code>deals.cohort_id</code>: un deal con Virtual C3 y Uno a uno C4 pone el 1:1 en C3. El 462 agrega Nombre del SKU y SKU al lado.</td>
+        <td><span class="pill warn">medio</span></td><td>462 + D-4</td></tr>
+      <tr><td class="sup">Hub: cupos, Llevamos, Faltan</td>
+        <td class="loc">lib/queries/ventas-de-la-cohorte.ts:27-48</td>
+        <td>Cuenta deals por cohorte del deal. Pasa a líneas vendidas con <code>skus.cuenta_como_cupo</code> (H7).</td>
+        <td><span class="pill warn">medio</span></td><td>462</td></tr>
+      <tr><td class="sup">«¿Vamos a llegar?», meta USD</td>
+        <td class="loc">lib/queries/vamos-a-llegar.ts:143-185, :221<br>lib/queries/metas.ts:17, :196, :296, :313<br>lib/queries/series-dinero.ts:101-105</td>
+        <td>Meta USD = cupos × <code>cohorts.precio_usd</code>; los cupos proyectados se valoran igual. Pasa a <code>precioDeReferenciaDelCiclo</code>. Sin SKU con cupo: nulo, nunca 0.</td>
+        <td><span class="pill crit">alto</span></td><td>461</td></tr>
+      <tr><td class="sup">Cumplimiento, ritmo, semáforo</td>
+        <td class="loc">lib/metas/cumplimiento-de-cohorte.ts:95-133, :178-191<br>lib/semaforo/semaforo.ts:95<br>lib/queries/alertas.ts:123</td>
+        <td>Precio de la cohorte en el cumplimiento USD; umbrales de la activa (H8).</td>
+        <td><span class="pill warn">medio</span></td><td>461 · H8 hueco</td></tr>
+      <tr><td class="sup">Proyección y ROAS proyectado</td>
+        <td class="loc">lib/queries/proyeccion-roas.ts:31, :90-114, :154-167</td>
+        <td>Cada cita pendiente vale el precio de la cohorte de su deal. Decidido: precio de referencia (el menor con cupo).</td>
+        <td><span class="pill warn">medio</span></td><td>461</td></tr>
+      <tr><td class="sup">Ticket perdido</td>
+        <td class="loc">lib/queries/embudo-etapas.ts:43, :242-243, :498-518</td>
+        <td>Precio de la cohorte del deal perdido. El ADR 0139 dice precio de referencia, aunque el deal tenga su línea propuesta con precio propio.</td>
+        <td><span class="pill warn">medio</span></td><td>461 + D-7</td></tr>
+      <tr><td class="sup">Descuento</td>
+        <td class="loc">lib/queries/saldo.ts:70-74<br>lib/queries/pagos-de-students.ts:55, :124<br>lib/queries/dashboard.ts:308-334<br>lib/queries/vista-dashboard.ts:282<br>lib/queries/ficha-deal.ts:774</td>
+        <td>Lista de la cohorte − valor del deal. Pasa a lista − valor por línea (ya guardado en la línea).</td>
+        <td><span class="pill warn">medio</span></td><td>461</td></tr>
+      <tr><td class="sup">Ficha del deal</td>
+        <td class="loc">lib/queries/ficha-deal.ts:237, :527, :723, :770, :913<br>components/deals/ficha/ficha-cabecera.tsx:84<br>components/deals/ficha/ficha-pago.tsx:98<br>components/deals/ficha/ficha-acciones.tsx (4)</td>
+        <td>Muestra un «ticket» de cohorte y sugiere «(cohorte activa)». Pasa a sección SKUs por línea, con asignar, editar valor, quitar y anular.</td>
+        <td><span class="pill warn">medio</span></td><td>460</td></tr>
+      <tr><td class="sup">Formulario de abono</td>
+        <td class="loc">components/deals/formulario-abono.tsx:13-82<br>lib/deals/abonos.ts:187, :214-231, :257</td>
+        <td>Elige «ticket» o «adicional». Pasa a «¿Qué SKU está pagando?». Hasta entonces H5.</td>
+        <td><span class="pill crit">alto</span></td><td>460</td></tr>
+      <tr><td class="sup">Venta y comisión al vender</td>
+        <td class="loc">lib/deals/mover-etapa.ts:361-388<br>lib/deals/rellenar-comision.ts:30-65<br>lib/deshacer/registro.ts:189</td>
+        <td>Congela el % del programa en el deal y exige que exista (422). Pasa a congelar el % del SKU en cada línea con su primer abono vigente.</td>
+        <td><span class="pill crit">alto</span></td><td>461</td></tr>
+      <tr><td class="sup">Comisiones (Hub, Operación)</td>
+        <td class="loc">lib/queries/comision.ts:15-80<br>lib/queries/vista-dashboard.ts:38, :132, :279, :321<br>components/dashboard/operacion.tsx:72-74</td>
+        <td>Σ valor comisionable × % del deal. Pasa a Σ por línea; el texto «X % del valor vendido de cada venta» deja de ser cierto con % por SKU.</td>
+        <td><span class="pill crit">alto</span></td><td>461 (D9 con Daniel)</td></tr>
+      <tr><td class="sup">Vista y creación del programa</td>
+        <td class="loc">components/program-switcher.tsx:60, :178<br>components/programas-admin.tsx:17-167<br>lib/catalogo/programas.ts:61, :70<br>app/(app)/p/[programa]/programa/acciones-programa.ts:100<br>app/(app)/p/[programa]/programa/page.tsx:142-143, :266, :321-327, :496, :605<br>lib/programas/hechos.ts:25, :45<br>lib/queries/configuracion-de-hoy.ts:11-55<br>lib/queries/ficha-programa.ts:38-40, :99-166</td>
+        <td>Piden y muestran ticket y %. <code>programs.ticket_usd</code> es NOT NULL (<code>lib/db/schema.ts:334</code>): quitar el campo del formulario antes del 463 exige un defecto o la migración.</td>
+        <td><span class="pill warn">medio</span></td><td>461 / 463</td></tr>
+      <tr><td class="sup">Pantalla de cohortes (puente)</td>
+        <td class="loc">components/cohortes-admin.tsx:45-288<br>lib/catalogo/cohortes.ts:64, :225-266<br>acciones-programa.ts (crearCohorteAccion)</td>
+        <td>Crea cohorte + SKU «Programa virtual» con producto y % del programa. Sale en el 459. Mientras exista, es la única puerta para un ciclo nuevo y la fuente de H6.</td>
+        <td><span class="pill warn">medio</span></td><td>459</td></tr>
+      <tr><td class="sup">Hotmart y pagos</td>
+        <td class="loc">lib/pagos/traducir.ts:10-39<br>lib/deals/venta-de-la-pasarela.ts:46-50, :92-101, :159-164<br>lib/pagos/procesar.ts<br>compras_pasarela.cohort_id (schema.ts:2386)</td>
+        <td>Ciclo por ventana del día de la compra (bien) y luego «el» SKU con cupo (H2). La venta directa congela por la línea con cupo existente: misma trampa de H1 si el deal ya tenía línea de un ciclo cerrado. La oferta → SKU es el 449.</td>
+        <td><span class="pill crit">alto</span></td><td>459 (H2) · 449</td></tr>
+      <tr><td class="sup">MCP: acciones</td>
+        <td class="loc">lib/mcp/acciones/registrar-abono.ts:19, :57<br>lib/mcp/acciones/mover-etapa.ts:14, :46<br>lib/mcp/cobertura.ts:33, :85-86, :97, :110</td>
+        <td><code>registrar_abono</code> no sabe de líneas. La cobertura lista crear y editar cohorte; el popup necesita su entrada o falla <code>tests/mcp-cobertura-guardian.test.ts</code>.</td>
+        <td><span class="pill crit">alto</span></td><td>Hueco → 465</td></tr>
+      <tr><td class="sup">MCP: lecturas</td>
+        <td class="loc">lib/mcp/herramientas/operacion.ts:220, :268<br>lib/mcp/salidas/operacion.ts:214<br>lib/mcp/salidas/resumen.ts (32)<br>vistas <code>mcp_lectura.*</code></td>
+        <td><code>ficha_de_deal</code> devuelve el «ticket» de cohorte. Las vistas SQL no tienen SKUs ni líneas y exponen <code>abonos.concepto</code>, que el 460 retira (rompe la vista).</td>
+        <td><span class="pill warn">medio</span></td><td>462 (filtros) · vistas: hueco → 465</td></tr>
+      <tr><td class="sup">Juanito y avisos</td>
+        <td class="loc">lib/catalogo/reportes-whatsapp.ts:136<br>lib/avisos-cs/pendientes.ts:72-78</td>
+        <td>Umbrales de la activa (H8). Los avisos muestran el código de cohorte del deal: correcto mientras <code>deals.cohort_id</code> sea derivado.</td>
+        <td><span class="pill ok">bajo</span></td><td>H8</td></tr>
+      <tr><td class="sup">Calendly e ingesta</td>
+        <td class="loc">lib/calendly/colgar-llamada.ts:266-285, :435<br>lib/ingesta/regla-de-deals.ts:445<br>lib/deals/llamadas.ts:198, :729</td>
+        <td>Abren deals sin cohorte y <code>abrirDeal</code> pone la activa (H1). Copian la cohorte del deal al colgar la llamada.</td>
+        <td><span class="pill warn">medio</span></td><td>464</td></tr>
+      <tr><td class="sup">Plazo de pago</td>
+        <td class="loc">lib/deals/pago.ts:49-57<br>lib/deals/venta-de-la-pasarela.ts:159-164</td>
+        <td>Tope = inicio de clases de la cohorte del deal, o de la activa si no tiene. Sigue bien mientras exista el ciclo.</td>
+        <td><span class="pill ok">bajo</span></td><td>Ninguno</td></tr>
+      <tr><td class="sup">Importadores y scripts</td>
+        <td class="loc">lib/migracion/importar.ts:97-115<br>scripts/seed-local.ts (15 cohortId, ticketUsd :140-1357)<br>scripts/seed-datos.ts:49-90<br>scripts/376-adicionales.ts</td>
+        <td>El importador asigna cohorte por código; no crea SKUs. Las semillas crean programas con ticket y cohortes con precio: hay que pasarlas a SKUs antes del 463.</td>
+        <td><span class="pill warn">medio</span></td><td>463 (no lo nombra)</td></tr>
+      <tr><td class="sup">Tests y guardianes</td>
+        <td class="loc">tests/helpers/catalogo-de-prueba.ts:14-18<br>tests/helpers/semilla-dorada.ts:60-61<br>tests/columnas-sin-lector-guardian.test.ts<br>tests/376-*.test.ts, comision.test.ts, cohorte-por-definir.test.ts</td>
+        <td><code>ticketUsd</code> en 259 archivos de test, casi todo por el helper que crea la C0 con precio = ticket. Entre el 461 y el 463 el guardián de columnas sin lector va a marcar <code>programs.ticketUsd</code>, <code>programs.comisionPorcentaje</code> y <code>cohorts.precioUsd</code>: anotarlas en <code>SIN_LECTOR_CONOCIDOS</code> con el 463. <code>skus</code>, <code>deal_lineas</code> y <code>productos</code> no están en su lista de tablas.</td>
+        <td><span class="pill warn">medio</span></td><td>461 / 463</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="decisiones">
+  <h2 id="decisiones">Decisiones abiertas para Mani</h2>
+  <p class="prose muted">Ninguna reabre lo decidido (SKU como única fila administrada, programas sin ticket ni %, cohortes sin creación manual). Son las preguntas que el código obliga a contestar para cumplirlo. Cada una lleva una recomendación argumentada.</p>
+  <div class="panel">
+    <div class="dec"><span class="id">D-0</span><div><b>¿Cómo se ubica un deal en su ciclo sin fechas que alguien mantenga?</b> (H0, la decisión de la que cuelgan las demás)
+      <p>Tensión: Mani quiere que solo se creen SKUs y los closers los asignen; el ADR 0139 deja la ventana obligatoria porque de ella salen «¿Vamos a llegar?», la proyección, el ritmo, la meta de leads del día y el semáforo. Hoy la ventana responde dos preguntas distintas, y conviene separarlas:</p>
+      <ul>
+        <li><b>Pertenencia</b> (¿de qué ciclo es este deal, esta venta, este cupo?): la responde <b>el SKU de la línea</b> (<code>skus.cohort_id</code>), que asigna el closer. Ninguna fecha decide. <code>abrirDeal</code> deja de asignar ciclo; un deal sin línea queda «sin ciclo» y se ve así en el tablero y el Hub. Hotmart ubica por la oferta (449) y, mientras tanto, la compra ambigua va a revisión, como hoy.</li>
+        <li><b>Ritmo</b> (¿vamos a llegar?): la responden la meta del ciclo y su ventana, que solo alimentan proyección, esperado y semáforo. Una fecha mal escrita mueve un pronóstico, nunca un deal.</li>
+        <li><b>Ciclo que vende hoy</b> (lo que necesitan el filtro por defecto, Juanito y el popup del closer): el ciclo cuyo SKU con cupo está <b>activo</b>. Cerrar ventas = desactivar el SKU, que el admin igual tiene que hacer para que nadie lo siga asignando. Una acción que ya existe reemplaza dos fechas.</li>
+      </ul>
+      <p class="rec">Recomendado: pertenencia por SKU, ciclo vigente por SKU activo, ventana opcional con una sola fecha (cierre de ventas) que solo usa la proyección; sin cierre, «¿Vamos a llegar?» muestra llevamos contra meta y dice «sin cierre declarado» en el esperado y el ritmo. La meta de cupos se queda en el ciclo (un número, no mantenimiento). Por qué: elimina exactamente el trabajo que falló el 20-nov, conserva las cifras que Daniel Tovar usa y no inventa fechas. Costo: enmienda a los puntos 3 y 8 del ADR 0139 y al punto 5 del 0137; reescribe <code>cohorteActiva</code> (42 usos en 16 archivos), <code>cohortesVendiendo</code> (8 usos en 4) y el sentido del <code>EXCLUDE</code> sin solape (ADR 0123). Alternativa más barata: dejar la ventana como hoy pero solo para ritmo, y aplicar ya la pertenencia por SKU (464); el ciclo vigente sigue por fechas hasta un segundo corte.</p></div></div>
+    <div class="dec"><span class="id">D-1</span><div><b>¿Cuántos SKUs con cupo puede tener un ciclo?</b> (H2)
+      <p class="rec">Recomendado: exactamente uno activo por ciclo, garantizado por un índice único parcial en <code>skus</code> (<code>cohort_id</code> donde <code>cuenta_como_cupo</code> y <code>activo</code>). Por qué: los cuatro caminos automáticos (abrir deal, primer abono, cambiar cohorte, Hotmart) ya dependen de esa regla y la base la hace imposible de romper (ADR 0005). Si algún día un ciclo vende dos productos con cupo, se levanta junto con el 449 (oferta → SKU), que es cuando el sistema deja de adivinar.</p></div></div>
+    <div class="dec"><span class="id">D-2</span><div><b>¿A qué ciclo va un deal que se abrió en la C3 y compra en la C4?</b> (H1)
+      <p class="rec">Con D-0 recomendado: al ciclo del SKU que el closer asigna; el formulario de abono le pide elegirlo si el deal no tiene línea o su línea es de un SKU desactivado, y sugiere el SKU activo del mismo nombre. Si Mani elige mantener las fechas: al ciclo que vende el día del primer abono (misma regla que Hotmart, <code>traducir.ts:26</code>), con el riesgo de H0 intacto. En los dos casos el precio cambia al del SKU nuevo y el closer lo ve antes de guardar; no es un cron.</p></div></div>
+    <div class="dec"><span class="id">D-3</span><div><b>¿Qué muestra por defecto el tablero de Deals?</b>
+      <p class="rec">Recomendado: sin filtro de cohorte para etapas no vendidas, y el ciclo como filtro opcional. Por qué: un deal abierto no pertenece a un ciclo hasta que el closer le asigna un SKU (D-0); filtrar por la activa esconde hoy 1.575 deals de Tactical y 1.697 de ComunicArte a los closers.</p></div></div>
+    <div class="dec"><span class="id">D-4</span><div><b>Filtro Cohorte del Hub: ¿cohorte del deal o ciclo de la línea?</b>
+      <p class="rec">Recomendado: Ventas y conversión por el deal (una persona cuenta una vez, ADR 0137 punto 6); Vendido, cupos y «SKUs vendidos» por el ciclo de la línea. Por qué: el 1:1 C4 de alguien que compró la Virtual C3 es plata de la C4.</p></div></div>
+    <div class="dec"><span class="id">D-5</span><div><b>Mover a un estudiante de ciclo con abonos: ¿qué pasa con su línea?</b>
+      <p>D10 dice que una línea con abonos solo se anula; <code>cambiarCohorte</code> hoy le cambia el SKU con los abonos colgados.</p>
+      <p class="rec">Recomendado: mantener «cambiar el SKU de la línea» como la única excepción a D10, con motivo obligatorio y rastro (ya lo hace). Por qué: anular y recrear dejaría los abonos colgando de una línea anulada y los sacaría de Recaudado.</p></div></div>
+    <div class="dec"><span class="id">D-6</span><div><b>«Próxima cohorte»: ¿sigue el pendiente con <code>cohorte_destino_id</code>, o se vuelve una línea propuesta del ciclo siguiente?</b>
+      <p class="rec">Recomendado: mientras el ciclo siguiente no exista, el pendiente con texto («Esperando corte») se queda; cuando exista, el closer asigna el SKU y eso cierra el pendiente. Por qué: no se puede asignar un SKU de un ciclo que no existe y el pendiente es lo único que lo recuerda. Un ticket aparte, después del 460.</p></div></div>
+    <div class="dec"><span class="id">D-7</span><div><b>Ticket perdido: ¿precio de referencia del ciclo o precio de la línea propuesta del deal?</b>
+      <p class="rec">Recomendado: la línea propuesta si existe, el precio de referencia si no. Por qué: el deal ya dice qué se le ofreció; el de referencia es el respaldo que el ADR 0139 previó para «cuando no hay SKU».</p></div></div>
+    <div class="dec"><span class="id">D-8</span><div><b>¿El popup copia los umbrales del ciclo anterior?</b> (H8)
+      <p class="rec">Recomendado: sí, marcado por defecto y visible en el popup. Por qué: hoy la copia es un botón que se olvida, y sin umbrales Juanito, semáforo y alertas callan.</p></div></div>
+    <div class="dec"><span class="id">D-9</span><div><b>Programas nuevos (Nicolás y Francisco) antes del lunes</b>
+      <p class="rec">Hoy necesitan ticket y % al crearse y su primera cohorte por la pantalla puente (H4: sin % no venden). Recomendado: crearlos así y no esperar al 459; el 461 los limpia.</p></div></div>
+    <div class="dec"><span class="id">D-10</span><div><b>Ya pendiente en el plan:</b> D9 con Daniel Tovar (cupo y comisión por SKU) antes de la parte de comisión del 461.</div></div>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="cortes">
+  <h2 id="cortes">Orden de los cortes</h2>
+  <p class="prose muted">El orden del plan (459 → 460 ∥ 461 → 462 → 463) se mantiene. Se agregan dos tickets y se completan dos. En rojo, lo nuevo.</p>
+  <div class="panel">
+    <div class="cut"><span class="id new">0</span><div><b>Operación, ya (sin código)</b>
+      <ul>
+        <li>Corregir en el CRM las ventanas reales (Tactical C3 hasta el 16-nov; ComunicArte C3 hasta el 10-nov, C4 desde el 11) si el script de redistribución no lo hizo, y revisar con esas fechas las ventas de Tactical (1.055 USD) y ComunicArte (597 USD) que pagaron desde el 11-nov.</li>
+        <li>Avisar a closers: el 1:1 con Rosario no va como «Aparte del programa» hasta el 460 (H5).</li>
+        <li>Verificar que la C4 de Tactical tenga umbrales (H8).</li>
+      </ul></div></div>
+    <div class="cut"><span class="id new">464</span><div><b>Nuevo · El ciclo del deal lo define el SKU que asigna el closer</b> · depende de D-0, D-2 y D-3 · antes del 459 o con él
+      <ul>
+        <li><code>abrirDeal</code> deja de asignar la cohorte activa y la línea con cupo (<code>mover-etapa.ts:654</code>, <code>:713-718</code>); <code>congelarValorVendido</code> deja de caer en <code>cohorteActiva</code> (<code>valor-vendido.ts:51-57</code>).</li>
+        <li>El primer abono exige una línea; si no la hay o su SKU está desactivado, el formulario pide elegir el SKU y sugiere el activo del mismo nombre (<code>abonos.ts:214</code>, <code>venta-de-la-pasarela.ts:92</code>), con rastro.</li>
+        <li>Tablero de Deals sin filtro de ciclo por defecto para no vendidos (<code>kanban.ts:303</code>); «sin ciclo» como opción visible.</li>
+        <li>Segundo paso, si D-0 se acepta completo: ciclo vigente = SKU con cupo activo; la ventana pasa a dato opcional de la proyección (enmienda al ADR 0139).</li>
+        <li>Done: test de un deal abierto con la C3 desactivada → el abono no deja vender la C3 y propone la C4; test de que cambiar una fecha de ventana no mueve ningún deal.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">459</span><div><b>Popup y ciclo · completar</b> · depende de 464 o de D-2
+      <ul>
+        <li>Agregar: quitar los 6 <code>innerJoin(productos)</code> (H3) y pasar <code>cambiarSkuDeLineaConCupo</code> a <code>skus.slug</code>.</li>
+        <li>Agregar: índice de un SKU con cupo por ciclo si D-1 es «uno» (H2).</li>
+        <li>Agregar: copiar umbrales del ciclo anterior (D-8) y la entrada del popup en <code>lib/mcp/cobertura.ts</code>.</li>
+        <li>Agregar: <code>editarCohorte</code> ya no edita precio (H6); el ciclo deja de tener precio en la pantalla.</li>
+        <li>Corregir el done: «crear la C4 de Tactical» ya no aplica (H9); usar el próximo ciclo real.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">460</span><div><b>Líneas en la ficha y abono por línea</b> · depende de 459 · en paralelo con 461
+      <ul>
+        <li>Agregar: retirar <code>crearLineaSinClasificar</code> como camino de «adicional» (H5).</li>
+        <li>Agregar: definir D-5 (cambiar SKU de una línea con abonos) en los permisos.</li>
+        <li>No retirar <code>abonos.concepto</code> hasta que 465 cambie la vista <code>mcp_lectura.abonos</code> y <code>registrar_abono</code>.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">461</span><div><b>Dinero sin ticket del programa</b> · depende de 459 · D9 con Daniel antes de la comisión
+      <ul>
+        <li>Agregar a la lista de lectores: <code>lib/deals/rellenar-comision.ts</code>, <code>components/dashboard/operacion.tsx:72</code>, <code>lib/deals/mover-etapa.ts:361-388</code> (H4) y la regla D-7.</li>
+        <li>Anotar las tres columnas en el guardián de columnas sin lector hasta el 463.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id new">465</span><div><b>Nuevo · El MCP habla de líneas</b> · depende de 460 · antes de retirar <code>abonos.concepto</code>
+      <ul>
+        <li><code>registrar_abono</code> recibe la línea (o el SKU a asignar), no <code>ticket | adicional</code>.</li>
+        <li>Vistas <code>mcp_lectura</code>: una de líneas (SKU, nombre, ciclo, cupo, valor, recaudado) y la de abonos con su línea; <code>definiciones_de_metricas</code> al día.</li>
+        <li>Se puede fusionar con el paso 5 del 462 si va en el mismo PR.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">462</span><div><b>Hub, ficha del lead, Students y MCP por SKU</b> · depende de 460 y 461
+      <ul>
+        <li>Aplicar D-4 en el filtro Cohorte. Cupos por línea con cupo (H7).</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">463</span><div><b>Retiro destructivo</b> · depende de 459 a 462 y 465
+      <ul>
+        <li>Agregar: migrar <code>tests/helpers/catalogo-de-prueba.ts</code>, <code>semilla-dorada.ts</code>, <code>scripts/seed-local.ts</code> y <code>scripts/seed-datos.ts</code> a SKUs antes de soltar las columnas.</li>
+        <li>Incluir <code>lib/deals/lineas.ts:144-197</code> (crea productos) en el grep vacío del done.</li>
+      </ul></div></div>
+    <div class="cut"><span class="id">Fuera</span><div><b>Ya fuera del 376</b>: retirar <code>deals.cohort_id</code> y <code>deals.valor_vendido_usd</code> (254 usos de <code>cohortId</code> en 62 archivos); D-6 «Próxima cohorte»; 449 oferta → SKU, que es lo que permitiría levantar D-1.</div></div>
+  </div>
+</section>
+
+<section class="stack" aria-labelledby="restricciones">
+  <h2 id="restricciones">Restricciones de AGENTS.md que toca cada cambio</h2>
+  <div class="tbl">
+  <table style="min-width:720px">
+    <thead><tr><th>Restricción</th><th>Cambios que la tocan</th><th>Qué vigilar</th></tr></thead>
+    <tbody>
+      <tr><td class="sup">definicion-unica</td><td>461, H6, D-7</td><td>Un solo precio por pregunta: <code>precioDeReferenciaDelCiclo</code> reemplaza las once lecturas de <code>cohorts.precio_usd</code>. Hoy hay dos precios vivos (H6).</td></tr>
+      <tr><td class="sup">meta-de-cohorte</td><td>464, 462, D-4</td><td>La meta sigue en el ciclo; el cupo cuenta líneas con cupo, sin sumar SKUs ni repartir por closer.</td></tr>
+      <tr><td class="sup">deal-central</td><td>464, 460, D-5</td><td>Toda etapa por <code>moverEtapa</code>; el cambio de SKU al primer abono vive en <code>lib/deals/lineas.ts</code>, el único escritor de derivados.</td></tr>
+      <tr><td class="sup">caja-y-ventas-separadas</td><td>460, 461</td><td>Recaudado por línea no infiere Vendido; una línea propuesta no vende.</td></tr>
+      <tr><td class="sup">registros-anulados</td><td>460, D-5</td><td>Las seis lecturas nuevas sin <code>productos</code> conservan <code>vigente(dealLineas)</code> y <code>vigente(abonos)</code>.</td></tr>
+      <tr><td class="sup">anular-no-es-perder</td><td>D-5, D-7</td><td>Anular una línea no es pérdida; el ticket perdido solo mira Cierre Perdido.</td></tr>
+      <tr><td class="sup">catalogo-por-molde · instancias-y-tipos</td><td>459, H5, 0156</td><td>SKU y ciclo nacen por el molde con <code>change_log</code>. <code>crearLineaSinClasificar</code> y el puente insertan a mano con su propio rastro; la 0156 borró filas de catálogo (sin uso). El retiro del 463 respalda antes (ADR 0131).</td></tr>
+      <tr><td class="sup">capacidades-por-rol · rol-en-servidor · developer-dueno</td><td>459, 460, 465</td><td>Crear SKU con <code>esAdministrador</code> en el servidor (403 forjado); asignar línea con <code>puedeTrabajarDeal</code>; el developer incluido.</td></tr>
+      <tr><td class="sup">gerente-y-closer-disjuntos</td><td>460</td><td>El closer asigna en deals suyos; el gerente no registra abonos por fuera de las excepciones documentadas.</td></tr>
+      <tr><td class="sup">programa-como-frontera</td><td>459, 462, 465</td><td>FK compuestas (SKU, ciclo y línea del mismo programa); el filtro Nombre del SKU agrupa dentro del programa.</td></tr>
+      <tr><td class="sup">moneda-visible</td><td>461, 462</td><td>Precio de lista, valor y comisión siempre en USD rotulado; ningún promedio de precios.</td></tr>
+      <tr><td class="sup">fechas-de-bogota</td><td>464, 459, D-0</td><td>Lo que quede por fecha (ritmo, proyección, ventana de Hotmart) usa <code>hoyEnBogota</code> o <code>fechaDeInstanteEnBogota</code>, nunca <code>new Date()</code>. Con D-0, la pertenencia deja de depender de fechas.</td></tr>
+      <tr><td class="sup">centinelas</td><td>D-0</td><td>«Sin ciclo» es un estado visible con su conteo, no un ciclo inventado ni una ventana por defecto.</td></tr>
+      <tr><td class="sup">norte-de-las-metricas (N1 a N9)</td><td>461, 462</td><td>«Sin precio» es nulo con su razón, nunca 0 (N7 «reemplazar es borrar»: columnas viejas fuera en el 463).</td></tr>
+      <tr><td class="sup">dato-en-su-objeto · ui-ux</td><td>459, 460, 461</td><td>Precio y % salen de la vista del programa y viven en la tabla de SKUs; la ficha del deal muestra sus líneas. Quitar la pantalla de cohortes, no esconderla.</td></tr>
+      <tr><td class="sup">nada-publico · ids-opacos</td><td>462, 465</td><td>Filtros nuevos por id o slug del SKU, nunca por nombre de persona.</td></tr>
+      <tr><td class="sup">escala-real · sync-en-lotes</td><td>464, 463</td><td>Re-apuntar ciclo ocurre por deal en su abono, no sobre los 1.648 a la vez; cualquier backfill va por lotes.</td></tr>
+      <tr><td class="sup">organizacion-por-dominio</td><td>461</td><td><code>precioDeReferenciaDelCiclo</code> en <code>lib/cohortes/</code>; nada de carpetas genéricas.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<footer class="stack">
+  <p>Fuentes: <code>docs/adr/0137-lo-que-se-vende-es-un-sku-en-una-linea-del-deal.md</code>, <code>docs/adr/0139-el-sku-es-lo-unico-que-se-administra-la-cohorte-es-su-ciclo.md</code>, <code>docs/tasks/376-productos-y-skus.md</code> (cortes 459 a 463 viven dentro de ese archivo, no hay archivos propios), <code>docs/agents/restricciones.md</code>, código en <code>main</code> a <code>91963d31</code>. Cifras de deals y ventas: vistas <code>mcp_lectura.deals</code> y <code>mcp_lectura.ventas</code> del CRM, 20-nov-2026; no son cifras del Hub.</p>
+  <p>Audit de solo lectura: no se cambió código ni datos. Los tickets 464 y 465 son propuestas y no existen en <code>docs/tasks/</code>.</p>
+</footer>
+
+</div>
+
+</body></html>

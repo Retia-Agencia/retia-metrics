@@ -8,6 +8,11 @@ status: todo
 
 # 376 — Productos y SKUs: qué compró cada persona
 
+**Norte de la migración a SKUs: [`docs/norte-del-sku.html`](../norte-del-sku.html)** (audit del 20-nov-2026, ábrelo en el
+navegador). Inventario de side effects por superficie con archivo:línea, decisiones abiertas D-0 a D-10, orden de los
+cortes (incluye los tickets propuestos 464 y 465) y restricciones tocadas. Léelo antes de tocar cualquier corte; si
+una decisión se cierra, actualízalo ahí y en el ADR.
+
 **Diseño cerrado el 19-nov-2026 (grill con Mani).** La fuente de cada decisión es el **ADR 0137**; este archivo es
 el plan de ejecución. Una sesión que lo retome **no rediseña**: ejecuta los cortes en orden y, si algo del código
 contradice el ADR, para y pregunta a Mani en vez de decidir.
