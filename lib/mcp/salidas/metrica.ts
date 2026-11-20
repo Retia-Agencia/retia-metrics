@@ -52,10 +52,10 @@ export const salidaDeConsultaDeMetrica = z.object({
   metrica: z.enum(METRICAS_DE_LISTA).describe("Clave canónica o identificador de la métrica aceptado por la consulta."),
   periodo,
   filtros_aplicados: z.array(z.object({
-    campo: z.enum(["nombre_del_sku", "sku"]),
-    id: z.string(),
-    nombre: z.string(),
-    origen: z.literal("pedido"),
+    campo: z.enum(["nombre_del_sku", "sku"]).describe("Filtro de SKU aplicado."),
+    id: z.string().describe("Valor pedido del filtro: slug del nombre del SKU o código del SKU."),
+    nombre: z.string().describe("Valor del filtro tal como se aplicó."),
+    origen: z.literal("pedido").describe("Todo filtro de SKU lo pidió quien consulta; ninguno es por defecto."),
   }).strict()).describe("Filtros de SKU aplicados a la misma población del Hub."),
   resumen: z.object({
     disponible: z.boolean().describe("Indica si la métrica se puede calcular con los datos disponibles."),
