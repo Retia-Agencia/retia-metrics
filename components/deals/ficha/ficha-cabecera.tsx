@@ -81,7 +81,7 @@ export function FichaCabecera({
             <span className="cifra">{ficha.valorVendidoUsd == null ? "—" : usd(ficha.valorVendidoUsd)}</span>
           </Dato>
           <Dato etiqueta="Ticket base">
-            <span className="cifra">{ficha.ticket ? usd(ficha.ticket.precioUsd) : "—"}</span>
+            <span className="cifra">{ficha.ticket?.precioUsd == null ? "Sin precio" : usd(ficha.ticket.precioUsd)}</span>
           </Dato>
           <Dato etiqueta="Descuento">
             <span className="cifra">{ficha.descuento ? `${usd(ficha.descuento.usd)} · ${pct(ficha.descuento.porcentaje)}` : "—"}</span>

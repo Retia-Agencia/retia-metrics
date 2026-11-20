@@ -57,7 +57,7 @@ export function ProgramSwitcher({
   const searchParams = useSearchParams();
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
-  const [nuevo, setNuevo] = useState({ nombre: "", slug: "", ticketUsd: "" });
+  const [nuevo, setNuevo] = useState({ nombre: "", slug: "" });
   const [editandoSlug, setEditandoSlug] = useState(false);
   const [slugEditado, setSlugEditado] = useState(false);
 
@@ -172,14 +172,6 @@ export function ProgramSwitcher({
                   </Button>
                 ) : null}
               </div>
-              <label className="block space-y-1 text-sm">
-                <span className="text-muted-foreground">Ticket (USD)</span>
-                <Input
-                  value={nuevo.ticketUsd}
-                  onChange={(event) => setNuevo({ ...nuevo, ticketUsd: event.target.value })}
-                  required
-                />
-              </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(false)}>
                   Cancelar

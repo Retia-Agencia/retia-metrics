@@ -65,17 +65,41 @@ export async function valoresVendidosDeDeals(db: Db, dealIds: readonly string[])
   });
 }
 
-/** Descuento derivado del ticket de la cohorte y el total congelado del deal. */
+/** Descuento derivado del precio de lista y el valor vendido de una línea. */
 export function descuentoDeDeal(
-  ticketUsd: number | string | null | undefined,
+  precioListaUsd: number | string | null | undefined,
   valorVendidoUsd: number | string | null | undefined,
 ): DescuentoDeDeal | null {
-  if (ticketUsd == null || valorVendidoUsd == null) return null;
-  const ticket = Number(ticketUsd);
+  if (precioListaUsd == null || valorVendidoUsd == null) return null;
+  const ticket = Number(precioListaUsd);
   const valor = Number(valorVendidoUsd);
   if (!Number.isFinite(ticket) || ticket <= 0 || !Number.isFinite(valor)) return null;
   const descuento = Math.round((ticket - valor) * 100) / 100;
   return { usd: descuento, porcentaje: descuento / ticket };
+}
+
+/** Descuento total por deal, sumando únicamente sus líneas vigentes. */
+export async function descuentosDeDeals(
+  db: Db,
+  dealIds: readonly string[],
+): Promise<Map<string, DescuentoDeDeal | null>> {
+  if (dealIds.length === 0) return new Map();
+  const lineas = await db.select({
+    dealId: dealLineas.dealId,
+    precioListaUsd: dealLineas.precioListaUsd,
+    valorVendidoUsd: dealLineas.valorVendidoUsd,
+  }).from(dealLineas).where(and(inArray(dealLineas.dealId, [...dealIds]), vigente(dealLineas)));
+  const totales = new Map<string, { lista: number; vendido: number }>();
+  for (const linea of lineas) {
+    const total = totales.get(linea.dealId) ?? { lista: 0, vendido: 0 };
+    total.lista += Number(linea.precioListaUsd);
+    total.vendido += Number(linea.valorVendidoUsd);
+    totales.set(linea.dealId, total);
+  }
+  return new Map(dealIds.map((dealId) => {
+    const total = totales.get(dealId);
+    return [dealId, total ? descuentoDeDeal(total.lista, total.vendido) : null];
+  }));
 }
 
 /** El saldo de varios deals de una vez, por id. Un deal que no existe no aparece. */

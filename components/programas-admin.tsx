@@ -14,7 +14,6 @@ export interface ProgramaVista {
   id: string;
   slug: string;
   nombre: string;
-  ticketUsd: string;
   /** Porcentaje vigente; se congela en el deal al vender. */
   comisionPorcentaje: string | null;
   webUrl: string | null;
@@ -28,7 +27,6 @@ export interface ProgramaVista {
 export interface Borrador {
   nombre: string;
   slug: string;
-  ticketUsd: string;
   comisionPorcentaje: string;
   webUrl: string;
   calendlyUrl: string;
@@ -40,7 +38,6 @@ export function aBorrador(p: ProgramaVista): Borrador {
   return {
     nombre: p.nombre,
     slug: p.slug,
-    ticketUsd: p.ticketUsd,
     comisionPorcentaje: p.comisionPorcentaje ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
@@ -54,7 +51,6 @@ export function aEntrada(b: Borrador) {
   return {
     nombre: b.nombre,
     slug: b.slug,
-    ticketUsd: b.ticketUsd,
     comisionPorcentaje: b.comisionPorcentaje,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
@@ -113,18 +109,6 @@ export function FormularioPrograma({
           required
           className={claseInput}
           aria-label="Slug"
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Ticket (USD)</span>
-        <input
-          value={borrador.ticketUsd}
-          onChange={(e) => setBorrador({ ...borrador, ticketUsd: e.target.value })}
-          inputMode="decimal"
-          required
-          className={claseInput}
-          aria-label="Ticket en USD"
         />
       </label>
 

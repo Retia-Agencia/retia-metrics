@@ -6,6 +6,7 @@ import { codigoDeSku, crearSku, desactivarSku, type EntradaSku } from "@/lib/cat
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { precioDeReferenciaDelCiclo } from "@/lib/cohortes/precio-de-referencia";
 
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
@@ -140,16 +141,12 @@ describe("ticket 459 — catálogo de SKUs", () => {
     expect(codigoDeSku("tactical-investor", "uno a uno", 3)).toBe("tactical_investor_uno_a_uno_c3");
   });
 
-  it("no desactiva el único SKU activo que sostiene el cupo", async () => {
+  it("permite dejar el ciclo sin SKU activo de cupo y su precio queda nulo", async () => {
     const creado = await crearSku(db, actorId, entrada());
-
-    const error = await desactivarSku(db, actorId, creado.id).catch((causa) => causa);
-
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-    expect((error as ErrorDeApp).message).toBe("La cohorte C4 necesita al menos un SKU activo que cuente como cupo.");
+    await desactivarSku(db, actorId, creado.id);
     const [sku] = await db.select().from(skus).where(eq(skus.id, creado.id));
-    expect(sku.activo).toBe(true);
+    expect(sku.activo).toBe(false);
+    expect(await precioDeReferenciaDelCiclo(db, creado.cohortId)).toBeNull();
   });
 
   it("un closer no edita la ventana y la cohorte no cambia", async () => {

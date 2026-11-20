@@ -11,6 +11,7 @@ import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { claveFirmaCalendly, tokenCalendly } from "@/lib/integraciones";
 import { hechosDeConfiguracion } from "@/lib/programas/hechos";
 import { mensajeDeActivacionBloqueada, pasosPendientes } from "@/lib/programas/configuracion";
+import { esViolacionUnica } from "@/lib/db/errores";
 
 /**
  * Programas (ticket 014, ADR 0012), sobre el molde de catalogo.
@@ -23,7 +24,7 @@ import { mensajeDeActivacionBloqueada, pasosPendientes } from "@/lib/programas/c
  *  - **El slug no se puede cambiar despues de creado.** Las URLs guardadas (y las
  *    rutas `/p/[slug]`) dependen de el; editarlo con otro slug es un 400.
  *  - **Un solo esquema zod** valida el alta y la edicion: nombre, slug con formato
- *    `^[a-z0-9-]+$`, ticket en USD y las dos URLs opcionales.
+ *    `^[a-z0-9-]+$` y las dos URLs opcionales.
  *
  * La base se recibe por inyeccion (por defecto la de la app) para correr los tests
  * sobre PGlite sin Neon. Este archivo NO lleva `"use server"`: es logica pura que
@@ -58,23 +59,10 @@ export const esquemaPrograma = z.object({
     .min(1, "El slug es obligatorio.")
     .max(60, "Máximo 60 caracteres.")
     .regex(/^[a-z0-9-]+$/, "El slug solo admite minúsculas, números y guiones."),
-  ticketUsd: z
-    .string()
-    .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, "El ticket debe ser un monto en USD (por ejemplo 797 o 797.00)."),
   webUrl: urlOpcional,
   calendlyUrl: urlOpcional,
   // Sin URL del formulario: el destino de un link sale de la fuente principal (ADR 0068).
   // Los secretos de Calendly no forman parte del programa: viven en Integraciones.
-  // Porcentaje de comision vigente (ticket 133). Se congela en cada deal al vender.
-  comisionPorcentaje: z
-    .string()
-    .trim()
-    .regex(/^(\d+(\.\d{1,2})?)?$/, "La comisión debe ser un porcentaje con máximo dos decimales.")
-    .nullable()
-    .optional()
-    .refine((v) => v == null || v === "" || Number(v) <= 100, "La comisión debe estar entre 0 y 100.")
-    .transform((v) => (v && v.length > 0 ? v : null)),
   diasSinActividad: z.coerce
     .number()
     .int("Los días sin actividad deben ser un entero.")
@@ -96,10 +84,27 @@ export const esquemaPrograma = z.object({
     .optional(),
 });
 
+const esquemaEdicionPrograma = esquemaPrograma.extend({
+  // Compatibilidad hasta el paso 3/D9 del 461: al editar, el porcentaje del programa
+  // sigue vigente y se congela en el deal al vender.
+  comisionPorcentaje: z
+    .string()
+    .trim()
+    .regex(/^(\d+(\.\d{1,2})?)?$/, "La comisión debe ser un porcentaje con máximo dos decimales.")
+    .nullable()
+    .optional()
+    .refine((v) => v == null || v === "" || Number(v) <= 100, "La comisión debe estar entre 0 y 100.")
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
 /** Entrada validada de un programa (lo que el llamador escribe). */
-export type EntradaPrograma = z.input<typeof esquemaPrograma>;
+export type EntradaPrograma = z.input<typeof esquemaEdicionPrograma> & {
+  /** Compatibilidad transitoria para llamadores anteriores al 461; el esquema los ignora. */
+  ticketUsd?: string;
+  comisionPorcentaje?: string | null;
+};
 /** Programa ya validado y normalizado. */
-export type ProgramaValidado = z.output<typeof esquemaPrograma>;
+export type ProgramaValidado = z.output<typeof esquemaEdicionPrograma>;
 
 /**
  * Un programa tal como lo ve el llamador: la fila del molde SIN el token de Calendly,
@@ -150,7 +155,7 @@ function moldePrograma(db: Db) {
     {
       tabla: programs,
       nombreTabla: "programs",
-      esquema: esquemaPrograma as unknown as z.ZodType<ProgramaValidado>,
+      esquema: esquemaEdicionPrograma as unknown as z.ZodType<ProgramaValidado>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un programa",
       columnas: columnasPrograma,
@@ -192,8 +197,35 @@ export async function crearPrograma(
   input: EntradaPrograma,
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
-    const fila = await moldePrograma(db).crear(actorId, esquemaPrograma.parse(input));
-    return sinToken(db, fila);
+    const datos = esquemaPrograma.parse(input);
+    const id = crypto.randomUUID();
+    try {
+      await ejecutarJuntas(db, (tx) => [
+        (tx as Db).insert(programs).values({
+          id,
+          ...datos,
+          // ponytail: ticket 463 retira estas dos columnas heredadas; hasta entonces el insert exige ticketUsd.
+          ticketUsd: "0",
+          comisionPorcentaje: null,
+        }),
+        ...Object.entries(datos).map(([campo, valor]) => (tx as Db).insert(changeLog).values({
+          tabla: "programs",
+          registroId: id,
+          etiqueta: datos.nombre,
+          campo,
+          valorAnterior: null,
+          valorNuevo: valor == null ? null : String(valor),
+          origen: "app" as const,
+          userId: actorId,
+        })),
+      ]);
+    } catch (error) {
+      if (esViolacionUnica(error)) throw new ErrorDeApp("Ya existe un programa con ese nombre.", 409);
+      throw error;
+    }
+    const fila = await programaPorId(db, id);
+    if (!fila) throw new Error("El programa creado no se pudo leer.");
+    return fila;
   });
 }
 
@@ -210,7 +242,7 @@ export async function editarPrograma(
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    const datos = esquemaPrograma.parse(input);
+    const datos = esquemaEdicionPrograma.parse(input);
     const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
     if (datos.slug !== actual.slug) {

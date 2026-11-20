@@ -23,6 +23,7 @@ import type { Rango } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 const rango: Rango = { desde: "2026-09-01", hasta: "2026-09-30" };
 const ahora = new Date("2026-10-01T12:00:00Z");
@@ -312,6 +313,7 @@ describe("embudoPorEtapas con PGlite", () => {
       fechaCierreVentas: "2026-09-30",
     }).returning();
     cohortId = cohorte.id;
+    await skuVirtualDePrueba(db, cohortId);
     const [closer] = await db.insert(users).values({
       email: "maru@retiagrowth.com",
       nombre: "Maru",

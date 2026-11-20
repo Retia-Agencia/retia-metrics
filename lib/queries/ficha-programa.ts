@@ -12,6 +12,7 @@ import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { haceCuanto } from "@/lib/format";
 import type { ProgramaConFuentes } from "@/components/admin/fuentes-admin";
 import { esProveedorRegistrado } from "@/lib/ingesta/proveedores";
+import { preciosDeReferenciaDeCiclos } from "@/lib/cohortes/precio-de-referencia";
 
 /**
  * La ficha del programa (ticket 100, ADR 0050): todo lo que define un programa en una
@@ -34,9 +35,7 @@ export interface DatosDelPrograma {
   slug: string;
   nombre: string;
   activo: boolean;
-  /** Solo prellena el precio al crear una cohorte (ningun calculo lo lee). */
-  ticketUsd: string;
-  /** El porcentaje vigente (ADR 0065 punto 7). Nulo = no cargado, nunca 0. */
+  /** Porcentaje legado editable hasta el paso 3/D9 del ticket 461. */
   comisionPorcentaje: string | null;
   /**
    * El destino del formulario: la fuente principal del programa (ADR 0068). Nulo = no hay a
@@ -95,7 +94,7 @@ export interface CohorteVista {
   codigo: string;
   metaCupos: number;
   metaLeadsDia: number | null;
-  precioUsd: string;
+  precioUsd: number | null;
   /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
   fechaInicioClases: string | null;
   fechaInicioVentas: string | null;
@@ -120,13 +119,13 @@ export interface FichaDelPrograma {
  * en el componente, porque el componente es de cliente y una pagina de servidor no puede
  * llamar a una funcion exportada desde un modulo `"use client"`.
  */
-export function aCohorteVista(c: Cohorte): CohorteVista {
+export function aCohorteVista(c: Cohorte, precioUsd: number | null): CohorteVista {
   return {
     id: c.id,
     codigo: c.codigo,
     metaCupos: c.metaCupos,
     metaLeadsDia: c.metaLeadsDia ?? null,
-    precioUsd: String(c.precioUsd),
+    precioUsd,
     fechaInicioClases: c.fechaInicioClases ?? null,
     fechaInicioVentas: c.fechaInicioVentas ?? null,
     fechaCierreVentas: c.fechaCierreVentas ?? null,
@@ -156,6 +155,7 @@ export async function fichaDelPrograma(
       plataformasDePago(db).listar({ soloActivos: true }),
     ]);
   const idsVinculados = new Set(plataformas.map((plataforma) => plataforma.id));
+  const precios = await preciosDeReferenciaDeCiclos(db, cohortes.map((cohorte) => cohorte.id));
 
   return {
     programa: {
@@ -163,8 +163,7 @@ export async function fichaDelPrograma(
       slug: String(programa.slug),
       nombre: String(programa.nombre),
       activo: Boolean(programa.activo),
-      ticketUsd: String(programa.ticketUsd),
-      comisionPorcentaje: programa.comisionPorcentaje == null ? null : String(programa.comisionPorcentaje),
+      comisionPorcentaje: (programa.comisionPorcentaje as string | null) ?? null,
       formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
       calendlyOrgCompartida: Boolean(programa.calendlyOrgCompartida),
@@ -175,7 +174,7 @@ export async function fichaDelPrograma(
       cortePagoRapidoDias: programa.cortePagoRapidoDias == null ? null : Number(programa.cortePagoRapidoDias),
     },
     cohortes: cohortes
-      .map(aCohorteVista)
+      .map((cohorte) => aCohorteVista(cohorte, precios.get(cohorte.id) ?? null))
       .sort(
         (a, b) =>
           ORDEN_DE_ESTADO[a.estado] - ORDEN_DE_ESTADO[b.estado] ||

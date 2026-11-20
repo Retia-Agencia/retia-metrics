@@ -21,7 +21,7 @@ const base: EntradaDeCumplimiento = {
     id: "cohorte",
     codigo: "C-412",
     metaCupos: 100,
-    precioUsd: "1000",
+    precioUsd: 1000,
     fechaInicioVentas: "2026-11-02",
     fechaCierreVentas: "2026-11-13",
   },
