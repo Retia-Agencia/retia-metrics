@@ -17,7 +17,8 @@ que la respuesta al corte entre aquí, y el 366 (cancelar a quien no confirmó) 
 ## Alcance
 
 - **Migración** (la aplica la sesión principal): en `calls`, `confirmacion` (`pgEnum`: `confirmada`, `no_confirmada`,
-  `cancelada_segun_closer`, nula = sin preguntar) y `confirmacion_en`.
+  `cancelada_segun_closer`, nula = sin preguntar) y `confirmacion_en`. **Nota 19-nov:** la app y el MCP ya no
+  escriben `no_confirmada` (solo `confirmada` o nula); el valor del enum queda por las filas históricas.
 - `POST /api/avisos/confirmaciones` con el secreto de avisos: `[{ evento: <uuid de Calendly>, estado }]`. El CRM
   busca la llamada por `huellaDeCita(uuid)` (`lib/calendly/colgar-llamada.ts`) y escribe con `editarConRastro`, origen
   `whatsapp`. Responde `{ aplicadas, sin_cambio, no_encontradas }`.

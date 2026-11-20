@@ -19,7 +19,8 @@ espacio entraron dos agendas, una cerró. Mani, 3-nov: "todo lo que reduzca fric
 - **Migración** (la aplica la sesión principal): en `programs`, el modo del corte (`pgEnum`: `apagado`, `aprobar`,
   `automatico`; por defecto `apagado`), editable en Programa con el molde de `lib/catalogo/` y su `change_log`.
 - Una función de `lib/calendly/` que responde "¿esta llamada se puede cancelar por no confirmar?" y es la única que lo
-  decide. Sí solo si todo se cumple: confirmación `no_confirmada` (343); llamada vigente, sin resultado, con huella
+  decide. Sí solo si todo se cumple: confirmación distinta de `confirmada` (nula o `no_confirmada` histórica: desde el 19-nov nada escribe
+  `no_confirmada`); llamada vigente, sin resultado, con huella
   `calendly:<uuid>`; la cita no es hoy en Bogotá (`hoyEnBogota`); se agendó con 24 h o más de anticipación.
 - `POST /api/avisos/cancelaciones` con el secreto de avisos: `[{ evento: <uuid de Calendly> }]`. El CRM vuelve a
   comprobar cada caso con esa función (no confía en Juanito), cancela con la API de Calendly del programa (ADR 0057) y

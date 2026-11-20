@@ -14,12 +14,12 @@ import type { AccionMcp, ObjetivoAccionMcp } from "./tipos";
 const argumentos = z.object({
   deal_id: z.string().uuid("Deal inválido."),
   llamada_id: z.string().uuid("Llamada inválida."),
-  confirmacion: z.enum(["confirmada", "no_confirmada"]).nullable(),
+  confirmacion: z.enum(["confirmada"]).nullable(),
 }).strict();
 
 interface Objetivo extends ObjetivoAccionMcp {
   llamadaId: string;
-  confirmacion: "confirmada" | "no_confirmada" | null;
+  confirmacion: "confirmada" | null;
 }
 
 async function ejecutar(
@@ -41,7 +41,7 @@ async function ejecutar(
 export const marcarConfirmacionMcp: AccionMcp<typeof argumentos> = {
   clave: "marcar_confirmacion",
   titulo: "Marcar confirmación de cita",
-  cuandoUsarla: "Cuando el lead confirma o no confirma que asistirá a una llamada próxima.",
+  cuandoUsarla: "Cuando el lead confirma que asistirá a una llamada próxima, o para quitar esa confirmación.",
   argumentos,
   ejemplo: {
     deal_id: "00000000-0000-4000-8000-000000000000",

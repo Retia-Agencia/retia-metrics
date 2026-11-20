@@ -28,7 +28,7 @@ import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { ExplicacionDeSuelta } from "@/lib/calendly/suelta";
 import type { DetalleDeLlamada as Detalle } from "@/lib/queries/detalle-llamada";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import { AccionesDeLlamada, ConfirmacionDeCita } from "@/components/deals/ficha/acciones-de-llamada";
+import { AccionesDeLlamada } from "@/components/deals/ficha/acciones-de-llamada";
 
 export function DetalleDeLlamada({
   programaSlug,
@@ -92,8 +92,6 @@ export function DetalleDeLlamada({
           <Contenido
             detalle={detalle}
             esActiva={esActiva}
-            puedeConfirmar={puedeActuar}
-            onCambio={() => setRecarga((n) => n + 1)}
             explicacionDeSuelta={explicacionDeSuelta}
           />
         ) : null}
@@ -110,7 +108,6 @@ export function DetalleDeLlamada({
               puedeMarcarAtendida={detalle!.puedeMarcarAtendida}
               mensajeNoPuedeMarcarAtendida={detalle!.mensajeNoPuedeMarcarAtendida}
               puedeReagendar={puedeReagendar}
-              mostrarConfirmacion={false}
               onCambio={() => setRecarga((n) => n + 1)}
             />
           </div>
@@ -129,11 +126,9 @@ export function DetalleDeLlamada({
   );
 }
 
-function Contenido({ detalle, esActiva, puedeConfirmar, onCambio, explicacionDeSuelta }: {
+function Contenido({ detalle, esActiva, explicacionDeSuelta }: {
   detalle: Detalle;
   esActiva: boolean;
-  puedeConfirmar: boolean;
-  onCambio: () => void;
   explicacionDeSuelta?: ExplicacionDeSuelta;
 }) {
   const correoLead = detalle.lead?.email ?? detalle.emailLead;
@@ -144,7 +139,7 @@ function Contenido({ detalle, esActiva, puedeConfirmar, onCambio, explicacionDeS
   const cambioConfirmacion = detalle.historial.findLast((cambio) =>
     (cambio.campo === "confirmacion") && cambio.valorNuevo === detalle.confirmacion
   );
-  const detalleConfirmacion = detalle.confirmacion && cambioConfirmacion
+  const detalleConfirmacion = detalle.confirmacion && detalle.confirmacion !== "no_confirmada" && cambioConfirmacion
     ? `${ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]} · ${fechaHoraEnBogota(cambioConfirmacion.detectadoEn)} · ${cambioConfirmacion.userNombre ?? cambioConfirmacion.userEmail ?? "Sistema"}`
     : null;
   return (
@@ -164,25 +159,16 @@ function Contenido({ detalle, esActiva, puedeConfirmar, onCambio, explicacionDeS
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Badge variant={TONO_DE_RESULTADO[detalle.resultado]}>
-          {ETIQUETA_DE_RESULTADO[detalle.resultado]}{estaAgendada(detalle.resultado) && detalle.confirmacion ? ` · ${ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}` : ""}
+          {ETIQUETA_DE_RESULTADO[detalle.resultado]}{estaAgendada(detalle.resultado) && detalle.confirmacion !== "no_confirmada" && detalle.confirmacion ? ` · ${ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}` : ""}
         </Badge>
-        {!estaAgendada(detalle.resultado) && detalle.confirmacion ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}</Badge> : null}
+        {!estaAgendada(detalle.resultado) && detalle.confirmacion !== "no_confirmada" && detalle.confirmacion ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}</Badge> : null}
         {esActiva ? <Badge variant="default">Cita activa</Badge> : null}
         {esCitaManual(detalle.origen) ? (
           <Badge variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
         ) : null}
         {detalle.anuladoEn ? <Badge variant="peligro">Anulada</Badge> : null}
       </div>
-      {puedeConfirmar ? (
-        <ConfirmacionDeCita
-          callId={detalle.id}
-          confirmacion={detalle.confirmacion}
-          sinResultado={estaAgendada(detalle.resultado)}
-          mostrarEtiqueta={false}
-          detalle={detalleConfirmacion}
-          onCambio={onCambio}
-        />
-      ) : detalleConfirmacion ? <p className="cifra text-xs text-muted-foreground">{detalleConfirmacion}</p> : null}
+      {detalleConfirmacion ? <p className="cifra text-xs text-muted-foreground">{detalleConfirmacion}</p> : null}
 
       <dl className="grid min-w-0 gap-3">
         <Dato etiqueta="Lead">

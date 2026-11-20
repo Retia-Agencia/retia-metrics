@@ -54,8 +54,9 @@ en su propia SQLite) y le pregunta quiénes le confirmaron (18.CN, desde el 13-o
 9. **Se enciende y se apaga por programa**, como el reporte del semáforo (265).
 10. **Enmienda del 3-nov (PUSH-1): el CRM cancela en Calendly la cita de quien no confirmó, solo en los casos
     seguros.** Es el corte del protocolo de confirmación de 30X (Instructivo del Confirmador v3.3): una agenda que no
-    se confirma se libera la víspera para que entre otra. Los casos seguros son todos a la vez: el closer la marcó
-    `no_confirmada` en el corte; la llamada está vigente, sin resultado y es de Calendly (huella `calendly:<uuid>`); la
+    se confirma se libera la víspera para que entre otra. Los casos seguros son todos a la vez: la llamada no
+    está marcada `confirmada` en el corte (desde el 19-nov no hay "No confirmó": sin marca es no confirmada, y las
+    filas históricas `no_confirmada` cuentan igual); la llamada está vigente, sin resultado y es de Calendly (huella `calendly:<uuid>`); la
     cita **no es hoy** en Bogotá y se agendó con **24 h o más** de anticipación. Fuera de eso no se cancela: a quien
     agendó para hoy o para mañana se le insiste y le llega el link. El modo es un dato del programa (ADR 0012):
     apagado, **aprobar** (Juanito le pregunta al closer "¿cancelo a estas N?" y el CRM cancela solo con el sí) o

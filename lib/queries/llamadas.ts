@@ -127,6 +127,7 @@ export interface FilaLlamadaPrograma {
   leadNombre: string | null;
   leadEmail: string | null;
   resultado: (typeof calls.$inferSelect)["resultado"];
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
   etapa: EtapaDeal | null;
   pendiente: PendienteDeal | null;
   fechaAgenda: Date | null;
@@ -162,6 +163,7 @@ export async function llamadasDelPrograma(
       leadId: deals.leadId,
       emailSuelta: calls.emailLead,
       resultado: calls.resultado,
+      confirmacion: calls.confirmacion,
       etapa: deals.etapa,
       pendiente: deals.pendiente,
       fechaAgenda: calls.fechaAgenda,
@@ -209,6 +211,7 @@ export async function llamadasDelPrograma(
       leadNombre: f.leadNombre,
       leadEmail: f.leadEmail ?? f.emailSuelta,
       resultado: f.resultado,
+      confirmacion: f.confirmacion,
       etapa: f.etapa,
       pendiente: f.pendiente,
       fechaAgenda: f.fechaAgenda,
