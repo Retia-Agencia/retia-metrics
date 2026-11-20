@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Card, CardContent } from "@/components/ui/card";
 import { fechaHoraEnBogota, num } from "@/lib/format";
+import { estaAgendada } from "@/lib/deals/resultados-de-llamada";
 import { ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FilaLlamadaPrograma } from "@/lib/queries/llamadas";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
@@ -82,7 +83,7 @@ export function LlamadasPrograma({
               <FilaLlamada
                 key={llamada.callId}
                 llamada={llamada}
-                puedeSeleccionar={puedeTrabajar && llamada.resultado === "agendada"}
+                puedeSeleccionar={puedeTrabajar && estaAgendada(llamada.resultado)}
                 seleccionada={seleccionadas.has(llamada.callId)}
                 onSeleccionar={() => alternar(llamada.callId)}
                 onAbrir={() => setDetalleId(llamada.callId)}

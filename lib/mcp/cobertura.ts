@@ -169,6 +169,7 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/inbox/acciones.ts#buscarLeadsParaPagoAccion": { clase: "lectura", herramienta: "buscar_leads", razon: "La misma búsqueda de leads, para elegir a quién se asigna una compra de la pasarela." },
   "app/(app)/p/[programa]/inbox/acciones.ts#asignarCompraAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Asignar a un lead una compra de la pasarela que no se emparejó sola." },
   "app/(app)/p/[programa]/calls/acciones.ts#detalleDeLlamadaAccion": { clase: "lectura", herramienta: "ficha_de_deal" },
+  "app/(app)/p/[programa]/calls/acciones.ts#marcarConfirmacionMasivaAccion": { clase: "fuera", razon: "Comodidad de pantalla: el MCP ya confirma cada cita con marcar_confirmacion." },
 
   "app/(app)/mi-espacio/acciones.ts#emitirMiTokenAccion": { clase: "fuera", razon: "Emitir o revocar credenciales siempre queda fuera del MCP." },
   "app/(app)/mi-espacio/acciones.ts#revocarMiTokenAccion": { clase: "fuera", razon: "Emitir o revocar credenciales siempre queda fuera del MCP." },
