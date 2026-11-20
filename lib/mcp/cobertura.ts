@@ -83,6 +83,11 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/programa/acciones-programa.ts#marcarSetterPorDefectoAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Elegir quién recibe por defecto los deals nuevos del programa." },
   "app/(app)/p/[programa]/programa/acciones-programa.ts#conectarCalendlyAccion": { clase: "fuera", razon: "Los tokens y secretos de integraciones siempre quedan fuera del MCP." },
   "app/(app)/p/[programa]/programa/acciones-programa.ts#editarCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Editar una cohorte." },
+  "app/(app)/p/[programa]/programa/acciones-programa.ts#editarVentanaDeCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Editar la ventana de venta y las metas de una cohorte." },
+  "app/(app)/p/[programa]/programa/acciones-programa.ts#crearSkuAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Crear un SKU (y su cohorte si el número es nuevo)." },
+  "app/(app)/p/[programa]/programa/acciones-programa.ts#editarSkuAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Editar el nombre, precio, % de comisión o cupo de un SKU." },
+  "app/(app)/p/[programa]/programa/acciones-programa.ts#desactivarSkuAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Desactivar un SKU." },
+  "app/(app)/p/[programa]/programa/acciones-programa.ts#reactivarSkuAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Reactivar un SKU." },
 
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#moverConHechoAccion": { clase: "expuesta", accion: "mover_etapa" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#deshacerEventoAccion": { clase: "expuesta", accion: "deshacer_evento" },
@@ -189,8 +194,10 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
  * 16-nov (Alejandro): 96 → 97 por una capacidad nueva, no por una regresión: asignar a un lead una compra de la
  * pasarela que no se emparejó sola (451, Hotmart). Entra como pendiente de operación hasta que el MCP la exponga.
  * 17-nov: reasignar_deal expuesta (411, ADR 0134), 97 → 96.
+ * 20-nov: 96 → 98 por capacidades nuevas del 459 (ADR 0139): crear, editar, desactivar y reactivar un SKU y editar la
+ * ventana de una cohorte entran como pendientes de configuración; sale crearCohorteAccion (la cohorte nace con su SKU).
  */
-export const TOPE_DE_PENDIENTES_DEL_MCP = 96;
+export const TOPE_DE_PENDIENTES_DEL_MCP = 98;
 
 type RazonSinLista =
   | `Se pide por consultar_hechos: ${string}`
