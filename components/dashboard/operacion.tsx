@@ -15,7 +15,11 @@ import { fecha, num, pct, usd } from "@/lib/format";
 import { ETIQUETA_CRITERIO_DE_CLOSER } from "@/lib/criterios-de-closer";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
-import type { OrigenEmbudoComercial, PasoDelEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import type {
+  AreaEmbudoComercial,
+  OrigenEmbudoComercial,
+  PasoDelEmbudoComercial,
+} from "@/lib/queries/embudo-comercial";
 import type { EtapaDelCamino } from "@/lib/queries/embudo-etapas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
@@ -208,7 +212,8 @@ export interface CifrasDeComercial {
 export function Operacion({
   cifras,
   vista, detalles, detallesOperacion, dealsContraAgendas, vistaEscalera,
-  embudoComercial, origenEmbudo = "completo", enlacesDeOrigen, dineroPorCloser = {},
+  embudoComercial, origenEmbudo = "completo", enlacesDeOrigen,
+  areaEmbudo = "todas", enlacesDeArea, dineroPorCloser = {},
   hoy, veEquipo = true,
 }: {
   cifras?: CifrasDeComercial;
@@ -220,6 +225,8 @@ export function Operacion({
   embudoComercial?: PasoComercialConDetalle[];
   origenEmbudo?: "todos" | OrigenEmbudoComercial;
   enlacesDeOrigen?: Record<"todos" | "completo" | "parcial", string>;
+  areaEmbudo?: "todas" | AreaEmbudoComercial;
+  enlacesDeArea?: Record<"todas" | AreaEmbudoComercial, string>;
   dineroPorCloser?: Record<string, DineroDeVentas>;
   dealsContraAgendasVista?: VistaDealsContraAgendas;
   hoy: string;
@@ -231,6 +238,8 @@ export function Operacion({
   const cobertura = `Calculado sobre ${num(grupo.deals)} de ${num(totalCitas)} citas: ${num(grupo.sinMarcar)} sin marcar`;
   const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
   const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
+  const embudoCortado = areaEmbudo !== "todas" || origenEmbudo !== "todos";
+  const opcionesDeArea = [{ clave: "todas", etiqueta: "Todas" }, { clave: "paid", etiqueta: "Paid" }, { clave: "organico", etiqueta: "Orgánico" }, { clave: "referidos", etiqueta: "Referidos" }, { clave: "sin_utm", etiqueta: "Sin UTM" }] as const;
   return <section id="operacion" className="scroll-mt-4 space-y-4">
     <div><h2 className="text-xl font-semibold">Comercial</h2>{cifras ? null : <p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p>}<ContextoDeCifra texto={contexto} /></div>
     <Card><CardHeader><Titulo id="cifras" sinInfo={!!cifras}>Cifras clave</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Citas creadas dentro del periodo. Más de 10 % sin marcar vuelve parcial la tasa. Esas citas nunca cuentan como no-show.</p> : null}</CardHeader><CardContent className="space-y-3">
@@ -245,10 +254,39 @@ export function Operacion({
       </div>
     </CardContent></Card>
     {embudoComercial ? <Card><CardHeader><Titulo id="embudo" sinInfo={!!cifras}>¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">
-      {enlacesDeOrigen ? <div className="flex flex-wrap gap-1" role="group" aria-label="Origen del deal">{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Enlace precarga="nunca" scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
+      <div className="space-y-2">
+        {enlacesDeOrigen ? <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Origen del deal"><span className="mr-1 text-xs text-muted-foreground">Origen del deal</span>{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Enlace precarga="nunca" scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
+        {enlacesDeArea ? <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Área"><span className="mr-1 text-xs text-muted-foreground">Área</span>{opcionesDeArea.map((opcion) => <Button key={opcion.clave} size="sm" variant={areaEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Enlace precarga="nunca" scroll={false} href={enlacesDeArea[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
+      </div>
       {cifras ? <p className="text-xs text-muted-foreground">Compraron solo cuenta ventas con show antes del pago; las demás van en su línea aparte. Si el periodo terminó hace poco (los días de madurez del programa), aún pueden llegar ventas. Completo significa que la persona terminó el formulario, aunque haya empezado con un parcial.</p> : null}
-      <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({ clave: paso.paso, etiqueta: ETIQUETA_DEL_PASO[paso.paso], cantidad: paso.cantidad, cifra: cifras?.embudo[indice].cantidad, cifraDelPct: cifras?.embudo[indice].porcentaje, detalle: paso.detalle, pctDelPaso: paso.pctDelPaso, perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos, cifra: cifras?.embudo[indice].perdidos ?? undefined } }))} />
-      {ventasSinLlamada && ventasSinLlamada.deals > 0 ? <p className="text-sm text-muted-foreground"><Celda cifra={cifras?.auditoria.ventasSinLlamada ?? undefined} titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> ventas sin llamada registrada</p> : null}
+      <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({
+        clave: paso.paso,
+        etiqueta: ETIQUETA_DEL_PASO[paso.paso],
+        cantidad: paso.cantidad,
+        cifra: cifras?.embudo[indice].cantidad,
+        cifraDelPct: cifras?.embudo[indice].porcentaje,
+        detalle: paso.detalle,
+        pctDelPaso: paso.pctDelPaso,
+        perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos, cifra: cifras?.embudo[indice].perdidos ?? undefined },
+        composicion: paso.composicion ? [
+          { clave: "completo", etiqueta: "Completo", cantidad: paso.composicion.completo, tono: "primario" },
+          { clave: "parcial", etiqueta: "Parcial", cantidad: paso.composicion.parcial, tono: "info" },
+          { clave: "manual", etiqueta: "Manual", cantidad: paso.composicion.manual, tono: "neutro" },
+        ] : undefined,
+        contenidoInferior: paso.paso === "tuvieron_show" && grupo.sinMarcar > 0
+          ? embudoCortado
+            ? <p className="text-xs text-muted-foreground">Las citas sin marcar todavía no se cortan por origen.</p>
+            : <Badge variant="alerta">{cifras?.clave.sinMarcar
+              ? <Cifra cifra={cifras.clave.sinMarcar} tamano="celda" />
+              : <Celda titulo="Citas pasadas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)}</Celda>} citas pasadas sin marcar: parte pudieron ser shows</Badge>
+          : paso.paso === "compraron"
+            ? embudoCortado
+              ? <p className="text-xs text-muted-foreground">Ventas sin llamada todavía no se corta por origen.</p>
+              : ventasSinLlamada && ventasSinLlamada.deals > 0
+                ? <p className="text-sm text-muted-foreground">+<Celda cifra={cifras?.auditoria.ventasSinLlamada ?? undefined} titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> sin llamada registrada</p>
+                : undefined
+            : undefined,
+      }))} />
     </CardContent></Card> : null}
     {vistaEscalera ? <Escalera vista={vistaEscalera} cifras={cifras?.escalera} /> : null}
     {dealsContraAgendas}

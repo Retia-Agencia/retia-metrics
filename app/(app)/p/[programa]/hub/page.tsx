@@ -498,6 +498,8 @@ async function CuerpoDelHub({
           embudoComercial={comercial.embudo}
           origenEmbudo={comercial.origenEmbudo}
           enlacesDeOrigen={comercial.enlacesDeOrigen}
+          areaEmbudo={comercial.areaEmbudo}
+          enlacesDeArea={comercial.enlacesDeArea}
           vistaEscalera={comercial.escalera}
           dineroPorCloser={comercial.dineroPorCloser}
           dealsContraAgendas={<DealsContraAgendas sinInfo vista={comercial.dealsContraAgendas} origen={origen} hoy={hoy} />}

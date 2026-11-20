@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { calls, deals, dealEtapaHistorial, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -40,21 +41,49 @@ describe("381: embudo comercial", () => {
   afterAll(async () => cerrar());
 
   it("calcula cada porcentaje contra el paso anterior y la perdida como diferencia", () => {
-    const pasos = pasosDelEmbudoComercial([
-      { dealId: "1", origen: "completo", agendo: true, tuvoShow: true, compro: true },
-      { dealId: "2", origen: "completo", agendo: true, tuvoShow: true, compro: false },
-      { dealId: "3", origen: "parcial", agendo: true, tuvoShow: false, compro: false },
-      { dealId: "4", origen: "manual", agendo: false, tuvoShow: false, compro: false },
-    ]);
+    const deals = [
+      { dealId: "1", origen: "completo", area: "paid", agendo: true, tuvoShow: true, compro: true },
+      { dealId: "2", origen: "completo", area: "organico", agendo: true, tuvoShow: true, compro: false },
+      { dealId: "3", origen: "parcial", area: "paid", agendo: true, tuvoShow: false, compro: false },
+      { dealId: "4", origen: "manual", area: "sin_envio_origen", agendo: false, tuvoShow: false, compro: false },
+    ] as const;
+    const pasos = pasosDelEmbudoComercial(deals);
     for (const [indice, paso] of pasos.entries()) {
       const anterior = indice === 0 ? paso.cantidad : pasos[indice - 1]!.cantidad;
       expect(paso.pctDelPaso).toBe(anterior === 0 ? null : paso.cantidad / anterior);
       expect(paso.perdidos).toBe(anterior - paso.cantidad);
     }
-    expect(pasosDelEmbudoComercial([
-      { dealId: "1", origen: "completo", agendo: true, tuvoShow: true, compro: true },
-      { dealId: "2", origen: "parcial", agendo: false, tuvoShow: false, compro: false },
-    ], "completo").map((paso) => paso.cantidad)).toEqual([1, 1, 1, 1]);
+    expect(pasos[0]!.composicion).toEqual({ completo: 2, parcial: 1, manual: 1 });
+    expect(Object.values(pasos[0]!.composicion!).reduce((suma, cantidad) => suma + cantidad, 0))
+      .toBe(pasos[0]!.cantidad);
+    const completos = pasosDelEmbudoComercial(deals, "completo");
+    expect(completos.map((paso) => paso.cantidad)).toEqual([2, 2, 2, 1]);
+    expect(completos[0]!.composicion).toEqual({ completo: 2, parcial: 0, manual: 0 });
+  });
+
+  it("combina el área con el universo anidado y conserva cantidad igual a dealIds", () => {
+    const pasos = pasosDelEmbudoComercial([
+      { dealId: "1", origen: "completo", area: "paid", agendo: true, tuvoShow: true, compro: true },
+      { dealId: "2", origen: "parcial", area: "paid", agendo: true, tuvoShow: false, compro: false },
+      { dealId: "3", origen: "completo", area: "organico", agendo: true, tuvoShow: true, compro: true },
+      { dealId: "4", origen: "manual", area: "sin_envio_origen", agendo: false, tuvoShow: false, compro: false },
+    ], undefined, "paid");
+
+    for (const [indice, paso] of pasos.entries()) {
+      expect(paso.cantidad).toBe(paso.dealIds.length);
+      if (indice > 0) {
+        const idsAnteriores = new Set(pasos[indice - 1]!.dealIds);
+        expect(paso.dealIds.every((id) => idsAnteriores.has(id))).toBe(true);
+      }
+    }
+    expect(pasos.map((paso) => paso.cantidad)).toEqual([2, 2, 1, 1]);
+  });
+
+  it("lee el área desde la derivación central existente", () => {
+    const fuente = readFileSync(new URL("../lib/queries/embudo-comercial.ts", import.meta.url), "utf8");
+    expect(fuente).toContain('import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen"');
+    expect(fuente).toContain("dimensionesDeOrigen(");
+    expect(fuente).not.toMatch(/areaDelDeal\s*=\s*sql`case/);
   });
 
   it("reclasifica como completo al lead que primero envió parcial y luego terminó, con lista y cifra iguales", async () => {

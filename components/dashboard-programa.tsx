@@ -7,7 +7,7 @@ import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import type { VistaDeEscalera } from "@/lib/queries/vista-escalera";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
-import type { OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import type { AreaEmbudoComercial, OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import type { PasoComercialConDetalle } from "@/components/dashboard/operacion";
 import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
@@ -44,6 +44,8 @@ export function DashboardPrograma({
   embudoComercial,
   origenEmbudo,
   enlacesDeOrigen,
+  areaEmbudo,
+  enlacesDeArea,
   vistaEscalera,
   dineroPorCloser,
 }: {
@@ -72,6 +74,8 @@ export function DashboardPrograma({
   embudoComercial?: PasoComercialConDetalle[];
   origenEmbudo?: "todos" | OrigenEmbudoComercial;
   enlacesDeOrigen?: Record<"todos" | "completo" | "parcial", string>;
+  areaEmbudo?: "todas" | AreaEmbudoComercial;
+  enlacesDeArea?: Record<"todas" | AreaEmbudoComercial, string>;
   vistaEscalera?: VistaDeEscalera;
   dineroPorCloser?: Record<string, DineroDeVentas>;
 }) {
@@ -89,6 +93,8 @@ export function DashboardPrograma({
         embudoComercial={embudoComercial}
         origenEmbudo={origenEmbudo}
         enlacesDeOrigen={enlacesDeOrigen}
+        areaEmbudo={areaEmbudo}
+        enlacesDeArea={enlacesDeArea}
         vistaEscalera={vistaEscalera}
         dineroPorCloser={dineroPorCloser}
       />

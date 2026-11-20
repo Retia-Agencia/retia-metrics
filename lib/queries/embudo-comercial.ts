@@ -2,7 +2,9 @@ import { and, eq, inArray, lte } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
+import type { Area } from "@/lib/atribucion/canal";
 import type { Alcance } from "@/lib/queries/dashboard";
+import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import {
   fechaAnclaCall,
   filtroDealsCreados,
@@ -15,11 +17,13 @@ import {
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export type OrigenEmbudoComercial = OrigenDeDeal | "manual";
+export type AreaEmbudoComercial = Area;
 export type PasoEmbudoComercial = "creados" | "agendaron" | "tuvieron_show" | "compraron";
 
 export interface DealParaEmbudoComercial {
   dealId: string;
   origen: OrigenEmbudoComercial;
+  area: string | null;
   agendo: boolean;
   tuvoShow: boolean;
   compro: boolean;
@@ -31,6 +35,7 @@ export interface PasoDelEmbudoComercial {
   dealIds: string[];
   pctDelPaso: number | null;
   perdidos: number;
+  composicion?: { completo: number; parcial: number; manual: number };
 }
 
 export const METRICAS_DEL_EMBUDO_COMERCIAL = [
@@ -49,8 +54,10 @@ export function esMetricaDelEmbudoComercial(metrica: string): metrica is Metrica
 export function pasosDelEmbudoComercial(
   dealsDelRango: readonly DealParaEmbudoComercial[],
   origen?: OrigenEmbudoComercial,
+  area?: AreaEmbudoComercial,
 ): PasoDelEmbudoComercial[] {
-  const creados = dealsDelRango.filter((deal) => origen === undefined || deal.origen === origen);
+  const creados = dealsDelRango.filter((deal) =>
+    (origen === undefined || deal.origen === origen) && (area === undefined || deal.area === area));
   const grupos: Array<{ paso: PasoEmbudoComercial; deals: DealParaEmbudoComercial[] }> = [
     { paso: "creados", deals: creados },
     { paso: "agendaron", deals: creados.filter((deal) => deal.agendo) },
@@ -65,6 +72,11 @@ export function pasosDelEmbudoComercial(
       dealIds: deals.map((deal) => deal.dealId),
       pctDelPaso: anterior === 0 ? null : deals.length / anterior,
       perdidos: anterior - deals.length,
+      ...(paso === "creados" ? { composicion: {
+        completo: deals.filter((deal) => deal.origen === "completo").length,
+        parcial: deals.filter((deal) => deal.origen === "parcial").length,
+        manual: deals.filter((deal) => deal.origen === "manual").length,
+      } } : {}),
     };
   });
 }
@@ -74,8 +86,9 @@ export function cargarEmbudoComercial(
   db: Db,
   alcance: Alcance,
   origen?: OrigenEmbudoComercial,
+  area?: AreaEmbudoComercial,
 ): Promise<PasoDelEmbudoComercial[]> {
-  return dealsDelEmbudoComercial(db, alcance).then((filas) => pasosDelEmbudoComercial(filas, origen));
+  return dealsDelEmbudoComercial(db, alcance).then((filas) => pasosDelEmbudoComercial(filas, origen, area));
 }
 
 async function dealsDelEmbudoComercial(
@@ -91,7 +104,10 @@ async function leerDealsDelEmbudoComercial(
   alcance: Alcance,
 ): Promise<DealParaEmbudoComercial[]> {
   const ventasDelRango = ventasConDiaEn(db, alcance.rango).as("ventas_embudo_comercial");
-  const base = () => db.select({ dealId: deals.id })
+  const { area: areaDelDeal } = dimensionesDeOrigen(
+    submissions.id, submissions.utmSource, submissions.utmMedium, deals.programId,
+  );
+  const base = () => db.select({ dealId: deals.id, area: areaDelDeal })
     .from(deals)
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(filtroDealsCreados(alcance), vigente(deals)));
@@ -123,9 +139,10 @@ async function leerDealsDelEmbudoComercial(
   const idsShows = new Set(shows.flatMap((fila) => fila.dealId ? [fila.dealId] : []));
   const idsVentas = new Set(ventas.map((fila) => fila.dealId));
 
-  return creados.map(({ dealId }) => ({
+  return creados.map(({ dealId, area }) => ({
     dealId,
     origen: idsCompletos.has(dealId) ? "completo" : idsParciales.has(dealId) ? "parcial" : "manual",
+    area,
     agendo: idsAgendaron.has(dealId),
     tuvoShow: idsShows.has(dealId),
     compro: idsVentas.has(dealId),
