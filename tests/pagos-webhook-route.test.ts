@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import fixture from "./fixtures/hotmart-purchase-approved-doc.json";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 const holder: { db: Db | null } = { db: null };
 vi.mock("@/lib/db", () => ({ get db() { return holder.db; } }));
@@ -20,7 +21,8 @@ describe("POST /api/webhooks/pagos/[fuente]", () => {
     integracionId = integracion.id;
     const [hotmart] = await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Hotmart"));
     await db.insert(enlacesPago).values({ programId: programa.id, plataformaId: hotmart.id, nombre: "Oferta", monto: "149", moneda: "USD", url: "https://pay.hotmart.com/X?off=n82b9jqz" });
-    await db.insert(cohorts).values({ programId: programa.id, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2010-01-01", fechaInicioVentas: "2008-01-01", fechaCierreVentas: "2011-01-01", estado: "futuro" });
+    const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2010-01-01", fechaInicioVentas: "2008-01-01", fechaCierreVentas: "2011-01-01" }).returning();
+    await skuVirtualDePrueba(db, cohorte.id);
   });
   afterAll(async () => { holder.db = null; await cerrar(); });
   const invocar = async (id: string, body: unknown, hottok: string | null = HOTTOK) => {

@@ -266,7 +266,6 @@ describe("leerProyeccion contra la base", () => {
       fechaInicioClases: "2026-12-01",
       fechaInicioVentas: "2026-10-01",
       fechaCierreVentas: "2026-11-30",
-      estado: "activo",
     });
     for (let i = 0; i < personas; i++) {
       const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: `p${i}@retia.co` }).returning();

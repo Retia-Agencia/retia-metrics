@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, deals, leads, programs, rarezasMigracion } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -99,13 +100,13 @@ describe("huella de migracion en abonos (ADR 0059)", () => {
   });
 
   it("dos abonos con la MISMA huella chocan", async () => {
-    await db.insert(abonos).values(abono(HUELLA));
+    await abonoDePrueba(db, abono(HUELLA));
 
-    await expect(db.insert(abonos).values(abono(HUELLA))).rejects.toSatisfy(esViolacionUnica);
+    await expect(abonoDePrueba(db, abono(HUELLA))).rejects.toSatisfy(esViolacionUnica);
   });
 
   it("los abonos nativos (huella nula) conviven", async () => {
-    await db.insert(abonos).values([abono(), abono()]);
+    await abonoDePrueba(db, [abono(), abono()]);
 
     expect(await db.select().from(abonos)).toHaveLength(2);
   });

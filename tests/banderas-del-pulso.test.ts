@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { abonos, calls, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -57,7 +58,7 @@ const anulado = () => ({ anuladoEn: ahora, anuladoPor: ana, motivoAnulacion: "Er
 const esperado = { sinValor: new Set<string>(), sinGrain: new Set<string>(), atendidos: new Set<string>(), perdidosConPagos: new Set<string>() };
 
 async function abono(dealId: string, datos: Partial<typeof abonos.$inferInsert> = {}) {
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400", ...datos,
   });
 }

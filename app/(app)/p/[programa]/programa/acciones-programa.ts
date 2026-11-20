@@ -21,9 +21,7 @@ import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import { agregarMembresia, exigirUsuarioDentroDelAlcance, quitarMembresia } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import {
-  activarCohorte,
   crearCohorte,
-  desactivarCohorte,
   editarCohorte,
   type EntradaCohorte,
 } from "@/lib/catalogo/cohortes";
@@ -273,32 +271,6 @@ export async function editarCohorteAccion(
     await exigirProgramaDeCohorte(actor, id);
     const { session } = actor;
     await editarCohorte(db, session.user.id, id, input);
-    revalidarNav();
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-export async function activarCohorteAccion(slug: string, id: string): Promise<ResultadoAccion> {
-  try {
-    const actor = await actorGerente();
-    await exigirProgramaDeCohorte(actor, id);
-    const { session } = actor;
-    await activarCohorte(db, session.user.id, id);
-    revalidarNav();
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-export async function desactivarCohorteAccion(slug: string, id: string): Promise<ResultadoAccion> {
-  try {
-    const actor = await actorGerente();
-    await exigirProgramaDeCohorte(actor, id);
-    const { session } = actor;
-    await desactivarCohorte(db, session.user.id, id);
     revalidarNav();
     return { ok: true };
   } catch (error) {

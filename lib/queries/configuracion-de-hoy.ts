@@ -3,6 +3,8 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, objetivos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
+import { estadoDeCohorteSql } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 export interface DatosConfiguracionHoy {
   programa: {
@@ -28,6 +30,7 @@ async function leerConfiguracion(
   programId: string,
   db: Db,
 ): Promise<DatosConfiguracionHoy | null> {
+  const hoy = hoyEnBogota();
   const [[programa], [cohorte]] = await Promise.all([
     db.select({
       id: programs.id, nombre: programs.nombre, slug: programs.slug, ticketUsd: programs.ticketUsd,
@@ -38,8 +41,8 @@ async function leerConfiguracion(
     db.select({
       id: cohorts.id, programId: cohorts.programId, codigo: cohorts.codigo, metaCupos: cohorts.metaCupos,
       metaLeadsDia: cohorts.metaLeadsDia, precioUsd: cohorts.precioUsd, fechaInicioClases: cohorts.fechaInicioClases,
-      fechaInicioVentas: cohorts.fechaInicioVentas, fechaCierreVentas: cohorts.fechaCierreVentas, estado: cohorts.estado,
-    }).from(cohorts).where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "activo"))).limit(1),
+      fechaInicioVentas: cohorts.fechaInicioVentas, fechaCierreVentas: cohorts.fechaCierreVentas, estado: estadoDeCohorteSql(hoy),
+    }).from(cohorts).where(and(eq(cohorts.programId, programId), eq(estadoDeCohorteSql(hoy), "activo"))).limit(1),
   ]);
   if (!programa) return null;
   const [objetivo] = cohorte ? await db.select({ id: objetivos.id, meta: objetivos.meta })

@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, enlacesPago, leads, plataformasPago, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, enlacesPago, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { pagosDeStudents } from "@/lib/queries/pagos-de-students";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -45,7 +46,6 @@ beforeEach(async () => {
         fechaInicioVentas: "2026-10-01",
         fechaCierreVentas: "2026-10-31",
         fechaInicioClases: "2026-11-10",
-        estado: "activo",
       },
       {
         programId: otroProgramaId,
@@ -55,7 +55,6 @@ beforeEach(async () => {
         fechaInicioVentas: "2026-10-01",
         fechaCierreVentas: "2026-10-31",
         fechaInicioClases: "2026-11-10",
-        estado: "activo",
       },
     ])
     .returning();
@@ -122,7 +121,7 @@ describe("pagosDeStudents", () => {
       })
       .returning();
 
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       {
         dealId: deal.id,
         programId,
@@ -167,7 +166,7 @@ describe("pagosDeStudents", () => {
 
   it("usa exactamente el saldo central y excluye el abono anulado de abonado", async () => {
     const deal = await crearDeal();
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: deal.id, programId, fecha: "2026-11-02", monto: "400", concepto: "ticket" },
       {
         dealId: deal.id,
@@ -193,7 +192,7 @@ describe("pagosDeStudents", () => {
   it("no cruza abonos ni deals de otro programa", async () => {
     const deal = await crearDeal();
     const dealAjeno = await crearDeal(otroProgramaId, otraCohortId);
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: deal.id, programId, fecha: "2026-11-02", monto: "400" },
       { dealId: dealAjeno.id, programId: otroProgramaId, fecha: "2026-11-02", monto: "900" },
     ]);

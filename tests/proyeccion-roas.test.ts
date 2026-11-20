@@ -14,6 +14,7 @@ import { calcularProyeccionDeRoas, confirmarProyecciones, guardarProyeccionDelDi
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -66,6 +67,7 @@ async function vender(dia: string, valor: string, diaVenta: string) {
   const e = await envio(dia);
   const deal = (await db.insert(deals).values({ programId, leadId: e.leadId, submissionOrigenId: e.envioId, cohortId: cohorteId,
     ownerUserId: andrea, etapa: "ganado_completo", valorVendidoUsd: valor }).returning())[0];
+  await lineaConCupoDePrueba(db, deal.id);
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${diaVenta}T12:00:00-05:00`) });
   return deal;
 }
@@ -88,6 +90,7 @@ async function historia(closerUserId: string, args: { personas: number; conShow:
     const vendida = i < args.vendidas;
     const deal = (await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: closerUserId, cohortId: cohorteId,
       etapa: vendida ? "ganado_completo" : "agendado", valorVendidoUsd: vendida ? "797" : null }).returning())[0];
+    if (vendida) await lineaConCupoDePrueba(db, deal.id);
     await db.insert(calls).values({ programId, dealId: deal.id, closerUserId, resultado: show ? "show" : "no_show",
       fechaAgenda: new Date("2026-10-22T10:00:00-05:00") });
   }

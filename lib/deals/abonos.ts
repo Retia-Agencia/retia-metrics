@@ -10,13 +10,14 @@ import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
-import { saldosDeDeals } from "@/lib/queries/saldo";
+import { saldosDeLineas } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
+import { moverEtapa } from "./mover-etapa";
 import { puedeDeshacer, puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { congelarValorVendido } from "./valor-vendido";
 import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
+import { crearLineaSinClasificar, estadoDePagoPorLineas, lineaConCupoVigente, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -32,10 +33,10 @@ import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
  * comisiones de la plataforma no se modelan). El primer abono congela el ticket de la
  * cohorte sin descuento cuando el closer todavía no lo hizo.
  *
- * ## El saldo es de `lib/queries/saldo.ts`
+ * ## El saldo por línea es de `lib/queries/saldo.ts`
  *
  * La reja del sobrepago y el movimiento de etapa leen la MISMA cifra que ve el closer
- * (ADR 0024). Este modulo no suma abonos: le pregunta a `saldosDeDeals`.
+ * (ADR 0024). Este modulo no suma abonos: le pregunta a `saldosDeLineas`.
  *
  * ## Toda escritura es una transaccion con el deal bloqueado
  *
@@ -113,27 +114,27 @@ export async function dealBloqueado(tx: Db, dealId: string): Promise<{ deal: Fil
 
 export async function exigirSaldoParaAbono(
   tx: Db,
-  entrada: { dealId: string; concepto: "ticket" | "adicional"; moneda: string; monto: string | number },
+  entrada: { dealId: string; lineaId: string; moneda: string; monto: string | number },
 ): Promise<void> {
-  const antes = (await saldosDeDeals(tx, [entrada.dealId])).get(entrada.dealId);
-  if (entrada.concepto === "ticket" && antes?.moneda != null && antes.moneda !== entrada.moneda) {
+  const antes = (await saldosDeLineas(tx, [entrada.dealId])).get(entrada.lineaId);
+  if (antes?.moneda != null && antes.moneda !== entrada.moneda) {
     throw new ErrorDeApp(
-      `El valor vendido del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
+      `El valor vendido de la línea está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
       422,
     );
   }
-  if (entrada.concepto === "ticket" && (!antes || antes.saldo === null)) {
+  if (!antes || antes.saldo === null) {
     throw new ErrorDeApp(
       antes?.sinSaldoPorque === "moneda_distinta"
         ? "El deal tiene abonos en otra moneda: no se puede calcular el saldo."
-        : "El deal no tiene valor vendido: escríbelo antes de registrar un abono.",
+        : "La línea no tiene un valor vendido calculable.",
       409,
     );
   }
   const monto = Number(entrada.monto);
-  if (entrada.concepto === "ticket" && monto > antes!.saldo!) {
+  if (monto > antes.saldo) {
     throw new ErrorDeApp(
-      `El abono (${usd(monto)}) supera el saldo del deal (${usd(antes!.saldo!)}). Un sobrepago no se registra.`,
+      `El abono (${usd(monto)}) supera el saldo de la línea (${usd(antes.saldo)}). Un sobrepago no se registra.`,
       422,
     );
   }
@@ -143,12 +144,9 @@ export async function destinoDespuesDelAbono(
   tx: Db,
   dealId: string,
 ): Promise<{ saldo: number; destino: Extract<EtapaDeal, "ganado_parcial" | "ganado_completo"> }> {
-  const despues = (await saldosDeDeals(tx, [dealId])).get(dealId);
-  if (!despues || despues.saldo === null) {
-    throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
-  }
-  const saldo = despues.saldo;
-  return { saldo, destino: saldo <= 0 ? "ganado_completo" : "ganado_parcial" };
+  const despues = await estadoDePagoPorLineas(tx, dealId);
+  if (!despues.destino) throw new ErrorDeApp("El abono no dejó ninguna línea vendida.", 409);
+  return { saldo: despues.saldo, destino: despues.destino };
 }
 
 /** El closer (texto copiado de su cuenta, ADR 0011) de quien actua, para el rastro y la reja de anular. */
@@ -201,7 +199,7 @@ export async function registrarAbono(
       if (deal.anuladoEn) {
         throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica y no recibe abonos.", 409);
       }
-      if (entrada.concepto === "ticket" && (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido")) {
+      if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
         throw new ErrorDeApp("El deal está cerrado: no recibe abonos nuevos.", 409);
       }
       if (!puedeTrabajarDeal(actor, deal)) {
@@ -213,7 +211,7 @@ export async function registrarAbono(
       let cohorteAsignada: string | null = null;
       // El primer abono congela el ticket completo. El helper también asigna la cohorte
       // activa si falta; sin cohorte no se puede aceptar dinero contra un total inventado.
-      if (entrada.concepto === "ticket" && (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0)) {
+      if (!entrada.lineaId && entrada.concepto === "ticket" && !await lineaConCupoVigente(tx, deal.id)) {
         const congelado = await congelarValorVendido(tx, {
           deal,
           descuentoUsd: 0,
@@ -223,12 +221,23 @@ export async function registrarAbono(
         });
         if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
       }
+      const linea = entrada.lineaId
+        ? await lineaVigente(tx, deal.id, entrada.lineaId)
+        : entrada.concepto === "adicional"
+          ? deal.cohortId == null
+            ? (() => { throw new ErrorDeApp("El deal necesita una cohorte para crear la línea adicional.", 409); })()
+            : await crearLineaSinClasificar(tx, {
+                deal, montoUsd: Number(entrada.monto), cohortId: deal.cohortId,
+                actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
+              })
+          : await lineaConCupoVigente(tx, deal.id);
+      if (!linea) throw new ErrorDeApp("El deal no tiene una línea vigente que cuente como cupo.", 409);
       await exigirPlataformaActiva(entrada.plataformaId, tx);
 
       // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
       // cambie entre esta lectura y la escritura.
-      await exigirSaldoParaAbono(tx, { dealId: deal.id, concepto: entrada.concepto, moneda: entrada.moneda, monto: entrada.monto });
+      await exigirSaldoParaAbono(tx, { dealId: deal.id, lineaId: linea.id, moneda: entrada.moneda, monto: entrada.monto });
 
       if (archivo) {
         await exigirArchivoDelAbono(tx, actor.userId, archivo.archivoId, deal.programId, false);
@@ -239,6 +248,7 @@ export async function registrarAbono(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen ?? "app" },
         {
           dealId: deal.id,
+          lineaId: linea.id,
           // El programa sale del deal, nunca del input (frontera, ADR 0043).
           programId: deal.programId,
           fecha: entrada.fecha,
@@ -256,17 +266,9 @@ export async function registrarAbono(
           origen: "app",
         },
       );
-
-      if (entrada.concepto === "adicional") {
-        const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-        return {
-          abonoId,
-          etapa: deal.etapa,
-          movioElDeal: false,
-          saldo: despues?.saldo ?? null,
-          cohorteAsignada: null,
-        };
-      }
+      await recalcularDealPorLineas(tx, deal.id, {
+        actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
+      });
       const { saldo, destino } = await destinoDespuesDelAbono(tx, deal.id);
 
       if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
@@ -471,7 +473,7 @@ export async function anularAbono(
       // ya abrió OTRO deal, anular este abono lo devolvería a Ganado Pago Parcial (A2) y los
       // dos quedarian abiertos: la base lo rechaza con un error crudo. Se ataja antes, con el
       // mensaje que dice que hacer, y no se escribe nada (`deals_uno_abierto_por_lead_y_programa_idx`).
-      if (abono.concepto === "ticket" && deal.etapa === "ganado_completo" && !deal.anuladoEn) {
+      if (deal.etapa === "ganado_completo" && !deal.anuladoEn) {
         const [otroAbierto] = await tx
           .select({ id: deals.id })
           .from(deals)
@@ -498,24 +500,15 @@ export async function anularAbono(
         abono.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );
+      await recalcularDealPorLineas(tx, deal.id, {
+        actorId: actor.userId, etiqueta: emailLead, origen: contexto.origen,
+      });
 
       // Un deal anulado o perdido no se mueve por dinero: la anulacion queda escrita y ya.
-      if (abono.concepto === "adicional" || deal.anuladoEn || deal.etapa === "cierre_perdido") {
+      if (deal.anuladoEn || deal.etapa === "cierre_perdido") {
         return { etapa: deal.etapa, movioElDeal: false };
       }
-      let etapa: EtapaDeal = deal.etapa;
-      const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id)!;
-      const sistema = { tipo: "sistema" } as const;
-
-      if (etapa === "ganado_completo" && saldo.saldo !== null && saldo.saldo > 0) {
-        await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: sistema, origen: contexto.origen ?? "app" });
-        etapa = "ganado_parcial";
-      }
-      if (etapa === "ganado_parcial" && saldo.abonosVigentes === 0) {
-        const previa = await etapaALaQueVuelve(tx, deal.id);
-        await moverEtapa(tx, { dealId: deal.id, a: previa, actor: sistema, origen: contexto.origen ?? "app" });
-        etapa = previa;
-      }
+      const etapa = await recalcularEtapaTrasAnularAbono(tx, deal, contexto.origen ?? "app");
       return { etapa, movioElDeal: etapa !== deal.etapa };
     });
   });

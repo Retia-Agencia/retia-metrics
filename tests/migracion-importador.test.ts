@@ -24,6 +24,7 @@ import { extraccionVacia, type DealTemplate, type Extraccion, type LlamadaTempla
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * Ticket 078 paso 4 — el importador: del template a la base por el escritor historico.
@@ -72,7 +73,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: P, nombre: "Programa A", ticketUsd: "1500" }).returning();
   programa = p.id;
-  await db.insert(cohorts).values({
+  const [cohorte] = await db.insert(cohorts).values({
     programId: programa,
     codigo: "C1",
     metaCupos: 30,
@@ -80,8 +81,8 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-07-01",
     fechaCierreVentas: "2026-08-18",
     fechaInicioClases: "2026-08-20",
-    estado: "cerrado",
-  });
+  }).returning();
+  await skuVirtualDePrueba(db, cohorte.id);
   // `MercadoPago` ya viene sembrada por la migracion 0003.
   const [s] = await db.insert(users).values({ email: "script@retiagrowth.com", rol: "developer" }).returning();
   script = s.id;

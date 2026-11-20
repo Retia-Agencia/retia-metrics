@@ -1,8 +1,9 @@
-import { abonos, cohorts, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { FECHA_LEAD_DE_PRUEBA } from "./crear-lead-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./programa-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./catalogo-de-prueba";
 
 /**
  * Semilla de los NUMEROS DORADOS (ticket 385, contrato de metricas y datos §4).
@@ -70,11 +71,12 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   ]);
 
   const [c1, c2, c3, cb] = await db.insert(cohorts).values([
-    { programId: pa.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-09-01", fechaCierreVentas: "2026-10-10", estado: "cerrado" },
-    { programId: pa.id, codigo: "C2", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-11-15", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-10-31", estado: "cerrado" },
-    { programId: pa.id, codigo: "C3", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-20", estado: "activo" },
-    { programId: pb.id, codigo: "B1", metaCupos: 20, precioUsd: "1500", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30", estado: "activo" },
+    { programId: pa.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-09-01", fechaCierreVentas: "2026-10-10" },
+    { programId: pa.id, codigo: "C2", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-11-15", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-10-31" },
+    { programId: pa.id, codigo: "C3", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-20" },
+    { programId: pb.id, codigo: "B1", metaCupos: 20, precioUsd: "1500", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30" },
   ]).returning();
+  await Promise.all([c1, c2, c3, cb].map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
 
   const ids = {} as Record<ClaveDeal, string>;
   let n = 0;
@@ -122,7 +124,7 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   }
 
   async function abono(clave: ClaveDeal, programId: string, fecha: string, monto: string, extra: { moneda?: string; concepto?: "ticket" | "adicional"; anulado?: boolean } = {}) {
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: ids[clave],
       programId,
       fecha,

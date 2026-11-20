@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, eventosMeta, integraciones, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, eventosMeta, integraciones, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -26,7 +27,7 @@ async function nuevo(input: { encendido: boolean; cortesia?: boolean }) {
   });
   const [dueno] = await db.insert(users).values({ email: `dueno-${secuencia}@retia.co`, rol: "closer" }).returning();
   const [cohorte] = await db.insert(cohorts).values({
-    programId: programa.id, codigo: `C${secuencia}`, estado: "activo", metaCupos: 10,
+    programId: programa.id, codigo: `C${secuencia}`, metaCupos: 10,
     precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaInicioClases: "2026-12-01",
     fechaCierreVentas: "2026-11-30",
   }).returning();
@@ -40,7 +41,7 @@ async function nuevo(input: { encendido: boolean; cortesia?: boolean }) {
 }
 
 async function abonarYAvanzar(deal: typeof deals.$inferSelect, monto: string, a: "ganado_parcial" | "ganado_completo") {
-  await db.insert(abonos).values({ dealId: deal.id, programId: deal.programId, fecha: "2026-10-20", monto });
+  await abonoDePrueba(db, { dealId: deal.id, programId: deal.programId, fecha: "2026-10-20", monto });
   await moverEtapa(db, { dealId: deal.id, a, actor: { tipo: "sistema" } });
 }
 
@@ -48,7 +49,7 @@ describe("disparo de Purchase", () => {
   it("Abonado y luego Completo deja una sola fila; Completo directo también", async () => {
     const parcial = await nuevo({ encendido: true });
     await abonarYAvanzar(parcial, "300", "ganado_parcial");
-    await db.insert(abonos).values({ dealId: parcial.id, programId: parcial.programId, fecha: "2026-10-20", monto: "700" });
+    await abonoDePrueba(db, { dealId: parcial.id, programId: parcial.programId, fecha: "2026-10-20", monto: "700" });
     await moverEtapa(db, { dealId: parcial.id, a: "ganado_completo", actor: { tipo: "sistema" } });
     expect(await db.select().from(eventosMeta)).toHaveLength(1);
 

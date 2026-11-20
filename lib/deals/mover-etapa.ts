@@ -52,6 +52,7 @@ import { congelarValorVendido } from "./valor-vendido";
 import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { encolarVenta } from "@/lib/meta-capi/disparo";
 import { encolarAvisoDeEstudiante } from "@/lib/avisos-cs/encolar";
+import { asegurarLineaConCupo } from "./lineas";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -318,7 +319,11 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     }
 
     const hechos = await leerHechos(tx, dealActualizado, mov.motivoId ?? null, t.tipoDeMotivo);
-    const faltantes = queLeFaltaTransicion(t, hechos);
+    // Al anular el último abono, D15 deja cero líneas vendidas. A2 sigue siendo el
+    // primer paso histórico de la reversión A2 → A1, aunque ya no exista saldo.
+    const faltantes = t.id === "A2" && hechos.abonosVigentes === 0
+      ? []
+      : queLeFaltaTransicion(t, hechos);
     if (faltantes.length > 0) {
       throw new MovimientoRechazado(faltantes.map((f) => f.mensaje).join(" "), faltantes);
     }
@@ -682,7 +687,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
             esNovedad: alta.actor.tipo === "sistema" && alta.ownerUserId != null,
           }),
           fechaLimitePago: alta.fechaLimitePago ?? null,
-          cohortId,
+          cohortId: null,
           submissionOrigenId: alta.submissionOrigenId ?? null,
           creadoPor: usuario,
         },
@@ -705,6 +710,13 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
       userId: usuario,
       fecha: sql`clock_timestamp()`,
     });
+    if (cohortId) {
+      const [dealCreado] = await tx.select().from(deals).where(and(eq(deals.id, id), vigente(deals)));
+      await asegurarLineaConCupo(tx, {
+        deal: dealCreado, cohortId, actorId: usuario,
+        etiqueta: lead.nombre ?? lead.emailNormalizado,
+      });
+    }
     return id;
   });
 }
@@ -839,7 +851,7 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           pendiente: alta.pendiente ?? null,
           cohorteDestinoTexto: alta.cohorteDestinoTexto ?? null,
           ownerUserId: alta.ownerUserId ?? null,
-          cohortId: alta.cohortId ?? null,
+          cohortId: null,
           acuerdoPago: alta.acuerdoPago ?? null,
           onboardedAt: alta.onboardedAt ?? null,
           submissionOrigenId: alta.submissionOrigenId ?? null,
@@ -879,6 +891,17 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
       const dealId = ids[i];
       return dealId ? [{ alta, dealId, etiqueta: etiquetas[i] }] : [];
     });
+    for (const creado of creados) {
+      if (!creado.alta.cohortId) continue;
+      const [dealCreado] = await tx.select().from(deals).where(and(eq(deals.id, creado.dealId), vigente(deals)));
+      await asegurarLineaConCupo(tx, {
+        deal: dealCreado,
+        cohortId: creado.alta.cohortId,
+        actorId,
+        etiqueta: creado.etiqueta,
+        asignadaEn: creado.alta.fechaEtapa ?? undefined,
+      });
+    }
     for (let i = 0; i < creados.length; i += 500) {
       // Mismo origen que el rastro de este traslado en change_log (crearVariosConRastro, "app").
       await insertarHistorial(tx,

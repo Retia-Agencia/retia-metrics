@@ -149,7 +149,7 @@ describe("fichaDeLead (PGlite)", () => {
     closer = u.id;
     const [c] = await db
       .insert(cohorts)
-      .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", estado: "activo" })
+      .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" })
       .returning();
     const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
     leadId = l.id;

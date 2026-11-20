@@ -14,6 +14,7 @@ import { VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * NUMEROS DORADOS DE PAUTA (ticket 403 F3/F4, ADR 0115 N2): gasto, ROAS, costo por agenda del Hub y del semáforo y el
@@ -102,6 +103,7 @@ async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: str
     valorVendidoUsd: venta ? venta.valor : null,
   }).returning())[0];
   if (venta) {
+    await lineaConCupoDePrueba(db, deal.id);
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${venta.diaVenta}T12:00:00-05:00`) });
   }
   return deal;

@@ -1,3 +1,4 @@
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
@@ -50,7 +51,7 @@ let b: Programa;
 
 async function crearPrograma(slug: string): Promise<Programa> {
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1500" }).returning();
-  await db.insert(cohorts).values({
+  const [cohorte] = await db.insert(cohorts).values({
     programId: p.id,
     codigo: "C1",
     metaCupos: 30,
@@ -58,8 +59,8 @@ async function crearPrograma(slug: string): Promise<Programa> {
     fechaInicioVentas: "2026-07-01",
     fechaCierreVentas: "2026-08-18",
     fechaInicioClases: "2026-08-20",
-    estado: "cerrado",
-  });
+  }).returning();
+  await skuVirtualDePrueba(db, cohorte.id);
   await db.insert(miembrosPrograma).values({ userId: maru, programId: p.id, activo: true });
   await db
     .insert(leads)
@@ -179,7 +180,7 @@ describe("deshacerMigracion", () => {
     await deshacerMigracion(db, { programId: a.id, actorId: script });
 
     const rastro = await db.select().from(changeLog).where(eq(changeLog.campo, "reversa_migracion"));
-    expect(rastro.map((f) => f.tabla).sort()).toEqual(["abonos", "calls", "calls", "deal_actividades", "deals", "deals"]);
+    expect(rastro.map((f) => f.tabla).sort()).toEqual(["abonos", "calls", "calls", "deal_actividades", "deal_lineas", "deals", "deals"]);
     expect(rastro.every((f) => f.userId === script && f.valorAnterior?.startsWith("sheets:prog-a:"))).toBe(true);
   });
 
@@ -233,7 +234,7 @@ describe("deshacerMigracion se niega si alguien trabajo encima", () => {
 
   it("un abono del CRM sobre un deal migrado", async () => {
     const d = await dealMigrado("beto@c.co");
-    await db.insert(abonos).values({ dealId: d.id, programId: a.id, fecha: "2026-09-01", monto: "100.00", origen: "app" });
+    await abonoDePrueba(db, { dealId: d.id, programId: a.id, fecha: "2026-09-01", monto: "100.00", origen: "app" });
     await esperarNegativa("abono_del_crm");
   });
 

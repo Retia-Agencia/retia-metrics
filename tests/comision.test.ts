@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -79,9 +80,7 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
 async function vender(porcentaje: string | null, valor = "1000") {
   await db.update(programs).set({ comisionPorcentaje: porcentaje }).where(eq(programs.id, programId));
   const dealId = await dealAtendido(valor);
-  await db
-    .insert(abonos)
-    .values({ dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
+  await abonoDePrueba(db, { dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
   if (porcentaje === null) {
     // Fixture historico: estas ventas existen antes de la reja del ticket 356. Una
     // venta nueva sin porcentaje ya no puede llegar a esta etapa por el motor.
@@ -128,9 +127,7 @@ describe("porcentaje congelado al vender", () => {
       .set({ anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "corrección" })
       .where(eq(abonos.dealId, vendido.id));
     await moverEtapa(db, { dealId: vendido.id, a: "atendido", actor: sistema });
-    await db
-      .insert(abonos)
-      .values({
+    await abonoDePrueba(db, {
         dealId: vendido.id,
         programId,
         fecha: HOY,

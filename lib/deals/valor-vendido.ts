@@ -1,12 +1,13 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { cohorts, deals } from "@/lib/db/schema";
+import { deals, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { ErrorDeApp } from "@/lib/errors";
 import { usd } from "@/lib/format";
 import { cohorteActiva } from "@/lib/queries/cohortes";
-import { saldosDeDeals } from "@/lib/queries/saldo";
+import { saldosDeLineas } from "@/lib/queries/saldo";
+import { asegurarLineaConCupo, editarValorDeLinea, lineaConCupoVigente, lineaVigente } from "./lineas";
 
 /** Descuento en USD escrito por el closer. Cero es un descuento válido. */
 export const esquemaDescuentoUsd = z
@@ -40,6 +41,7 @@ export async function congelarValorVendido(
     descuentoUsd: number;
     actorId: string | null;
     etiqueta: string;
+    lineaId?: string;
     origen?: OrigenOperativo;
   },
 ): Promise<ValorVendidoCongelado> {
@@ -52,22 +54,21 @@ export async function congelarValorVendido(
       throw new ErrorDeApp("La cohorte del deal no tiene precio: asígnale una cohorte antes de vender.", 422);
     }
     cohortId = activa.id;
-    await editarConRastro(
-      { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, origen: entrada.origen ?? "app" },
-      entrada.deal.id,
-      { cohortId },
-    );
   }
 
-  const [cohorte] = await tx
-    .select({ precioUsd: cohorts.precioUsd })
-    .from(cohorts)
-    .where(and(eq(cohorts.id, cohortId), eq(cohorts.programId, entrada.deal.programId)));
-  if (cohorte?.precioUsd == null) {
-    throw new ErrorDeApp("La cohorte del deal no tiene precio: asígnale una cohorte antes de vender.", 422);
+  let linea = entrada.lineaId
+    ? await lineaVigente(tx, entrada.deal.id, entrada.lineaId)
+    : await lineaConCupoVigente(tx, entrada.deal.id);
+  if (!linea) {
+    linea = await asegurarLineaConCupo(tx, {
+      deal: entrada.deal, cohortId, actorId: entrada.actorId,
+      etiqueta: entrada.etiqueta, origen: entrada.origen,
+    });
   }
-
-  const precioTicketUsd = Number(cohorte.precioUsd);
+  const [sku] = await tx.select({ cohortId: skus.cohortId }).from(skus).where(eq(skus.id, linea.skuId));
+  if (!sku) throw new ErrorDeApp("La línea no tiene un SKU válido.", 409);
+  cohortId = sku.cohortId;
+  const precioTicketUsd = Number(linea.precioListaUsd);
   if (descuentoUsd >= precioTicketUsd) {
     throw new ErrorDeApp(
       `El descuento no puede ser igual o mayor que el ticket de la cohorte (${usd(precioTicketUsd)}).`,
@@ -76,7 +77,7 @@ export async function congelarValorVendido(
   }
 
   const valorVendidoUsd = Math.round((precioTicketUsd - descuentoUsd) * 100) / 100;
-  const saldo = (await saldosDeDeals(tx, [entrada.deal.id])).get(entrada.deal.id);
+  const saldo = (await saldosDeLineas(tx, [entrada.deal.id])).get(linea.id);
   const abonadoUsd = saldo?.abonado ?? 0;
   if (valorVendidoUsd < abonadoUsd) {
     throw new ErrorDeApp(
@@ -85,12 +86,11 @@ export async function congelarValorVendido(
     );
   }
 
-  const valorAnteriorUsd = entrada.deal.valorVendidoUsd == null ? null : Number(entrada.deal.valorVendidoUsd);
-  await editarConRastro(
-    { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, origen: entrada.origen ?? "app" },
-    entrada.deal.id,
-    { valorVendidoUsd: String(valorVendidoUsd) },
-  );
+  const valorAnteriorUsd = Number(linea.valorVendidoUsd);
+  await editarValorDeLinea(tx, {
+    deal: entrada.deal, lineaId: linea.id, valorVendidoUsd,
+    actorId: entrada.actorId, etiqueta: entrada.etiqueta, origen: entrada.origen,
+  });
 
   return { cohortId, precioTicketUsd, descuentoUsd, valorVendidoUsd, valorAnteriorUsd, abonadoUsd };
 }

@@ -11,10 +11,9 @@ import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
 import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
 import { siguienteCodigoDeCohorte } from "@/lib/catalogo/codigo-de-cohorte";
+import type { EstadoCohorte } from "@/lib/cohortes/estado";
 import {
-  activarCohorteAccion,
   crearCohorteAccion,
-  desactivarCohorteAccion,
   editarCohorteAccion,
   type ResultadoAccion,
 } from "@/app/(app)/p/[programa]/programa/acciones-programa";
@@ -34,9 +33,6 @@ import {
  * cuanto deja de ser futura.
  */
 
-const ESTADOS = ["futuro", "activo", "cerrado"] as const;
-type Estado = (typeof ESTADOS)[number];
-
 export interface CohorteVista {
   id: string;
   codigo: string;
@@ -48,7 +44,7 @@ export interface CohorteVista {
   fechaInicioVentas: string | null;
   /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
   fechaCierreVentas: string | null;
-  estado: Estado;
+  estado: EstadoCohorte;
 }
 
 interface Borrador {
@@ -59,7 +55,6 @@ interface Borrador {
   fechaInicioClases: string;
   fechaInicioVentas: string;
   fechaCierreVentas: string;
-  estado: Estado;
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -70,7 +65,6 @@ const BORRADOR_VACIO: Borrador = {
   fechaInicioClases: "",
   fechaInicioVentas: "",
   fechaCierreVentas: "",
-  estado: "futuro",
 };
 
 function aBorrador(c: CohorteVista): Borrador {
@@ -82,7 +76,6 @@ function aBorrador(c: CohorteVista): Borrador {
     fechaInicioClases: c.fechaInicioClases ?? "",
     fechaInicioVentas: c.fechaInicioVentas ?? "",
     fechaCierreVentas: c.fechaCierreVentas ?? "",
-    estado: c.estado,
   };
 }
 
@@ -189,30 +182,6 @@ export function CohortesAdmin({
                     >
                       Editar
                     </Button>
-                    {c.estado !== "activo" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={pendiente}
-                        onClick={() =>
-                          correr(() => activarCohorteAccion(slug, c.id), "Cohorte activada")
-                        }
-                      >
-                        Activar
-                      </Button>
-                    ) : null}
-                    {c.estado !== "cerrado" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={pendiente}
-                        onClick={() =>
-                          correr(() => desactivarCohorteAccion(slug, c.id), "Cohorte cerrada")
-                        }
-                      >
-                        Cerrar
-                      </Button>
-                    ) : null}
                   </span>
                 </div>
               )}
@@ -232,12 +201,10 @@ function aEntrada(b: Borrador, programId: string) {
     metaCupos: b.metaCupos,
     metaLeadsDia: b.metaLeadsDia === "" ? null : b.metaLeadsDia,
     precioUsd: b.precioUsd,
-    // Vacio ("") es "por definir": lo normaliza el esquema a null. Solo una cohorte futura
-    // puede quedar sin estas fechas (ticket 227); el esquema rechaza el resto con un 400.
+    // Vacio ("") es "por definir": lo normaliza el esquema a null.
     fechaInicioClases: b.fechaInicioClases === "" ? null : b.fechaInicioClases,
     fechaInicioVentas: b.fechaInicioVentas === "" ? null : b.fechaInicioVentas,
     fechaCierreVentas: b.fechaCierreVentas === "" ? null : b.fechaCierreVentas,
-    estado: b.estado,
   };
 }
 
@@ -288,22 +255,6 @@ function FormularioCohorte({
           </label>
 
           <label className="block space-y-1 text-sm">
-            <span className="text-muted-foreground">Estado</span>
-            <select
-              value={borrador.estado}
-              onChange={(e) => setBorrador({ ...borrador, estado: e.target.value as Estado })}
-              className={claseInput}
-              aria-label="Estado"
-            >
-              {ESTADOS.map((e) => (
-                <option key={e} value={e}>
-                  {e}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block space-y-1 text-sm">
             <span className="text-muted-foreground">Meta de cupos</span>
             <input
               value={borrador.metaCupos}
@@ -344,7 +295,6 @@ function FormularioCohorte({
               type="date"
               value={borrador.fechaInicioClases}
               onChange={(e) => setBorrador({ ...borrador, fechaInicioClases: e.target.value })}
-              required={borrador.estado !== "futuro"}
               className={claseInput}
               aria-label="Fecha de inicio de clases"
             />
@@ -356,7 +306,6 @@ function FormularioCohorte({
               type="date"
               value={borrador.fechaInicioVentas}
               onChange={(e) => setBorrador({ ...borrador, fechaInicioVentas: e.target.value })}
-              required={borrador.estado === "activo"}
               className={claseInput}
               aria-label="Fecha de inicio de ventas"
             />
@@ -368,7 +317,6 @@ function FormularioCohorte({
               type="date"
               value={borrador.fechaCierreVentas}
               onChange={(e) => setBorrador({ ...borrador, fechaCierreVentas: e.target.value })}
-              required={borrador.estado !== "futuro"}
               className={claseInput}
               aria-label="Fecha de cierre de ventas"
             />

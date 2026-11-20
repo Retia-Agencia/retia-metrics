@@ -1,7 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  abonos,
   archivos,
   calls,
   cohorts,
@@ -105,7 +105,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-11-14",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
@@ -287,7 +286,7 @@ describe("notificaciones de Mi espacio (222)", () => {
       bytes: 8,
       subidoPorUserId: yo,
     }).returning();
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: antiguo.dealId, programId, fecha: "2026-10-01", monto: "100", moneda: "USD" },
       { dealId: reciente.dealId, programId, fecha: "2026-10-18", monto: "100", moneda: "USD" },
       { dealId: anulado.dealId, programId, fecha: "2026-09-01", monto: "100", moneda: "USD", anuladoEn: new Date(), anuladoPor: yo, motivoAnulacion: "Error" },

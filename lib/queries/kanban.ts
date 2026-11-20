@@ -27,10 +27,11 @@ import {
 } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
-import { saldosDeDeals } from "@/lib/queries/saldo";
+import { saldosDeDeals, saldosDeLineas } from "@/lib/queries/saldo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
+import { estadoDeCohorteSql } from "@/lib/cohortes/estado";
 import { conNombresVigentes } from "@/lib/filtros-alias";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -415,9 +416,10 @@ export async function tableroKanban(
   // El saldo y la cartera salen de sus modulos (ADR 0024, 0053), nunca se recalculan.
   // - entradas: la entrada a la etapa actual, para "dias en etapa" (se agrupa aparte).
   // - sinConfirmar: contactos sin confirmar por lead, "unido por telefono" (ADR 0035 punto 4).
-  const [saldos, cartera, entradas, sinConfirmar, sinComprobante, llamadas, actividades, actividadOrdenando] =
+  const [saldos, saldosPorLinea, cartera, entradas, sinConfirmar, sinComprobante, llamadas, actividades, actividadOrdenando] =
     await Promise.all([
       saldosDeDeals(db, dealIds),
+      saldosDeLineas(db, dealIds),
       carteraPendiente,
       entradasAEtapaActual(db, filas),
       leadsConContactoSinConfirmar(db, leadIds),
@@ -455,6 +457,10 @@ export async function tableroKanban(
     llamadasPorDeal.set(llamada.dealId, suyas);
   }
   const contactos = new Set(actividades.filter(esContactoRegistrado).map((a) => a.dealId));
+  const valorDeLineasPorDeal = new Map<string, number>();
+  for (const linea of saldosPorLinea.values()) {
+    valorDeLineasPorDeal.set(linea.dealId, (valorDeLineasPorDeal.get(linea.dealId) ?? 0) + linea.precio);
+  }
 
   const tarjetas: TarjetaDeal[] = filas.map((f) => {
     const saldo = saldos.get(f.dealId);
@@ -505,7 +511,9 @@ export async function tableroKanban(
       diasEnEtapa: diasDesde(entrada, hoy),
       creadoEn: f.createdAt,
       ultimaActividadEn: ultimaActividad.get(f.dealId) ?? f.createdAt,
-      potencialUsd: redondearUsd(saldo?.precio ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd))),
+      potencialUsd: redondearUsd(
+        valorDeLineasPorDeal.get(f.dealId) ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd)),
+      ),
       confirmadoUsd: redondearUsd(saldo?.abonado ?? 0),
       llamada: llamadaActiva
         ? {
@@ -802,6 +810,7 @@ export async function duenosConDealsDelPrograma(db: Db, programId: string): Prom
  * filtros que no filtran nada.
  */
 export async function opcionesDeTablero(db: Db, programId: string): Promise<OpcionesDeTablero> {
+  const hoy = hoyEnBogota();
   // Las nueve lecturas son independientes entre si y de solo lectura: van JUNTAS. En serie eran
   // ~10 viajes a la base (~2,4 s medidos con ~106 ms de RTT); juntas cuestan lo que la mas lenta.
   const [
@@ -825,7 +834,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     db
       .select({ id: cohorts.id, nombre: cohorts.codigo })
       .from(cohorts)
-      .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "futuro"))),
+      .where(and(eq(cohorts.programId, programId), eq(estadoDeCohorteSql(hoy), "futuro"))),
     // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
     db
       .selectDistinct({ utmSource: submissions.utmSource, utmMedium: submissions.utmMedium })

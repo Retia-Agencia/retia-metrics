@@ -3,6 +3,8 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
+import { columnasCohorteConEstado, estadoDeCohorteSql, type EstadoCohorte } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 /**
  * Lecturas de cohortes que necesita el registro nativo (ticket 002) y el dashboard
@@ -11,7 +13,7 @@ import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
  */
 
 /** Fila completa de una cohorte, tal como la devuelve la base. */
-export type Cohorte = typeof cohorts.$inferSelect;
+export type Cohorte = typeof cohorts.$inferSelect & { estado: EstadoCohorte };
 
 /**
  * La cohorte activa de un programa, o `null` si no hay ninguna. Nunca revienta si
@@ -27,10 +29,11 @@ export async function cohorteActiva(
   db: Db = dbDeLaApp,
 ): Promise<Cohorte | null> {
   return unaVezPorSolicitud(db, claveDe("cohorteActiva", programId), async () => {
+    const hoy = hoyEnBogota();
     const [fila] = await db
-      .select()
+      .select(columnasCohorteConEstado(hoy))
       .from(cohorts)
-      .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "activo")))
+      .where(and(eq(cohorts.programId, programId), eq(estadoDeCohorteSql(hoy), "activo")))
       .limit(1);
     return fila ?? null;
   });

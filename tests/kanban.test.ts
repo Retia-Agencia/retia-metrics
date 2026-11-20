@@ -1,6 +1,6 @@
+import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  abonos,
   calls,
   cohorts,
   dealEtapaHistorial,
@@ -61,7 +61,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-11-14",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
@@ -141,8 +140,9 @@ async function deal(o: OpcDeal): Promise<string> {
   // Fila de historial hacia la etapa actual, con la fecha de entrada dada.
   const fecha = o.entrada ? new Date(`${o.entrada}T12:00:00-05:00`) : new Date(`${HOY}T12:00:00-05:00`);
   await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: null, a: o.etapa, fecha });
+  if (!o.anulado && d.valorVendidoUsd != null) await lineaConCupoDePrueba(db, d.id);
   if (o.abono) {
-    await db.insert(abonos).values({ dealId: d.id, programId, fecha: "2026-10-01", monto: o.abono });
+    await abonoDePrueba(db, { dealId: d.id, programId, fecha: "2026-10-01", monto: o.abono });
   }
   if (o.contactoSinConfirmar) {
     await db.insert(leadContactos).values({
@@ -221,7 +221,7 @@ describe("tableroKanban", () => {
 
   it("suma potencial y confirmado visibles desde saldosDeDeals y el ticket de cohorte", async () => {
     const vendido = await deal({ etapa: "ganado_completo", owner: owner1, valorVendido: "900.25", abono: "100.10" });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: vendido,
       programId,
       fecha: "2026-10-02",
@@ -280,7 +280,7 @@ describe("tableroKanban", () => {
     await db.insert(calls).values({
       dealId: atendido, programId, resultado: "show", origen: "app", ...anulacion,
     });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: ganado, programId, fecha: "2026-10-01", monto: "1000", ...anulacion,
     });
 
@@ -364,7 +364,6 @@ describe("tableroKanban", () => {
         precioUsd: "1000",
         fechaInicioClases: "2026-12-15",
         fechaCierreVentas: "2026-12-01",
-        estado: "futuro",
       })
       .returning();
     await deal({ etapa: "contactado", cohort: cohortId });
@@ -425,7 +424,8 @@ describe("tableroKanban: lecturas en paralelo (paridad)", () => {
     expect(tv).toMatchObject({ dealId: venta, saldo: 600, confirmadoUsd: 400, potencialUsd: 1000 });
     expect(tv.avisos.carteraVencida).toBe(true);
     const tl = t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0];
-    expect(tl).toMatchObject({ dealId: sinAbono, saldo: 1000, confirmadoUsd: 0 });
+    // ADR 0137 punto 8: una línea propuesta aporta potencial, pero aún no tiene saldo vendido.
+    expect(tl).toMatchObject({ dealId: sinAbono, saldo: null, potencialUsd: 1000, confirmadoUsd: 0 });
     expect(tl.avisos.carteraVencida).toBe(false);
     expect(tl.avisos.abonoSinComprobante).toBe(false);
     expect(tv.avisos.abonoSinComprobante).toBe(true);

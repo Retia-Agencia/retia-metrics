@@ -36,8 +36,7 @@ describe("agendas: una pregunta por universo", () => {
     [{ id: fuenteId }] = await db.insert(sources).values({ programId, nombre: "Fuente" }).returning();
     [{ id: c1 }] = await db.insert(cohorts).values({
       programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-11-01",
-      fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "cerrado",
-    }).returning();
+      fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", }).returning();
   });
   afterAll(async () => cerrar());
 

@@ -1,3 +1,4 @@
+import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { eq } from "drizzle-orm";
@@ -9,7 +10,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 import { PautaRoas } from "@/components/pauta-roas";
-import { abonos, calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPauta, leads, pautaObjetos, programs, sources, submissions, tasasCambio, users } from "@/lib/db/schema";
+import { calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPauta, leads, pautaObjetos, programs, sources, submissions, tasasCambio, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { listaDeMetrica, proyectarParaPauta } from "@/lib/queries/metricas-con-filas";
 import { estadoDeCobertura } from "@/lib/cobertura";
@@ -82,6 +83,7 @@ async function vender(e: Awaited<ReturnType<typeof envio>>, valor: string, diaVe
   const deal = (await db.insert(deals).values({ programId: e.programa, leadId: e.leadId, submissionOrigenId: e.envioId,
     ownerUserId: await duenoDePrueba(db, e.programa), etapa: "ganado_completo", valorVendidoUsd: valor, anuladoEn: anulada ? new Date(`${diaVenta}T14:00:00-05:00`) : null,
     anuladoPor: anulada ? actor : null, motivoAnulacion: anulada ? "Duplicado" : null }).returning())[0];
+  await lineaConCupoDePrueba(db, deal.id);
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${diaVenta}T12:00:00-05:00`) });
   return deal;
 }
@@ -96,7 +98,7 @@ async function escenario() {
     { programId, dealId: venta.id, resultado: "show", fechaAgenda: new Date("2026-10-06T10:00:00-05:00"), createdAt: new Date("2026-10-06T09:00:00-05:00") },
     { programId, dealId: venta.id, resultado: "no_show", createdAt: new Date("2026-10-07T10:00:00-05:00") },
   ]);
-  await db.insert(abonos).values({ programId, dealId: venta.id, fecha: "2026-10-06", monto: "300", moneda: "USD", concepto: "ticket" });
+  await abonoDePrueba(db, { programId, dealId: venta.id, fecha: "2026-10-06", monto: "300", moneda: "USD", concepto: "ticket" });
   const sinAnuncio = await envio({ anuncio: false, dia: "2026-10-01" });
   await vender(sinAnuncio, "100", "2026-10-08");
   await vender(await envio({ dia: "2026-10-01" }), "999", "2026-10-03", true);

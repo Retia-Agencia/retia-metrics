@@ -1,6 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
@@ -34,7 +35,7 @@ beforeEach(async () => {
   programId = p.id;
   const [c] = await db
     .insert(cohorts)
-    .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-10", estado: "activo" })
+    .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-10" })
     .returning();
   cohortId = c.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -52,7 +53,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
     .insert(deals)
     .values({ leadId: l.id, programId: programa, cohortId, etapa, ownerUserId: closer,valorVendidoUsd: "1000.00", ...extra })
     .returning();
-  if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
+  if (Number(pagado) > 0) await abonoDePrueba(db, { dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;
 }
 
@@ -83,13 +84,13 @@ describe("carteraVencida", () => {
   });
 
   it("un deal anulado no sale (vigente)", async () => {
-    await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
+    await deal("ganado_parcial", "0", { fechaLimitePago: "2026-10-01", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
     expect((await carteraVencida(db, programId, HOY)).vencidos).toHaveLength(0);
   });
 
   it("un abono anulado no cuenta: el saldo es el del módulo", async () => {
     const d = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01" });
-    await db.insert(abonos).values({ dealId: d.id, programId, fecha: "2026-10-02", monto: "600", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
+    await abonoDePrueba(db, { dealId: d.id, programId, fecha: "2026-10-02", monto: "600", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" });
     const r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos[0].saldo).toBe(600);
   });
@@ -100,15 +101,16 @@ describe("carteraVencida", () => {
     expect(r.vencidos[0]).toMatchObject({ fechaLimite: "2026-10-15", fechaPropia: false, diasDeAtraso: 5 });
   });
 
-  it("sin cohorte propia rige la activa del programa; sin ninguna referencia se cuenta aparte", async () => {
-    await deal("ganado_parcial", "400", { cohortId: null });
+  it("ADR 0137 puntos 11 y 12: el abono completa la cohorte y conserva su fecha de referencia", async () => {
+    const d = await deal("ganado_parcial", "400", { cohortId: null });
+    expect((await db.select().from(deals).where(eq(deals.id, d.id)))[0].cohortId).toBe(cohortId);
     let r = await carteraVencida(db, programId, HOY);
     expect(r.vencidos[0].fechaLimite).toBe("2026-10-15");
 
-    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
     r = await carteraVencida(db, programId, HOY);
-    expect(r).toMatchObject({ sinFechaDeReferencia: 1 });
-    expect(r.vencidos).toHaveLength(0);
+    expect(r).toMatchObject({ sinFechaDeReferencia: 0 });
+    expect(r.vencidos[0].fechaLimite).toBe("2026-10-15");
   });
 
   it("solo Abonado: un deal perdido con abonos no es cartera", async () => {

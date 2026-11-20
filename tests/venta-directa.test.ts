@@ -19,6 +19,7 @@ import { registrarVentaDeLaPasarela } from "@/lib/deals/venta-de-la-pasarela";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let vaciar: () => Promise<void>;
@@ -56,9 +57,9 @@ beforeEach(async () => {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
-    estado: "activo",
   }).returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohortId);
   plataformaId = (await db.insert(plataformasPago).values({ nombre: `Hotmart ${secuencia}` }).returning())[0].id;
   closerId = (await db.insert(users).values({ email: `closer-${secuencia}@retia.co`, rol: "closer" }).returning())[0].id;
   gerenteId = (await db.insert(users).values({ email: `gerente-${secuencia}@retia.co`, rol: "gerente" }).returning())[0].id;

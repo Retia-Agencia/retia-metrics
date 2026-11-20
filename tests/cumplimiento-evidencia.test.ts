@@ -6,6 +6,7 @@ import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -37,10 +38,9 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
     [{ id: fuenteId }] = await db.insert(sources).values({ programId, nombre: "Fuente" }).returning();
     const cohorte = (codigo: string) => ({
       programId, codigo, metaCupos: 10, precioUsd: "1000", fechaInicioVentas: INICIO,
-      fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "activo" as const,
-    });
+      fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", });
     [{ id: c1 }] = await db.insert(cohorts).values(cohorte("C1")).returning();
-    [{ id: c2 }] = await db.insert(cohorts).values({ ...cohorte("C2"), fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", fechaInicioClases: "2026-10-01", estado: "cerrado" }).returning();
+    [{ id: c2 }] = await db.insert(cohorts).values({ ...cohorte("C2"), fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", fechaInicioClases: "2026-10-01" }).returning();
     dueno = await duenoDePrueba(db, programId);
     await db.insert(objetivos).values([
       { cohortId: c1, area: null, metrica: "agendas", meta: "20", activo: true },
@@ -62,6 +62,7 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
       ...(opciones.anulado ? { anuladoEn: new Date(), anuladoPor: dueno, motivoAnulacion: "error" } : {}),
     }).returning();
     if (opciones.vendidoEl) {
+      await lineaConCupoDePrueba(db, fila.id);
       await db.insert(dealEtapaHistorial).values({ dealId: fila.id, a: "ganado_completo", fecha: new Date(`${opciones.vendidoEl}T10:00:00-05:00`) });
     }
     return fila.id;

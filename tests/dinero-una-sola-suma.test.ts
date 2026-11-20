@@ -7,6 +7,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { crearLeadDePrueba } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 describe("ticket 393: una sola suma del dinero vendido", () => {
   let db: Db;
@@ -45,6 +46,7 @@ describe("ticket 393: una sola suma del dinero vendido", () => {
         etapa: "ganado_parcial",
         valorVendidoUsd: valor,
       }).returning();
+      await lineaConCupoDePrueba(db, deal.id);
       await db.insert(dealEtapaHistorial).values({
         dealId: deal.id,
         a: "ganado_parcial",

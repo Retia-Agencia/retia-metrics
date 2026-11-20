@@ -19,6 +19,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -70,7 +71,10 @@ async function dealDelEnvio(e: Awaited<ReturnType<typeof envio>>, vendido = fals
   const [deal] = await db.insert(deals).values({ programId, leadId: e.leadId!, submissionOrigenId: e.id,
     cohortId: cohorte.id, ownerUserId: dueno,
     etapa: vendido ? "ganado_completo" : "agendado", valorVendidoUsd: vendido ? "100" : null }).returning();
-  if (vendido) await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: AHORA });
+  if (vendido) {
+    await lineaConCupoDePrueba(db, deal.id);
+    await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: AHORA });
+  }
   await db.insert(calls).values({ programId, dealId: deal.id, createdAt: AHORA, closerUserId: dueno, resultado: vendido ? "show" : "agendada",
     fechaAgenda: new Date(vendido ? "2026-10-02T11:00:00-05:00" : "2026-10-03T11:00:00-05:00") });
   return deal;

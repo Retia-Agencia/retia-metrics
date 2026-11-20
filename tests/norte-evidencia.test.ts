@@ -7,6 +7,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 vi.mock("@/lib/db", () => ({ db: new Proxy({}, { get() { throw new Error("Este test solo admite PGlite explícito"); } }) }));
 
@@ -22,8 +23,7 @@ describe("419: paridad del norte con cierres del mes y de la cohorte", () => {
       { ...PROGRAMA_DE_PRUEBA, slug: "otro-norte", nombre: "Otro", ticketUsd: "1000" },
     ]).returning();
     const [c] = await db.insert(cohorts).values({
-      programId: p.id, codigo: "C1", metaCupos: 20, precioUsd: "1000", estado: "activo",
-      fechaInicioVentas: "2026-11-02", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01",
+      programId: p.id, codigo: "C1", metaCupos: 20, precioUsd: "1000", fechaInicioVentas: "2026-11-02", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01",
     }).returning();
     let n = 0;
     async function venta(programId: string, dia: string, anulada = false, valor: string | null = "900") {
@@ -34,6 +34,7 @@ describe("419: paridad del norte con cierres del mes y de la cohorte", () => {
         ownerUserId: dueno, etapa: "ganado_parcial", valorVendidoUsd: valor,
         ...(anulada ? { anuladoEn: new Date("2026-11-10T15:00:00Z"), anuladoPor: dueno, motivoAnulacion: "Error de captura" } : {}),
       }).returning();
+      if (valor !== null) await lineaConCupoDePrueba(db, deal.id);
       await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${dia}T10:00:00-05:00`) });
     }
     await venta(p.id, "2026-10-28");

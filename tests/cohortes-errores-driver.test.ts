@@ -4,7 +4,6 @@ import { changeLog, cohorts, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
-  activarCohorte,
   crearCohorte,
   editarCohorte,
   type EntradaCohorte,
@@ -80,7 +79,6 @@ function entrada(sobre: Partial<EntradaCohorte> = {}): EntradaCohorte {
     fechaInicioClases: "2026-10-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-09-30",
-    estado: "futuro",
     ...sobre,
   } as EntradaCohorte;
 }
@@ -142,56 +140,5 @@ describe("cohortes: el indice unico (23505) sale como 400 y no como 500", () => 
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
     expect((error as ErrorDeApp).message).toContain("el código ya existe");
-  });
-});
-
-describe("cohortes: el CHECK de inicio de ventas (23514) sale como 400 y no como 500", () => {
-  /**
-   * `crearCohorte` y `editarCohorte` NO pueden llegar al CHECK: el `superRefine`
-   * del esquema zod ataja "activa sin inicio de ventas" antes de tocar la base.
-   * `activarCohorte` es el camino que se salta zod por completo —lee la fila y le
-   * cambia el estado—, asi que es el unico que le llega a la garantia dura. Por eso
-   * la rama existe, y por eso se prueba por aca.
-   */
-  it("activar una cohorte guardada sin fecha de inicio de ventas da un 400 claro", async () => {
-    const cohorte = await crearCohorte(
-      db,
-      actorId,
-      entrada({ estado: "futuro", fechaInicioVentas: null }),
-    );
-    expect(cohorte.fechaInicioVentas).toBeNull();
-
-    const error = await errorDe(() => activarCohorte(db, actorId, cohorte.id));
-
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-    expect((error as ErrorDeApp).message).toBe(
-      "Una cohorte activa necesita fecha de inicio de ventas.",
-    );
-  });
-
-  it("el rechazo del CHECK deja la fila intacta", async () => {
-    const cohorte = await crearCohorte(
-      db,
-      actorId,
-      entrada({ estado: "futuro", fechaInicioVentas: null }),
-    );
-
-    await errorDe(() => activarCohorte(db, actorId, cohorte.id));
-
-    const [fila] = await db.select().from(cohorts).where(eq(cohorts.id, cohorte.id));
-    expect(fila.estado).toBe("futuro");
-  });
-
-  it("muerde en el otro sentido: con fecha de inicio de ventas, activar funciona", async () => {
-    const cohorte = await crearCohorte(
-      db,
-      actorId,
-      entrada({ estado: "futuro", fechaInicioVentas: "2026-09-01" }),
-    );
-
-    const activa = await activarCohorte(db, actorId, cohorte.id);
-
-    expect(activa.estado).toBe("activo");
   });
 });

@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -58,7 +59,7 @@ async function sembrarDosClosers() {
     // Closer solo historico (texto "Ana", sin cuenta): una venta sin dueño solo existe como historia migrada (ADR 0122).
     .values({ leadId: lead.id, programId: programaA, etapa: "ganado_parcial", huellaMigracion: "hoja:vista-dashboard-ana" })
     .returning();
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     dealId: deal.id,
     programId: programaA,
     closerId: "Ana",
@@ -124,7 +125,6 @@ describe("el preset que sale es el que de verdad se uso", () => {
       fechaInicioClases: "2026-09-22",
       fechaInicioVentas: "2026-08-14",
       fechaCierreVentas: "2026-09-21",
-      estado: "activo",
     });
 
     const vista = await armarVistaDelDashboard(
@@ -163,9 +163,9 @@ describe("el selector de closer", () => {
 it("la anterior es del mismo programa y A nuevo alimenta las consultas existentes", async () => {
   await sembrarDosClosers();
   const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500.00" }).returning();
-  const base = { metaCupos: 30, precioUsd: "797.00", estado: "cerrado" as const };
+  const base = { metaCupos: 30, precioUsd: "797.00" };
   await db.insert(cohorts).values([
-    { ...base, programId: programaA, codigo: "C2", estado: "activo", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+    { ...base, programId: programaA, codigo: "C2", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
     { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
     { ...base, programId: otro.id, codigo: "AJENA", fechaInicioClases: "2026-09-20", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-19" },
   ]);
@@ -191,7 +191,6 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     fechaInicioClases: "2026-10-01",
     fechaInicioVentas: HOY,
     fechaCierreVentas: "2026-09-30",
-    estado: "activo",
   }).returning();
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
   const [deal] = await db.insert(deals).values({
@@ -217,7 +216,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     valorVendidoUsd: null,
   });
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date("2026-09-15T10:00:00-05:00") });
-  await db.insert(abonos).values({ programId: programaA, dealId: deal.id, registradoPorUserId: closer.id, fecha: HOY, monto: "30", moneda: "USD" });
+  await abonoDePrueba(db, { programId: programaA, dealId: deal.id, registradoPorUserId: closer.id, fecha: HOY, monto: "30", moneda: "USD" });
 
   const vista = await armarVistaDelDashboard({
     programId: programaA,

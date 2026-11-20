@@ -1,7 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
-  abonos,
   calls,
   changeLog,
   deals,
@@ -110,7 +110,7 @@ describe("conteosPorPrograma", () => {
       { programId: programaA, dealId: dealsSembrados[0].id, origen: "app" },
       { programId: programaA, dealId: dealsSembrados[0].id, origen: "sheets", huellaFila: "h1" },
     ]);
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: dealsSembrados[0].id,
       programId: programaA,
       fecha: "2026-09-17",

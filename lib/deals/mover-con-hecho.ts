@@ -192,14 +192,14 @@ export async function moverConHecho(
     // El hecho puede haber dejado el deal donde se pedía (Show → Atendido, abono → Ganado).
     // Si no, el motor toma la flecha; también cuando solo cambia el PENDIENTE en la misma
     // etapa (PR2 pone Re-agenda): comparar solo la etapa la saltaría.
-    if (entrada.hecho?.tipo === "abono" && entrada.hecho.concepto !== "adicional") {
+    if (entrada.hecho?.tipo === "abono") {
       if (actual.etapa !== "ganado_parcial" && actual.etapa !== "ganado_completo") {
         throw new ErrorDeApp(
           `El pago no pudo mover el deal desde ${NOMBRE_DE_ETAPA[inicial.etapa]}; se deshace el abono.`,
           409,
         );
       }
-    } else if (entrada.hecho?.tipo !== "abono" && (actual.etapa !== entrada.a || actual.pendiente !== (entrada.pendiente ?? null))) {
+    } else if (actual.etapa !== entrada.a || actual.pendiente !== (entrada.pendiente ?? null)) {
       await moverEtapa(tx, {
         dealId: inicial.id,
         a: entrada.a,

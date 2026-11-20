@@ -1,6 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { calls, deals, dealEtapaHistorial, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import type { Db } from "@/lib/db/tipos";
 import {
@@ -76,7 +77,7 @@ async function sembrar(s: Siembra): Promise<string> {
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${s.ventaEl ?? "2026-10-05"}T12:00:00-05:00`) });
   }
   for (const a of s.abonos ?? []) {
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       programId: programa, dealId: deal.id, fecha: a.fecha, monto: "100", moneda: "USD", closerId: "Ana",
       concepto: a.concepto ?? "ticket",
       anuladoEn: a.anulado ? new Date() : null, anuladoPor: a.anulado ? ana : null, motivoAnulacion: a.anulado ? "x" : null,
@@ -216,7 +217,7 @@ describe("cargarEscalera: los siete escalones contra la base", () => {
     expect((await porEscalon()).escalon(id)).toBe("atendio_no_compro");
     await db.update(deals).set({ etapa: "ganado_parcial" }).where(eq(deals.id, id));
     await db.insert(dealEtapaHistorial).values({ dealId: id, a: "ganado_parcial", fecha: new Date("2026-10-05T15:00:00-05:00") });
-    await db.insert(abonos).values({ programId, dealId: id, fecha: "2026-10-05", monto: "100", moneda: "USD", closerId: "Ana" });
+    await abonoDePrueba(db, { programId, dealId: id, fecha: "2026-10-05", monto: "100", moneda: "USD", closerId: "Ana" });
     expect((await porEscalon()).escalon(id)).toBe("pago_en_llamada");
   });
 

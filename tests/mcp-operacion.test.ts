@@ -59,7 +59,6 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-12-01",
     fechaInicioClases: "2026-12-02",
-    estado: "activo",
   }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Formulario" }).returning();
   const [lead, leadAjeno] = await db.insert(leads).values([
@@ -218,8 +217,7 @@ describe("herramientas MCP de operación", () => {
   it("cohorte todas incluye una cohorte que el valor predeterminado excluye", async () => {
     const [otra] = await db.insert(cohorts).values({
       programId: programaA, codigo: "A0", metaCupos: 10, precioUsd: "797",
-      fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-01", fechaInicioClases: "2026-08-02", estado: "cerrado",
-    }).returning();
+      fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-01", fechaInicioClases: "2026-08-02", }).returning();
     const [persona] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "otra-cohorte@retia.test", nombre: "Otra cohorte" }).returning();
     await db.insert(deals).values({ programId: programaA, leadId: persona.id, cohortId: otra.id, ownerUserId: closerId, etapa: "contactado" });
     const ctx = contexto(gerenteId, "gerente");

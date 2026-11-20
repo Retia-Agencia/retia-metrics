@@ -7,6 +7,7 @@ import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diasHabilesEntre, esperadoLineal } from "@/lib/dias-habiles";
 import { cohorteActiva, type Cohorte } from "@/lib/queries/cohortes";
+import { columnasCohorteConEstado } from "@/lib/cohortes/estado";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { agendasDeLaCohorte } from "@/lib/queries/hechos/agenda";
 import { gastoConvertido } from "@/lib/queries/hechos/gasto";
@@ -173,10 +174,10 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
   };
 }
 
-async function cohorteElegida(programId: string, cohorteId: string | null, db: Db): Promise<Cohorte | null> {
+async function cohorteElegida(programId: string, cohorteId: string | null, hoy: string, db: Db): Promise<Cohorte | null> {
   if (cohorteId === null) return cohorteActiva(programId, db);
-  return unaVezPorSolicitud(db, claveDe("cohorteElegida", programId, cohorteId), async () => {
-    const [fila] = await db.select().from(cohorts).where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId))).limit(1);
+  return unaVezPorSolicitud(db, claveDe("cohorteElegida", programId, cohorteId, hoy), async () => {
+    const [fila] = await db.select(columnasCohorteConEstado(hoy)).from(cohorts).where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId))).limit(1);
     return fila ?? null;
   });
 }
@@ -187,7 +188,7 @@ export async function leerCumplimientoDeCohorte(
   hoy: string,
   db: Db = dbDeLaApp,
 ): Promise<CumplimientoDeCohorteLeido> {
-  const [cohorte, activa] = await Promise.all([cohorteElegida(programId, cohorteId, db), cohorteActiva(programId, db)]);
+  const [cohorte, activa] = await Promise.all([cohorteElegida(programId, cohorteId, hoy, db), cohorteActiva(programId, db)]);
   if (!cohorte) return armarCumplimiento({
     hoy, cohorte: null, esActiva: false,
     ventasTotales: { cantidad: 0, vendidoUsd: 0 }, ventasPauta: { cantidad: 0, vendidoUsd: 0 },

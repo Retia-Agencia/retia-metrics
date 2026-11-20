@@ -39,16 +39,14 @@ beforeEach(async () => {
   programId = p.id;
   const [c] = await db.insert(cohorts).values({
     programId, codigo: "C1", metaCupos: 50, metaLeadsDia: null, precioUsd: "797.00",
-    fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", estado: "activo",
-  }).returning();
+    fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", }).returning();
   cohortId = c.id;
 });
 
 /** El cuerpo que arma el panel: la fila de la cohorte más los textos de sus campos. */
 const cuerpoDelPanel = (extra: Record<string, unknown>) => ({
   programId, codigo: "C1", metaCupos: "50", metaLeadsDia: null, precioUsd: "797.00",
-  fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", estado: "activo" as const,
-  ...extra,
+  fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", ...extra,
 });
 const objetivoDelPanel = (extra: Record<string, unknown> = {}) => ({
   cohortId, area: null, metrica: "conversion_agenda_venta" as const, meta: "25", aceptable: null, ...extra,

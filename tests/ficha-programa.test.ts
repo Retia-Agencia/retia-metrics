@@ -115,7 +115,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
-      estado: "activo",
     },
     {
       programId: programaB,
@@ -125,7 +124,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
-      estado: "activo",
     },
   ]);
 
@@ -296,7 +294,6 @@ describe("forjar la escritura desde un closer con membresía", () => {
       precioUsd: "797",
       fechaInicioClases: "2026-12-01",
       fechaCierreVentas: "2026-11-25",
-      estado: "futuro",
     });
     expect(r.ok).toBe(false);
     expect(await db.select().from(cohorts).where(eq(cohorts.programId, programaA))).toHaveLength(1);

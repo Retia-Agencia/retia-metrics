@@ -9,6 +9,8 @@ import { NOMBRE_DE_ETAPA } from "./etapas";
 import { cambiarCohorteDelDeal } from "./cambiar-cohorte";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import { vigente } from "@/lib/queries/vigente";
+import { columnasCohorteConEstado } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 const entradaSchema = z.object({
   dealIds: z.array(z.string().uuid("Un deal no es válido.")).min(1, "Elige al menos un deal.").max(500),
@@ -53,7 +55,8 @@ export async function asignarProximaCohorte(
   return normalizando(async () => {
     const entrada = entradaSchema.parse(datos);
     return (db as unknown as Transaccion).transaction(async (tx) => {
-      const [destino] = await tx.select().from(cohorts).where(eq(cohorts.id, entrada.destinoId));
+      const [destino] = await tx.select(columnasCohorteConEstado(hoyEnBogota()))
+        .from(cohorts).where(eq(cohorts.id, entrada.destinoId));
       if (!destino || destino.estado === "cerrado") throw new ErrorDeApp("La cohorte destino no existe o está cerrada.", 422);
       const filas = await tx.select({ deal: deals, email: leads.emailNormalizado })
         .from(deals).innerJoin(leads, eq(leads.id, deals.leadId))

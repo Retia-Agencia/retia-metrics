@@ -1,12 +1,12 @@
+import { abonoDePrueba, lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import {
   abonos,
   changeLog,
   cohorts,
   dealActividades,
+  dealLineas,
   deals,
   leads,
   plataformasPago,
@@ -93,10 +93,10 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-31",
-      estado: "activo",
     })
     .returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohortId);
   const [closer] = await db
     .insert(users)
     .values({ email: "closer-134@retia.co", rol: "closer", closerId: "Closer 134" })
@@ -118,7 +118,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     });
     expect((await db.select().from(deals).where(eq(deals.id, conActiva)))[0].cohortId).toBe(cohortId);
 
-    await db.update(cohorts).set({ estado: "futuro" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2999-01-01", fechaCierreVentas: "2999-01-02" }).where(eq(cohorts.id, cohortId));
     const segunda = await lead();
     const sinActiva = await abrirDeal(db, {
       leadId: segunda.id,
@@ -134,11 +134,14 @@ describe("ticket 134 — cohorte y descuento", () => {
     await editarDeal(db, actor(), { dealId: deal.id, descuentoUsd: 100 });
 
     const [congelado] = await db.select().from(deals).where(eq(deals.id, deal.id));
-    expect(congelado.valorVendidoUsd).toBe("697.00");
-    expect(descuentoDeDeal(797, congelado.valorVendidoUsd)).toEqual({ usd: 100, porcentaje: 100 / 797 });
+    const [linea] = await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id));
+    // ADR 0137 punto 8: el valor se congela en la línea; el deal aún no vendido queda nulo.
+    expect(congelado.valorVendidoUsd).toBeNull();
+    expect(linea.valorVendidoUsd).toBe("697.00");
+    expect(descuentoDeDeal(797, linea.valorVendidoUsd)).toEqual({ usd: 100, porcentaje: 100 / 797 });
 
     await db.update(cohorts).set({ precioUsd: "897" }).where(eq(cohorts.id, cohortId));
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("697.00");
+    expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id)))[0].valorVendidoUsd).toBe("697.00");
   });
 
   it("el primer abono congela el ticket sin descuento y sin cohorte activa rechaza sin escribir", async () => {
@@ -153,7 +156,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     const [congelado] = await db.select().from(deals).where(eq(deals.id, conActiva.id));
     expect(congelado).toMatchObject({ cohortId, valorVendidoUsd: "797.00", etapa: "ganado_parcial" });
 
-    await db.update(cohorts).set({ estado: "futuro" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2999-01-01", fechaCierreVentas: "2999-01-02" }).where(eq(cohorts.id, cohortId));
     const sinActiva = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
     const error = await capturar(
       registrarAbono(db, actor(), {
@@ -177,7 +180,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     expect(await capturar(editarDeal(db, actor(), { dealId: sinVenta.id, descuentoUsd: 797 }))).toMatchObject({ status: 422 });
 
     const vendido = await dealDirecto("ganado_parcial", { valorVendidoUsd: "797" });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: vendido.id,
       programId,
       fecha: "2026-10-01",
@@ -194,7 +197,7 @@ describe("ticket 134 — cohorte y descuento", () => {
 
   it("una venta exige motivo, deja actividad y reconcilia Abonado ↔ Completo", async () => {
     const abonado = await dealDirecto("ganado_parcial", { valorVendidoUsd: "697" });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: abonado.id,
       programId,
       fecha: "2026-10-01",
@@ -220,12 +223,14 @@ describe("ticket 134 — cohorte y descuento", () => {
     });
     const actividades = await db.select().from(dealActividades).where(eq(dealActividades.dealId, abonado.id));
     expect(actividades[0].nota).toContain("Cambio de descuento: USD 100,00 → USD 197,00");
-    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, abonado.id))).toContainEqual(
+    const [lineaAbonado] = await db.select().from(dealLineas).where(eq(dealLineas.dealId, abonado.id));
+    // ADR 0137 punto 8: el rastro del descuento pertenece a la línea vendida.
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, lineaAbonado.id))).toContainEqual(
       expect.objectContaining({ campo: "valorVendidoUsd", valorNuevo: "600" }),
     );
 
     const completo = await dealDirecto("ganado_completo", { valorVendidoUsd: "697" });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: completo.id,
       programId,
       fecha: "2026-10-01",
@@ -254,10 +259,11 @@ describe("ticket 134 — cohorte y descuento", () => {
         fechaInicioClases: "2027-01-15",
         fechaInicioVentas: "2026-11-01",
         fechaCierreVentas: "2999-12-31",
-        estado: "futuro",
       })
       .returning();
+    await skuVirtualDePrueba(db, futura.id);
     const deal = await dealDirecto("atendido", { valorVendidoUsd: "697" });
+    await lineaConCupoDePrueba(db, deal.id);
 
     expect(await capturar(cambiarCohorte(db, actor(), { dealId: deal.id, cohortId: futura.id, motivo: "" }))).toMatchObject({
       status: 400,
@@ -269,29 +275,12 @@ describe("ticket 134 — cohorte y descuento", () => {
     });
 
     const [cambiado] = await db.select().from(deals).where(eq(deals.id, deal.id));
-    expect(cambiado).toMatchObject({ cohortId: futura.id, valorVendidoUsd: "697.00" });
+    const [lineaCambiada] = await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id));
+    // ADR 0137 punto 8: la cohorte cambia sin alterar el valor de la línea propuesta.
+    expect(cambiado).toMatchObject({ cohortId: futura.id, valorVendidoUsd: null });
+    expect(lineaCambiada.valorVendidoUsd).toBe("697.00");
     expect((await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id)))[0].nota).toContain(
       "Cambio de cohorte: C2 → C3.",
     );
   });
-});
-
-async function archivosTs(directorio: string): Promise<string[]> {
-  const entradas = await readdir(directorio, { withFileTypes: true });
-  const archivos = await Promise.all(
-    entradas.map((entrada) => {
-      const ruta = join(directorio, entrada.name);
-      return entrada.isDirectory() ? archivosTs(ruta) : Promise.resolve(entrada.name.endsWith(".ts") || entrada.name.endsWith(".tsx") ? [ruta] : []);
-    }),
-  );
-  return archivos.flat();
-}
-
-it("no queda ninguna referencia al catálogo retirado en el código ejecutable", async () => {
-  const rutas = (await Promise.all(["lib", "app", "components", "scripts"].map(archivosTs))).flat();
-  const hallazgos: string[] = [];
-  for (const ruta of rutas) {
-    if (/\bproductos\b/.test(await readFile(ruta, "utf8"))) hallazgos.push(ruta);
-  }
-  expect(hallazgos).toEqual([]);
 });

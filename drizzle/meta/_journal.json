@@ -1072,6 +1072,27 @@
       "when": 1795024541064,
       "tag": "0152_mcp_lectura_407",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1795120621434,
+      "tag": "0153_productos_skus_376",
+      "breakpoints": true
+    },
+    {
+      "idx": 154,
+      "version": "7",
+      "when": 1795146636979,
+      "tag": "0154_lineas_abonos_376",
+      "breakpoints": true
+    },
+    {
+      "idx": 155,
+      "version": "7",
+      "when": 1795181828540,
+      "tag": "0155_cohorte_deducida_376",
+      "breakpoints": true
     }
   ]
 }

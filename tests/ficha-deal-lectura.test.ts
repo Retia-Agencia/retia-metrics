@@ -1,12 +1,13 @@
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  abonos,
   calls,
   changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
+  dealLineas,
   deals,
   enlacesPago,
   leadContactos,
@@ -64,10 +65,10 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
+  const sku = await skuVirtualDePrueba(db, cohortId);
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
   closer = u.id;
   const [l] = await db
@@ -84,6 +85,9 @@ beforeEach(async () => {
     .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer,valorVendidoUsd: "1000.00", acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
+  await db.insert(dealLineas).values({
+    dealId, programId, skuId: sku.id, precioListaUsd: "1000", valorVendidoUsd: "1000", asignadaPor: closer,
+  });
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma ficha" }).returning())[0].id;
 }, 60_000);
 
@@ -184,7 +188,7 @@ describe("fichaDeDeal", () => {
   });
 
   it("combina etapas y cambios del deal y sus registros, excluye otros deals y ordena por fecha", async () => {
-    const [abono] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-10", monto: "100", moneda: "USD" }).returning();
+    const [abono] = await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-10", monto: "100", moneda: "USD" });
     const [otroLead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "otro-log@correo.co" }).returning();
     const [otroDeal] = await db.insert(deals).values({ leadId: otroLead.id, programId, etapa: "atendido" }).returning();
     await db.insert(dealEtapaHistorial).values({
@@ -350,7 +354,7 @@ describe("fichaDeDeal", () => {
   it("sin cohorte propia, la sugerencia es el inicio de clases de la activa; sin ninguna, null", async () => {
     await db.update(deals).set({ cohortId: null });
     expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBe("2026-10-01");
-    await db.update(cohorts).set({ estado: "cerrado" });
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" });
     expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBeNull();
   });
 });
@@ -389,10 +393,10 @@ describe("bloques puros de la ficha", () => {
 describe("opcionesDeFicha", () => {
   it("ofrece cohortes no cerradas y limita el destino a futuras distintas de la actual", async () => {
     const [c2, c3] = await db.insert(cohorts).values([
-      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31", estado: "futuro" },
-      { programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "futuro" },
-      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaCierreVentas: "2026-12-31", estado: "cerrado" },
-      { programId: otroPrograma, codigo: "C5", metaCupos: 10, precioUsd: "500", fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31", estado: "futuro" },
+      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
+      { programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
+      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaCierreVentas: "2026-12-31" },
+      { programId: otroPrograma, codigo: "C5", metaCupos: 10, precioUsd: "500", fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31" },
     ]).returning();
     await db.update(deals).set({ cohortId: c2.id }).where(eq(deals.id, dealId));
 

@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { embudoPorCloser } from "@/lib/queries/dashboard";
 import { embudoPorEtapas } from "@/lib/queries/embudo-etapas";
@@ -105,7 +106,7 @@ beforeAll(async () => {
       resultado: n % 3 === 0 ? "no_show" : "show",
     });
     if (n % 2 === 0) {
-      await db.insert(abonos).values({
+      await abonoDePrueba(db, {
         programId: programaA, dealId: d.id, registradoPorUserId: d.owner, fecha: `2026-09-${String(10 + n).padStart(2, "0")}`,
         monto: "100", moneda: "USD",
       });

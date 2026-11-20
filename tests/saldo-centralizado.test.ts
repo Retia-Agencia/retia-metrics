@@ -1,7 +1,9 @@
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -35,6 +37,7 @@ beforeEach(async () => {
     .insert(cohorts)
     .values({ programId: p.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
     .returning();
+  await skuVirtualDePrueba(db, c.id);
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: p.id, emailNormalizado: "ana@correo.co" }).returning();
@@ -58,8 +61,9 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
     await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, { ...abono("900"), concepto: "adicional", nota: "Mentoría adicional" });
 
     const visto = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
-    expect(visto).toBe(297);
-    expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 500, abonosVigentes: 1 });
+    // ADR 0137 punto 14: el adicional es otra línea vendida; su precio y su abono se compensan.
+    expect(visto).toBe(500);
+    expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 1400, abonosVigentes: 2 });
 
     await expect(registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono((visto + 0.01).toFixed(2)))).rejects.toMatchObject({ status: 422 });
     const r = await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono(visto.toFixed(2)));
@@ -68,10 +72,9 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
   });
 
   it("un abono anulado no cuenta ni para la reja ni para el saldo", async () => {
-    const [a] = await db
-      .insert(abonos)
-      .values({ dealId, programId: (await db.select().from(deals))[0].programId, fecha: "2026-09-01", monto: "900", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" })
-      .returning();
+    await db.update(deals).set({ etapa: "ganado_parcial" }).where(eq(deals.id, dealId));
+    const [a] = await abonoDePrueba(db, { dealId, programId: (await db.select().from(deals))[0].programId, fecha: "2026-09-01", monto: "900", anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error" })
+      ;
     expect(a.anuladoEn).not.toBeNull();
     expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(797);
     expect((await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono("797"))).etapa).toBe("ganado_completo");

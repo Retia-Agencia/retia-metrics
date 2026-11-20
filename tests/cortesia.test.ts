@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { marcarCortesia } from "@/lib/deals/cortesia";
@@ -50,7 +51,6 @@ beforeEach(async () => {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-30",
-    estado: "activo",
   }).returning())[0].id;
 }, 60_000);
 
@@ -113,7 +113,7 @@ describe("marcar una cortesía", () => {
 
   it("rechaza un deal con abono vigente", async () => {
     const deal = await crearDeal();
-    await db.insert(abonos).values({ dealId: deal.id, programId, fecha: HOY, monto: "1" });
+    await abonoDePrueba(db, { dealId: deal.id, programId, fecha: HOY, monto: "1" });
     await expect(marcarCortesia(db, comoGerente(), { dealId: deal.id })).rejects.toMatchObject({ status: 409 });
   });
 
@@ -127,7 +127,7 @@ describe("marcar una cortesía", () => {
 describe("cortesías en estudiantes y métricas", () => {
   it("separa la cortesía de ventas, tasa, comisión y lista", async () => {
     const normal = await crearDeal({ valor: "1000" });
-    await db.insert(abonos).values({ dealId: normal.id, programId, fecha: HOY, monto: "1000" });
+    await abonoDePrueba(db, { dealId: normal.id, programId, fecha: HOY, monto: "1000" });
     await moverEtapa(db, { dealId: normal.id, a: "ganado_completo", actor: { tipo: "sistema" } });
     const cortesia = await crearDeal();
     await marcarCortesia(db, comoGerente(), { dealId: cortesia.id });

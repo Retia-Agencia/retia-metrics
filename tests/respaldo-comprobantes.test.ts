@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
@@ -76,7 +77,7 @@ async function archivoListo(id: string, ruta = `${id}.png`, createdAt = AHORA) {
 }
 
 async function abonoPara(archivoId: string, paraDeal = dealId) {
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     programId,
     dealId: paraDeal,
     fecha: "2026-10-13",
@@ -133,7 +134,7 @@ describe("respaldo de comprobantes", () => {
     expect(espejo.archivoDe(archivoId)?.nombre).toMatch(/^ANULADO /);
   });
 
-  it("usa Sin cohorte y Sin abono, y repone un archivo borrado del espejo", async () => {
+  it("ADR 0137 puntos 11 y 12: el abono completa la cohorte; conserva Sin abono y repone el espejo", async () => {
     await db.update(deals).set({ cohortId: null }).where(eq(deals.id, dealId));
     const conAbono = "b1b2b3b4-1111-4111-8111-111111111111";
     const reemplazado = "c1c2c3c4-1111-4111-8111-111111111111";
@@ -142,7 +143,8 @@ describe("respaldo de comprobantes", () => {
     await archivoListo(reemplazado, `${reemplazado}.png`, new Date("2026-10-12T03:00:00Z"));
 
     expect((await respaldarComprobantes(db, almacen, espejo, "raiz", AHORA)).subidos).toBe(2);
-    expect(espejo.archivoDe(conAbono)?.ruta).toEqual(["ComunicArte", "Sin cohorte"]);
+    expect(espejo.archivoDe(conAbono)?.ruta).toEqual(["ComunicArte", "C3"]);
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].cohortId).toBe(cohortId);
     expect(espejo.archivoDe(reemplazado)).toMatchObject({
       nombre: "2026-10-11 (c1c2c3).png",
       ruta: ["ComunicArte", "Sin abono"],

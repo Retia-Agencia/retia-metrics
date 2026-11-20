@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import {
@@ -618,9 +619,9 @@ describe("los hechos salen de la base", () => {
     const base = { programId, metaCupos: 30, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
     const [origen] = await db
       .insert(cohorts)
-      .values({ ...base, codigo: "C3", estado: "activo", fechaInicioVentas: "2026-09-01" })
+      .values({ ...base, codigo: "C3", fechaInicioVentas: "2026-09-01" })
       .returning();
-    const [destino] = await db.insert(cohorts).values({ ...base, codigo: "C4", estado: "futuro" }).returning();
+    const [destino] = await db.insert(cohorts).values({ ...base, codigo: "C4" }).returning();
 
     // Sin cohorte destino escrita, falta el requisito.
     const dealId = await nuevoDeal("contactado", { ownerUserId: closer, cohortId: origen.id });
@@ -645,13 +646,13 @@ describe("los hechos salen de la base", () => {
     const base = { programId, metaCupos: 30, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
     const [origen] = await db
       .insert(cohorts)
-      .values({ ...base, codigo: "C3", estado: "activo", fechaInicioVentas: "2026-09-01" })
+      .values({ ...base, codigo: "C3", fechaInicioVentas: "2026-09-01" })
       .returning();
     // Cohorte de OTRO programa: el programa es frontera (ADR 0043).
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otro.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .values({ programId: otro.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
 
     const dealId = await nuevoDeal("contactado", { ownerUserId: closer, cohortId: origen.id });
@@ -674,10 +675,8 @@ describe("los hechos salen de la base", () => {
   it("el dinero mueve el deal: Abonado con saldo, Completo sin saldo, y A1 vuelve a la etapa de donde vino", async () => {
     const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({ dealId, de: "agendado", a: "atendido" });
-    const [primero] = await db
-      .insert(abonos)
-      .values({ dealId, programId, fecha: "2026-09-27", monto: "300", comprobanteUrl: "https://x/1.png" })
-      .returning();
+    const [primero] = await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-27", monto: "300", comprobanteUrl: "https://x/1.png" })
+      ;
 
     // Con 700 de saldo no es Completo.
     let e = await rechazo(moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema }));
@@ -697,9 +696,7 @@ describe("los hechos salen de la base", () => {
     expect(await etapaDe(dealId)).toBe("atendido");
 
     // Paga todo de una vez: E11 directo a Ganado Pagado Completo.
-    await db
-      .insert(abonos)
-      .values({ dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/2.png" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/2.png" });
     await moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema });
     expect((await historial(dealId)).map((h) => h.a)).toEqual(["atendido", "ganado_parcial", "atendido", "ganado_completo"]);
   });
@@ -707,7 +704,7 @@ describe("los hechos salen de la base", () => {
   it("no vende si el programa no tiene porcentaje de comisión", async () => {
     await db.update(programs).set({ comisionPorcentaje: null }).where(eq(programs.id, programId));
     const dealId = await nuevoDeal("atendido", { comisionPorcentaje: null, ownerUserId: closer });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "500" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "500" });
     const historialAntes = await historial(dealId);
 
     const e = await rechazo(moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema }));
@@ -726,7 +723,7 @@ describe("los hechos salen de la base", () => {
     { de: "compromiso_verbal" as const, destino: "ganado_parcial" as const, monto: "500" },
   ])("E6/E11/E12: una venta de $de a $destino exige dueño y no se mueve sin él", async ({ de, destino, monto }) => {
     const dealId = await nuevoDeal(de, { ownerUserId: null });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/1.png" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/1.png" });
     const historialAntes = await historial(dealId);
 
     const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));
@@ -738,7 +735,7 @@ describe("los hechos salen de la base", () => {
 
   it("un deal histórico pasa de Abonado a Completo", async () => {
     const dealId = await nuevoDeal("ganado_parcial", { huellaMigracion: "sheets:p:ventas:1" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/1.png" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/1.png" });
     await moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema });
     expect(await etapaDe(dealId)).toBe("ganado_completo");
   });
@@ -746,7 +743,7 @@ describe("los hechos salen de la base", () => {
   it.each([
     { destino: "ganado_parcial" as const, monto: "500" },
     { destino: "ganado_completo" as const, monto: "1000" },
-  ])("para mover a $destino exige valor vendido y pasa cuando se escribe", async ({ destino, monto }) => {
+  ])("ADR 0137 punto 8: para mover a $destino usa el valor vendido que ya vive en la línea", async ({ destino, monto }) => {
     const [cohorte] = await db
       .insert(cohorts)
       .values({
@@ -757,16 +754,13 @@ describe("los hechos salen de la base", () => {
         fechaInicioClases: "2026-11-01",
         fechaInicioVentas: "2026-09-01",
         fechaCierreVentas: "2026-10-31",
-        estado: "activo",
       })
       .returning();
     const dealId = await nuevoDeal("atendido", { cohortId: cohorte.id, valorVendidoUsd: null, ownerUserId: closer });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/valor.png" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/valor.png" });
 
-    const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));
-    expect(e.message).toContain("Falta el valor vendido.");
-
-    await moverEtapa(db, { dealId, a: destino, actor: sistema, datos: { descuentoUsd: 0 } });
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBe("1000.00");
+    await moverEtapa(db, { dealId, a: destino, actor: sistema });
     expect(await etapaDe(dealId)).toBe(destino);
   });
 });
@@ -778,10 +772,8 @@ describe("el saldo (ADR 0024)", () => {
     const [otro] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co" }).returning();
     const [sp] = await db.insert(deals).values({ leadId: otro.id, programId, etapa: "atendido" }).returning();
     const sinValor = sp.id;
-    await db.insert(abonos).values({ dealId: conValor, programId, fecha: "2026-09-27", monto: "250.50" });
-    await db
-      .insert(abonos)
-      .values({
+    await abonoDePrueba(db, { dealId: conValor, programId, fecha: "2026-09-27", monto: "250.50" });
+    await abonoDePrueba(db, {
         dealId: conValor,
         programId,
         fecha: "2026-09-27",
@@ -798,7 +790,7 @@ describe("el saldo (ADR 0024)", () => {
 
   it("nunca convierte moneda en silencio: un abono en otra moneda deja el saldo sin calcular", async () => {
     const dealId = await nuevoDeal("atendido");
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-27", monto: "400000", moneda: "COP" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-27", monto: "400000", moneda: "COP" });
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({
       saldo: null,
       sinSaldoPorque: "moneda_distinta",

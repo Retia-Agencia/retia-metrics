@@ -1,6 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, eventosMeta, leadContactos, leads, programs } from "@/lib/db/schema";
+import { calls, cohorts, deals, eventosMeta, leadContactos, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { esViolacionForanea, nombreDeConstraint } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -84,8 +85,8 @@ describe("FK compuestas (id, program_id): el hijo es del programa de su padre", 
 
   it("un abono de otro programa que su deal choca", async () => {
     const abono = { dealId: dealA, fecha: "2026-09-15", monto: "40", moneda: "USD" };
-    await choca(db.insert(abonos).values({ ...abono, programId: programaB }), "abonos_deal_programa_fk");
-    await db.insert(abonos).values({ ...abono, programId: programaA });
+    await choca(abonoDePrueba(db, { ...abono, programId: programaB }), "abonos_deal_programa_fk");
+    await abonoDePrueba(db, { ...abono, programId: programaA });
   });
 
   it("un evento de Meta de otro programa que su deal choca", async () => {

@@ -1,6 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { razon, razonVacia } from "@/lib/cobertura";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { CONCEPTOS_DE_HOY, cifrasDeHoy, MOTIVO_SIN_CITAS_DEBIDAS, type DatosDeHoy, type EntradaDeCifrasDeHoy, type ExplicacionesDeHoy } from "@/lib/hub/cifras-de-hoy";
 import { FRASE_CERO, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
@@ -246,7 +247,7 @@ describe("419 E-2: paridad cifra = lista en Hoy", () => {
       await db.insert(calls).values({ programId: programa, dealId: deal.id, closerUserId: closer.id, fechaAgenda: instante(o.hora ?? "10:00"), resultado: o.resultado });
       if (o.venta) {
         await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: instante("15:00") });
-        await db.insert(abonos).values({ programId: programa, dealId: deal.id, registradoPorUserId: closer.id, fecha: dia, monto: String(o.venta.abono), moneda: "USD" });
+        await abonoDePrueba(db, { programId: programa, dealId: deal.id, registradoPorUserId: closer.id, fecha: dia, monto: String(o.venta.abono), moneda: "USD" });
       }
     };
     // El día: 2 asistieron (1 compró), 1 no asistió, 2 sin marcar, 1 cancelada.

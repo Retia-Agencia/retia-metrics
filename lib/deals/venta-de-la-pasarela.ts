@@ -15,6 +15,7 @@ import {
   exigirSaldoParaAbono,
 } from "./abonos";
 import { congelarValorVendido } from "./valor-vendido";
+import { lineaConCupoVigente, recalcularDealPorLineas } from "./lineas";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, transicionDeVentaDirecta, type EtapaDeal } from "./etapas";
 
 export type OrigenDePasarela = "hotmart";
@@ -99,11 +100,13 @@ export async function registrarVentaDeLaPasarela(
         });
         cohortId = congelado.cohortId;
       }
+      const linea = await lineaConCupoVigente(tx, deal.id);
+      if (!linea) throw new ErrorDeApp("El deal no tiene una línea vigente que cuente como cupo.", 409);
 
       await exigirPlataformaActiva(entrada.plataformaId, tx);
       await exigirSaldoParaAbono(tx, {
         dealId: deal.id,
-        concepto: "ticket",
+        lineaId: linea.id,
         moneda: entrada.moneda,
         monto: entrada.monto,
       });
@@ -119,6 +122,7 @@ export async function registrarVentaDeLaPasarela(
         },
         {
           dealId: deal.id,
+          lineaId: linea.id,
           programId: deal.programId,
           fecha: entrada.fecha,
           monto: String(entrada.monto),
@@ -135,6 +139,8 @@ export async function registrarVentaDeLaPasarela(
           referenciaExterna: entrada.referenciaExterna,
         },
       );
+
+      await recalcularDealPorLineas(tx, deal.id, { actorId: null, etiqueta: emailLead, origen: entrada.origen });
 
       const { saldo, destino } = await destinoDespuesDelAbono(tx, deal.id);
       if (deal.etapa === destino) {

@@ -81,7 +81,7 @@ const CUMPLE: Record<CodigoReal, (h: HechosEvaluables, eximirHistorico?: boolean
   fecha_seguimiento: (h) => h.fechaSeguimiento != null,
   abono: (h) => h.abonosVigentes > 0 || h.cortesia === true,
   saldo_pendiente: (h) => h.saldo != null && h.saldo > 0,
-  saldo_en_cero: (h) => h.saldo != null && h.saldo <= 0,
+  saldo_en_cero: (h) => h.cortesia === true || (h.saldo != null && h.saldo <= 0),
   sin_abonos: (h) => h.abonosVigentes === 0,
   motivo: (h) => h.motivoId != null,
 };

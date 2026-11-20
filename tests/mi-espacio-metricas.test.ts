@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { comisionesPorCloser } from "@/lib/queries/comision";
@@ -58,7 +59,7 @@ describe("read model de Mis métricas", () => {
       { programId: programa.id, dealId: deal.id, closerUserId: closer.id, fechaAgenda: new Date("2026-10-02T16:00:00Z"), resultado: "no_show" },
       { programId: programa.id, dealId: deal.id, closerUserId: otro.id, fechaAgenda: new Date("2026-10-02T17:00:00Z"), resultado: "show" },
     ]);
-    await db.insert(abonos).values({ dealId: deal.id, programId: programa.id, closerId: "Ana", fecha: HOY, monto: "250", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: deal.id, programId: programa.id, closerId: "Ana", fecha: HOY, monto: "250", moneda: "USD" });
 
     const entrada = { programId: programa.id, hoy: HOY, preset: "hoy", claveCloser: closer.id };
     const [dashboard, miEspacio, comisiones] = await Promise.all([
@@ -147,7 +148,7 @@ describe("ticket 167: el closer se identifica por users.id", () => {
       programId: programa.id, dealId: deal.id, closerUserId: closer.id,
       fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show",
     });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: deal.id, programId: programa.id, registradoPorUserId: closer.id,
       fecha: HOY, monto: "250", moneda: "USD",
     });
@@ -177,7 +178,7 @@ describe("ticket 167: el closer se identifica por users.id", () => {
       programId: programa.id, dealId: deal.id, closerUserId: closer.id,
       fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show",
     });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: deal.id, programId: programa.id, closerId: "Ana",
       fecha: HOY, monto: "250", moneda: "USD",
     });

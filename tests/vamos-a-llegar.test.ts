@@ -7,6 +7,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * Ticket 371: "¿Vamos a llegar?" — mes y cohorte × cupos y USD, sin leer ningun filtro.
@@ -34,14 +35,14 @@ beforeEach(async () => {
   programId = p.id;
   const [c] = await db.insert(cohorts).values({
     programId, codigo: "C3", metaCupos: 20, precioUsd: "1000",
-    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-12", fechaCierreVentas: CIERRE, estado: "activo",
-  }).returning();
+    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-12", fechaCierreVentas: CIERRE, }).returning();
   cohortId = c.id;
 });
 
 async function venta(dia: string, valorVendidoUsd: string | null = "900") {
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${++n}@t371.test` }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd, ownerUserId: await duenoDePrueba(db, programId) }).returning();
+  if (valorVendidoUsd !== null) await lineaConCupoDePrueba(db, deal.id);
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${dia}T11:00:00-05:00`) });
 }
 
@@ -88,7 +89,7 @@ describe("371: las cuatro combinaciones", () => {
   });
 
   it("sin cohorte activa la cohorte es nula; el mes sigue con la meta de 146", async () => {
-    await db.update(cohorts).set({ estado: "cerrado" });
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" });
     const datos = await leerVamosALlegar(programId, CIERRE, db);
     expect(datos.cohorte).toBeNull();
     // El mes sigue tomando la meta de toda cohorte cuya ventana toque el mes (146), este o no activa.

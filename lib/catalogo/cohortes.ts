@@ -1,14 +1,15 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
-import { changeLog, cohorts, estadoCohorteEnum } from "@/lib/db/schema";
+import { changeLog, cohorts, productos, programs, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
-import { esViolacionCheck, esViolacionExclusion, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
-import { mudarDealsDeProximaCohorte } from "@/lib/deals/asignar-proxima-cohorte";
+import { esViolacionExclusion, esViolacionUnica } from "@/lib/db/errores";
+import { columnasCohorteConEstado } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 /**
  * Cohortes (ticket 014, ADR 0012 + ADR 0005), sobre las mismas piezas del molde.
@@ -30,9 +31,6 @@ import { mudarDealsDeProximaCohorte } from "@/lib/deals/asignar-proxima-cohorte"
  * lectura correcta del dominio (una cohorte cierra, no se "desactiva"), y encaja
  * con el molde: nunca se borra la fila.
  */
-
-const ESTADO_ACTIVO = "activo" as const;
-const ESTADO_CERRADO = "cerrado" as const;
 
 /** id de una cohorte: uuid o error de validacion (400). */
 const esquemaId = z.string().uuid("El identificador no es válido.");
@@ -97,36 +95,7 @@ export const esquemaCohorte = z.object({
     .nullable()
     .optional()
     .transform((v) => (v === undefined || v === "" ? null : v)),
-  estado: z.enum(estadoCohorteEnum.enumValues),
 }).superRefine((datos, ctx) => {
-  // Una cohorte "por definir" solo puede ser futura (ticket 227, CHECK
-  // `cohorts_definida_si_no_es_futura`): si no es futura, exige las tres fechas. Da el 400
-  // amable aqui, antes de que la base lo rechace con el 23514. El inicio de ventas se exige
-  // ademas para la activa (ADR 0022), asi que una activa termina con las tres igual.
-  if (datos.estado !== "futuro") {
-    if (datos.fechaInicioClases === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["fechaInicioClases"],
-        message: "Una cohorte que no es futura necesita fecha de inicio de clases.",
-      });
-    }
-    if (datos.fechaCierreVentas === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["fechaCierreVentas"],
-        message: "Una cohorte que no es futura necesita fecha de cierre de ventas.",
-      });
-    }
-  }
-  // Una cohorte activa no puede quedar sin inicio de ventas (ADR 0022).
-  if (datos.estado === "activo" && datos.fechaInicioVentas === null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["fechaInicioVentas"],
-      message: "Una cohorte activa necesita fecha de inicio de ventas.",
-    });
-  }
   // El cierre no puede ser anterior al inicio de ventas (solo cuando ambas existen).
   if (
     datos.fechaInicioVentas !== null &&
@@ -210,25 +179,6 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
           400,
         );
       }
-      if (esViolacionCheck(error)) {
-        // Dos CHECK pueden chocar aca (ADR 0022, ticket 227), y el pre-chequeo del
-        // `superRefine` ya los ataja con mensajes por campo; esto es la ultima red. Se mira el
-        // nombre del constraint para dar a cada uno su mensaje:
-        //  - `cohorts_definida_si_no_es_futura`: una cohorte que no es futura sin inicio de
-        //    clases o sin cierre de ventas. Una cohorte "por definir" solo puede ser futura.
-        //  - `cohorts_activa_con_inicio_ventas` (o cualquier otro): una activa sin inicio de ventas.
-        // La garantia vive en la base; aca se traduce a un 400 claro, igual que el 23505.
-        if (nombreDeConstraint(error) === "cohorts_definida_si_no_es_futura") {
-          throw new ErrorDeApp(
-            "A esta cohorte le faltan fechas: solo una cohorte futura puede quedar sin inicio de clases o cierre de ventas.",
-            400,
-          );
-        }
-        throw new ErrorDeApp(
-          "Una cohorte activa necesita fecha de inicio de ventas.",
-          400,
-        );
-      }
       throw error;
     }
   });
@@ -236,52 +186,30 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Lee una cohorte por id. */
 async function leerCohorte(db: Db, id: string) {
-  const [fila] = await db.select().from(cohorts).where(eq(cohorts.id, id));
+  const [fila] = await db.select({
+    ...columnasCohorteConEstado(hoyEnBogota()),
+  }).from(cohorts).where(eq(cohorts.id, id));
   return fila;
 }
-
-/**
- * Pre-chequeo amable de "una sola cohorte activa por programa" (ADR 0005). Da un
- * mensaje claro antes de tocar la base; la garantia dura sigue siendo el indice.
- * `exceptoId` deja fuera a la propia cohorte al editarla/activarla.
- */
-async function yaHayActiva(
-  db: Db,
-  programId: string,
-  exceptoId?: string,
-): Promise<boolean> {
-  const filas = await db
-    .select({ id: cohorts.id })
-    .from(cohorts)
-    .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, ESTADO_ACTIVO)));
-  return filas.some((f) => f.id !== exceptoId);
-}
-
-const MENSAJE_UNA_ACTIVA =
-  "Ya hay una cohorte activa en este programa. Cierra la activa antes de activar otra.";
 
 /** Lista las cohortes de un programa. */
 export async function listarCohortes(db: Db, programId: string) {
   const id = idValido(programId);
   const filas = await unaVezPorSolicitud(db, claveDe("listarCohortes", id), () =>
-    db.select().from(cohorts).where(eq(cohorts.programId, id)));
+    db.select(columnasCohorteConEstado(hoyEnBogota()))
+      .from(cohorts).where(eq(cohorts.programId, id)));
   return [...filas];
 }
 
-/** Crea una cohorte. Si nace activa, respeta la regla de una sola activa por programa. */
+/** Crea una cohorte; su estado se deduce de la ventana de ventas. */
 export async function crearCohorte(db: Db, actorId: string, input: EntradaCohorte) {
   return normalizando(async () => {
     const datos = esquemaCohorte.parse(input);
-    if (datos.estado === ESTADO_ACTIVO && (await yaHayActiva(db, datos.programId))) {
-      throw new ErrorDeApp(MENSAJE_UNA_ACTIVA, 400);
-    }
-
     const id = crypto.randomUUID();
     const etiqueta = etiquetaDe(datos);
-    await ejecutarJuntas(db, (tx) => [
-      (tx as Db).insert(cohorts).values({ id, ...datos } as never),
-      ...Object.entries(datos).map(([campo, valor]) =>
-        (tx as Db).insert(changeLog).values({
+    await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+      await tx.insert(cohorts).values({ id, ...datos } as never);
+      await tx.insert(changeLog).values(Object.entries(datos).map(([campo, valor]) => ({
           tabla: "cohorts",
           registroId: id,
           etiqueta,
@@ -290,28 +218,61 @@ export async function crearCohorte(db: Db, actorId: string, input: EntradaCohort
           valorNuevo: aTexto(valor),
           origen: "app" as const,
           userId: actorId,
-        }),
-      ),
-    ]);
+      })));
+
+      let [producto] = await tx.select().from(productos).where(and(
+        eq(productos.programId, datos.programId), eq(productos.slug, "programa_virtual"),
+      ));
+      if (!producto) {
+        const productoId = crypto.randomUUID();
+        [producto] = await tx.insert(productos).values({
+          id: productoId, programId: datos.programId, nombre: "Programa virtual",
+          slug: "programa_virtual", cuentaComoCupo: true,
+        }).onConflictDoNothing().returning();
+        if (!producto) {
+          [producto] = await tx.select().from(productos).where(and(
+            eq(productos.programId, datos.programId), eq(productos.slug, "programa_virtual"),
+          ));
+        } else {
+          await tx.insert(changeLog).values([
+            ["programId", datos.programId], ["nombre", "Programa virtual"],
+            ["slug", "programa_virtual"], ["cuentaComoCupo", "true"],
+          ].map(([campo, valor]) => ({
+            tabla: "productos", registroId: productoId, etiqueta: "Programa virtual", campo,
+            valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,
+          })));
+        }
+      }
+      if (!producto) throw new Error("No se pudo crear el producto Programa virtual.");
+
+      const [programa] = await tx.select({ slug: programs.slug }).from(programs)
+        .where(eq(programs.id, datos.programId));
+      if (!programa) throw new Error("No existe el programa de la cohorte.");
+      const codigo = `${programa.slug.replaceAll("-", "_")}_programa_virtual_${datos.codigo.toLowerCase()}`;
+      const skuId = crypto.randomUUID();
+      const [sku] = await tx.insert(skus).values({
+        id: skuId, programId: datos.programId, productoId: producto.id, cohortId: id,
+        codigo, precioListaUsd: datos.precioUsd,
+      }).returning();
+      await tx.insert(changeLog).values(Object.entries({
+        programId: datos.programId, productoId: producto.id, cohortId: id,
+        codigo, precioListaUsd: datos.precioUsd,
+      }).map(([campo, valor]) => ({
+        tabla: "skus", registroId: sku.id, etiqueta: codigo, campo,
+        valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,
+      })));
+    });
     return (await leerCohorte(db, id))!;
   });
 }
 
-/** Edita una cohorte. Registra solo los campos que cambian. Respeta la regla de una activa. */
+/** Edita una cohorte. Registra solo los campos que cambian. */
 export async function editarCohorte(db: Db, actorId: string, id: string, input: EntradaCohorte) {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const datos = esquemaCohorte.parse(input);
     const actual = await leerCohorte(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
-
-    if (
-      datos.estado === ESTADO_ACTIVO &&
-      actual.estado !== ESTADO_ACTIVO &&
-      (await yaHayActiva(db, datos.programId, objetivoId))
-    ) {
-      throw new ErrorDeApp(MENSAJE_UNA_ACTIVA, 400);
-    }
 
     const cambiados = Object.entries(datos).filter(
       ([campo, valor]) =>
@@ -340,63 +301,4 @@ export async function editarCohorte(db: Db, actorId: string, id: string, input: 
     ]);
     return (await leerCohorte(db, objetivoId))!;
   });
-}
-
-/**
- * Activa una cohorte (pasa su `estado` a `activo`). Falla con un 400 claro si el
- * programa ya tiene otra activa (pre-chequeo + garantia del indice parcial).
- */
-export async function activarCohorte(db: Db, actorId: string, id: string) {
-  return normalizando(async () => {
-    const objetivoId = idValido(id);
-    return (db as unknown as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(async (tx) => {
-      const actual = await leerCohorte(tx, objetivoId);
-      if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
-      if (actual.estado === ESTADO_ACTIVO) return actual;
-      if (await yaHayActiva(tx, actual.programId, objetivoId)) throw new ErrorDeApp(MENSAJE_UNA_ACTIVA, 400);
-      const activada = await cambiarEstado(tx, actorId, actual, ESTADO_ACTIVO);
-      await mudarDealsDeProximaCohorte(tx, { cohorte: activada, actorId });
-      return activada;
-    });
-  });
-}
-
-/**
- * "Desactiva" una cohorte: la pasa a estado `cerrado`. Nunca se borra la fila (las
- * metricas historicas la siguen apuntando) y ademas libera el cupo de "activa".
- */
-export async function desactivarCohorte(db: Db, actorId: string, id: string) {
-  return normalizando(async () => {
-    const objetivoId = idValido(id);
-    const actual = await leerCohorte(db, objetivoId);
-    if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
-    if (actual.estado === ESTADO_CERRADO) return actual;
-    return cambiarEstado(db, actorId, actual, ESTADO_CERRADO);
-  });
-}
-
-/** Cambia el estado de una cohorte y deja el rastro en `change_log`. */
-async function cambiarEstado(
-  db: Db,
-  actorId: string,
-  actual: typeof cohorts.$inferSelect,
-  nuevo: typeof estadoCohorteEnum.enumValues[number],
-) {
-  await ejecutarJuntas(db, (tx) => [
-    (tx as Db)
-      .update(cohorts)
-      .set({ estado: nuevo } as never)
-      .where(eq(cohorts.id, actual.id)),
-    (tx as Db).insert(changeLog).values({
-      tabla: "cohorts",
-      registroId: actual.id,
-      etiqueta: etiquetaDe(actual),
-      campo: "estado",
-      valorAnterior: actual.estado,
-      valorNuevo: nuevo,
-      origen: "app" as const,
-      userId: actorId,
-    }),
-  ]);
-  return (await leerCohorte(db, actual.id))!;
 }

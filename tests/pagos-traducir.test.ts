@@ -6,6 +6,7 @@ import { resolverCohorte, traducirCompra } from "@/lib/pagos/traducir";
 import type { EventoHotmart } from "@/lib/pagos/hotmart";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 const APROBADA = Date.parse("2026-11-16T12:00:00-05:00");
 const compra = (off: string | null, value = 99, currency = "USD"): EventoHotmart["data"]["purchase"] => ({
@@ -29,7 +30,8 @@ describe("traducir una compra de Hotmart", () => {
       { programId, plataformaId: plataforma.id, nombre: "Separar", monto: "49", moneda: "USD", url: "https://pay.hotmart.com/C?off=ccc" },
     ]).returning();
     enlaces = { aaa: filas[0].id, bbb: filas[1].id, ccc: filas[2].id };
-    await db.insert(cohorts).values({ programId, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", estado: "futuro" });
+    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" }).returning();
+    await skuVirtualDePrueba(db, cohorte.id);
   });
   afterAll(async () => cerrar());
 
@@ -50,7 +52,7 @@ describe("traducir una compra de Hotmart", () => {
     expect(await traducirCompra(db, programId, compra("aaa", 99, "BRL"))).toMatchObject({ estado: "en_revision", motivoRevision: "moneda_no_soportada", enlacePagoId: enlaces.aaa });
   });
   it("distingue cero cohortes vendiendo en la base", async () => {
-    await db.delete(cohorts);
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" });
     expect(await traducirCompra(db, programId, compra("aaa"))).toMatchObject({ motivoRevision: "sin_cohorte" });
   });
   it("no escoge si la consulta devuelve dos cohortes", () => {

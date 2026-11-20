@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -5,7 +6,6 @@ import type { Session } from "next-auth";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
 import {
-  abonos,
   calls,
   cohorts,
   cuentasPublicitarias,
@@ -153,7 +153,7 @@ const PAGINAS = {
   "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 55, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
-    tope: 32, // 18 antes de la fase 2: la siembra ahora incluye un deal. +1 (428): el chip Sin comprobante lee los abonos del universo en UNA consulta. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
+    tope: 33, // +1 (ADR 0137 punto 8): las líneas normalizadas se leen en lote; el costo no crece con deals.
     escalaConProgramas: false,
     cargar: (db, sembrado) => cargarDatosDeMiEspacio(db, {
       userId: sembrado.closerId,
@@ -182,8 +182,8 @@ const PAGINAS = {
   "/recursos": { pagina: "app/(app)/recursos/page.tsx", tope: 1, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRedireccionARecursos(db, { userId: s.closerId, rol: "closer" }) },
   "/oauth/autorizar": { pagina: "app/oauth/autorizar/page.tsx", tope: 1, escalaConProgramas: false, cargar: (db) => cargarDatosDeAutorizacion(db, { params: { client_id: "https://cliente.paginas.test/cimd", redirect_uri: "https://cliente.paginas.test/callback", response_type: "code", code_challenge_method: "S256", code_challenge: "a".repeat(43) } }) },
   "/p/[programa]/calls": { pagina: "app/(app)/p/[programa]/calls/page.tsx", tope: 9, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeCalls(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {} }) },
-  "/p/[programa]/deals": { pagina: "app/(app)/p/[programa]/deals/page.tsx", tope: 21, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeDeals(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {}, vistaRecordada: null }) },
-  "/p/[programa]/deals/[id]": { pagina: "app/(app)/p/[programa]/deals/[id]/page.tsx", tope: 48, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeDeal(db, { session: sesionCloser(s), programId: s.programas[0]!.id, dealId: s.dealId, rol: "closer" }) },
+  "/p/[programa]/deals": { pagina: "app/(app)/p/[programa]/deals/page.tsx", tope: 22, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeDeals(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {}, vistaRecordada: null }) },
+  "/p/[programa]/deals/[id]": { pagina: "app/(app)/p/[programa]/deals/[id]/page.tsx", tope: 50, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeDeal(db, { session: sesionCloser(s), programId: s.programas[0]!.id, dealId: s.dealId, rol: "closer" }) },
   "/p/[programa]/inbox": { pagina: "app/(app)/p/[programa]/inbox/page.tsx", tope: 21, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeInbox(db, { session: sesionCloser(s), programId: s.programas[0]!.id, rol: "closer" }) },
   "/p/[programa]/hub/lista": { pagina: "app/(app)/p/[programa]/hub/lista/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeListaDelPrograma(db, { programId: s.programas[0]!.id, metrica: "leads", busqueda: { preset: "este_mes" }, hoy: HOY, pagina: 1, ahora: new Date(`${HOY}T12:00:00-05:00`) }) },
   "/p/[programa]/leads": { pagina: "app/(app)/p/[programa]/leads/page.tsx", tope: 10, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeLeads(db, { programId: s.programas[0]!.id, busqueda: {}, pagina: 0, paginaDuplicados: 0, duenoUserId: s.closerId }) },
@@ -275,7 +275,6 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, vari
       fechaInicioVentas: `2026-0${indice + 4}-01`,
       fechaCierreVentas: `2026-0${indice + 4}-20`,
       fechaInicioClases: `2026-0${indice + 4}-25`,
-      estado: "cerrado" as const,
     }))).returning();
     const leadsDeVariedad = await db.insert(leads).values(Array.from({ length: variedad }, (_, indice) => ({
       programId: programas[0]!.id,
@@ -300,7 +299,7 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, vari
       resultado: "show" as const,
       origen: "crm",
     })));
-    await db.insert(abonos).values(dealsDeVariedad.map((dealDeVariedad, indice) => ({
+    await abonoDePrueba(db, dealsDeVariedad.map((dealDeVariedad, indice) => ({
       programId: programas[0]!.id,
       dealId: dealDeVariedad.id,
       fecha: `2026-11-${String(indice + 3).padStart(2, "0")}`,

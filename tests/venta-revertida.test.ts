@@ -11,6 +11,7 @@ import { idsDeVentasEn, primerosMovimientosDeVenta, ventasConDiaEn } from "@/lib
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * Ticket 200: una venta que se revierte al anular su abono (A1) no cuenta en ninguna métrica,
@@ -58,10 +59,10 @@ beforeEach(async () => {
       fechaInicioClases: "2100-01-01",
       fechaInicioVentas: "2000-01-03",
       fechaCierreVentas: "2099-12-31",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
+  await skuVirtualDePrueba(db, cohortId);
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma venta" }).returning())[0].id;
