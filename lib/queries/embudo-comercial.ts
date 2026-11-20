@@ -2,6 +2,7 @@ import { and, eq, inArray, lte } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
+import type { Area } from "@/lib/atribucion/canal";
 import type { Alcance } from "@/lib/queries/dashboard";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import {
@@ -16,7 +17,7 @@ import {
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export type OrigenEmbudoComercial = OrigenDeDeal | "manual";
-export type AreaEmbudoComercial = "paid" | "organico" | "referidos" | "sin_utm";
+export type AreaEmbudoComercial = Area;
 export type PasoEmbudoComercial = "creados" | "agendaron" | "tuvieron_show" | "compraron";
 
 export interface DealParaEmbudoComercial {

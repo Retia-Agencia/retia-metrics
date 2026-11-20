@@ -1,4 +1,5 @@
 import { desc } from "drizzle-orm";
+import { AREAS } from "@/lib/atribucion/canal";
 import type { Rol } from "@/lib/auth/roles";
 import { veEquipoComercial } from "@/lib/auth/roles";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
@@ -227,10 +228,7 @@ async function cargarVistaComercial(
   const origenEmbudo = origenPedido === "completo" || origenPedido === "parcial" ? origenPedido : "todos";
   const filtroDeOrigen: OrigenEmbudoComercial | undefined = origenEmbudo === "todos" ? undefined : origenEmbudo;
   const areaPedida = texto(busqueda.area);
-  const areaEmbudo: AreaEmbudoComercial | "todas" =
-    areaPedida === "paid" || areaPedida === "organico" || areaPedida === "referidos" || areaPedida === "sin_utm"
-      ? areaPedida
-      : "todas";
+  const areaEmbudo: AreaEmbudoComercial | "todas" = AREAS.find((area) => area === areaPedida) ?? "todas";
   const filtroDeArea: AreaEmbudoComercial | undefined = areaEmbudo === "todas" ? undefined : areaEmbudo;
   const datos = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
   const metricas = ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"] as const;
