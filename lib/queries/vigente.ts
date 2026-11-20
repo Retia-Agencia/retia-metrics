@@ -21,13 +21,13 @@ import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
  * Las filas de `tabla` que siguen contando.
  *
  * Acepta tambien tablas que NO se anulan (`leads`, `programs`…) y para ellas
- * devuelve "verdadero", salvo si el llamador indica una columna de anulación explícita.
- * No es un fallo silencioso: una tabla sin anulacion tiene
+ * devuelve "verdadero". No es un fallo silencioso: una tabla sin anulacion tiene
  * todas sus filas vigentes, asi que esa es la respuesta correcta a la pregunta. Lo
  * necesita `conteosPorPrograma` en `/nerd-stats`, que recibe la tabla por parametro
  * y cuenta sobre cuatro tablas distintas, solo tres de ellas anulables.
  */
-export function vigente(tabla: PgTable, columna = columnaDeAnulacion(tabla)): SQL {
+export function vigente(tabla: PgTable): SQL {
+  const columna = columnaDeAnulacion(tabla);
   return columna ? isNull(columna) : SIEMPRE;
 }
 
@@ -79,8 +79,14 @@ export function incluyendoAnulados(tabla: PgTable | SQLWrapper): SQL {
 /** Condicion neutra, para las tablas que no se anulan. */
 const SIEMPRE = sql`true`;
 
-/** La columna `anulado_en` de la tabla, o `undefined` si no se anula. */
+/**
+ * La columna de anulación de la tabla, o `undefined` si no se anula. Casi todas la llaman
+ * `anulado_en`; `deal_lineas` la llama `anulada_en` (la línea). Antes del 20-nov solo se
+ * reconocía la primera y `vigente(dealLineas)` devolvía "verdadero": las líneas anuladas
+ * seguían contando. `tests/vigencia-centralizada.test.ts` exige que toda columna
+ * `anulad[ao]_en` del esquema se reconozca aquí.
+ */
 function columnaDeAnulacion(tabla: PgTable): PgColumn | undefined {
-  const columna = (tabla as unknown as Record<string, unknown>).anuladoEn;
-  return columna as PgColumn | undefined;
+  const columnas = tabla as unknown as Record<string, unknown>;
+  return (columnas.anuladoEn ?? columnas.anuladaEn) as PgColumn | undefined;
 }

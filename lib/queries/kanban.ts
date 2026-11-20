@@ -277,7 +277,7 @@ function condicionDeNombreSku(db: Db, programId: string, nombreSku: string) {
     .innerJoin(productos, joinNombreDelSku)
     .where(and(
       eq(dealLineas.programId, programId),
-      vigente(dealLineas, dealLineas.anuladaEn),
+      vigente(dealLineas),
       eq(nombreDelSku.slug, nombreSku),
     ));
   return inArray(deals.id, conNombre);
@@ -298,7 +298,7 @@ function condicionesBaseDelTablero(
     .from(dealLineas)
     .where(and(
       eq(dealLineas.programId, programId),
-      vigente(dealLineas, dealLineas.anuladaEn),
+      vigente(dealLineas),
       sku === "sin" ? undefined : z.guid().safeParse(sku).success ? eq(dealLineas.skuId, sku) : sql`false`,
     )) : undefined;
   return and(

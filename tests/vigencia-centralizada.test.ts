@@ -4,6 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import * as schema from "@/lib/db/schema";
+import { is } from "drizzle-orm";
+import { getTableConfig, PgDialect, PgTable } from "drizzle-orm/pg-core";
 
 /**
  * ADR 0026 punto 3, ampliado por el ADR 0038 — regla verificable: **ninguna consulta
@@ -368,6 +370,24 @@ describe("vigencia centralizada (ADR 0026)", () => {
   it("el predicado vive en un solo modulo y se llama vigente(tabla)", async () => {
     const modulo = (await import("@/lib/queries/vigente")) as Record<string, unknown>;
     expect(typeof modulo.vigente).toBe("function");
+  });
+
+  it("vigente(tabla) filtra en toda tabla del esquema con columna anulado_en o anulada_en", async () => {
+    // deal_lineas llama su columna `anulada_en`: hasta el 20-nov `vigente(dealLineas)` devolvía
+    // "verdadero" y las líneas anuladas seguían contando en saldos y en la línea con cupo.
+    const { vigente } = await import("@/lib/queries/vigente");
+    const dialecto = new PgDialect();
+    const sinFiltro: string[] = [];
+    for (const [nombre, valor] of Object.entries(schema)) {
+      if (!is(valor, PgTable)) continue;
+      const columnas = getTableConfig(valor).columns.map((c) => c.name);
+      const anulacion = columnas.find((c) => c === "anulado_en" || c === "anulada_en");
+      if (!anulacion) continue;
+      const condicion = dialecto.sqlToQuery(vigente(valor)).sql;
+      if (!condicion.includes(`"${anulacion}" is null`)) sinFiltro.push(`${nombre}: ${condicion}`);
+    }
+    expect(sinFiltro).toEqual([]);
+    expect(dialecto.sqlToQuery(vigente(schema.dealLineas)).sql).toContain('"anulada_en" is null');
   });
 
   it("ninguna consulta del repo lee calls, deals o abonos sin vigente(tabla)", () => {
