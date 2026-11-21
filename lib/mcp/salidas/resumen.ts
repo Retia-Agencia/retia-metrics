@@ -34,6 +34,7 @@ export const salidaDeResumen = z.object({
   periodo,
   cifras: z.object({
     ventas: campoDeMetrica("ventas", { unidad: "cupos", monedas: [] }),
+    skus_vendidos: campoDeMetrica("skus_vendidos", { unidad: "cupos", monedas: [] }),
     vendido: campoDeMetrica("vendido", { unidad: "dinero", monedas: ["usd"] }),
     recaudado: campoDeMetrica("recaudado", { unidad: "dinero", monedas: ["usd"] }),
     por_cobrar: campoDeMetrica("por_cobrar", { unidad: "dinero", monedas: ["usd"] }),
@@ -177,6 +178,7 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
     periodo: { desde: vista.periodo.a.desde, hasta: vista.periodo.a.hasta },
     cifras: {
       ventas: { valor: vista.embudo.cierres, unidad: "cupos" as const },
+      skus_vendidos: { valor: vista.dinero.lineas, unidad: "cupos" as const },
       vendido: { valor: vista.dinero.vendido, unidad: "dinero" as const, moneda: "USD" as const },
       recaudado: { valor: vista.dinero.recaudado, unidad: "dinero" as const, moneda: "USD" as const },
       por_cobrar: { valor: vista.dinero.porCobrar, unidad: "dinero" as const, moneda: "USD" as const },

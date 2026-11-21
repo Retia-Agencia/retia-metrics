@@ -8,7 +8,7 @@ import { camposMcpDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 
 export const METRICAS_DE_LISTA = [
   "caja", "agendas", "canceladas", "citas_debidas", "citas_sin_marcar", "shows", "no_shows",
-  "shows_sin_grain", "cierres", "cortesias", "leads", "deals_creados", "deals_que_agendaron",
+  "shows_sin_grain", "cierres", "skus_vendidos", "cortesias", "leads", "deals_creados", "deals_que_agendaron",
   "deals_desde_completo", "deals_desde_parcial", "completos_que_agendaron", "parciales_que_agendaron",
   "agendas_creadas", "registros", "agendas_futuras", "contratado", "sin_resultado", "atendidos_sin_valor",
   "atendidos_sin_grain", "perdidos_con_pagos", "grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show",
@@ -77,7 +77,7 @@ const SUBCONJUNTO_DEL_EMBUDO = {
 
 /** Listas que no son de origen y aceptan el filtro de área: las de ventas (`dealsDelArea`). */
 const METRICAS_CON_AREA: readonly string[] = [
-  "cierres", "contratado", "embudo_comercial_creados", "embudo_comercial_agendaron",
+  "cierres", "skus_vendidos", "contratado", "embudo_comercial_creados", "embudo_comercial_agendaron",
   "embudo_comercial_shows", "embudo_comercial_compraron",
 ];
 /** Las listas del grupo de citas aceptan solo el área Paid (`grupoDeCitas`), la de la tabla semanal de Pauta. */

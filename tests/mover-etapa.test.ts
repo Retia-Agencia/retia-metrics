@@ -7,6 +7,7 @@ import {
   changeLog,
   cohorts,
   dealActividades,
+  dealLineas,
   dealEtapaHistorial,
   deals,
   leads,
@@ -19,6 +20,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
 import { destinosDeCorreccion as destinosDeCorreccionPuros } from "@/lib/deals/etapas";
 import { crearConRastro } from "@/lib/crm/rastro";
+import { comisionesDeDeals } from "@/lib/queries/comision";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -682,7 +684,7 @@ describe("los hechos salen de la base", () => {
     let e = await rechazo(moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema }));
     expect(e.faltantes.map((f) => f.codigo)).toEqual(["saldo_en_cero"]);
     await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
-    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].comisionPorcentaje).toBe("10.00");
+    expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId)))[0].comisionPorcentaje).toBe("10.00");
 
     // Se anula el unico abono: vuelve a Atendido, que es de donde vino, y a ningun otro lado.
     await db
@@ -701,20 +703,18 @@ describe("los hechos salen de la base", () => {
     expect((await historial(dealId)).map((h) => h.a)).toEqual(["atendido", "ganado_parcial", "atendido", "ganado_completo"]);
   });
 
-  it("no vende si el programa no tiene porcentaje de comisión", async () => {
+  it("vende aunque el SKU no tenga % de comisión: la línea queda sin % y la venta se marca sin comisión (D9)", async () => {
+    // El SKU virtual de prueba nace con el % del programa; sin él, nace sin %.
     await db.update(programs).set({ comisionPorcentaje: null }).where(eq(programs.id, programId));
-    const dealId = await nuevoDeal("atendido", { comisionPorcentaje: null, ownerUserId: closer });
+    const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
     await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "500" });
-    const historialAntes = await historial(dealId);
 
-    const e = await rechazo(moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema }));
+    await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
 
-    expect(e.status).toBe(422);
-    expect(e.message).toBe("Este programa no tiene % de comisión. Cárgalo en la pestaña Programa, en «Comisión del closer», y vuelve a intentarlo.");
-    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal.etapa).toBe("atendido");
-    expect(deal.comisionPorcentaje).toBeNull();
-    expect(await historial(dealId)).toEqual(historialAntes);
+    expect(await etapaDe(dealId)).toBe("ganado_parcial");
+    const lineas = await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId));
+    expect(lineas.map((linea) => linea.comisionPorcentaje)).toEqual([null]);
+    expect((await comisionesDeDeals(db, [dealId])).get(dealId)).toBeNull();
   });
 
   it.each([

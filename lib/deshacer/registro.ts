@@ -230,7 +230,7 @@ export const registroAbonos = {
 
 export const registroLineas = {
   id: identidad, dealId: identidad, programId: identidad, skuId: identidad,
-  precioListaUsd: sistema, valorVendidoUsd: sistema, asignadaPor: identidad,
+  precioListaUsd: sistema, valorVendidoUsd: sistema, comisionPorcentaje: sistema, asignadaPor: identidad,
   asignadaEn: identidad, anuladaEn: anulacion, anuladaPor: anulacion,
 } satisfies Record<keyof typeof dealLineas.$inferSelect, ReglaDeCampo>;
 

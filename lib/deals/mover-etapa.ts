@@ -9,7 +9,6 @@ import {
   deals,
   leads,
   motivos,
-  programs,
   submissions,
 } from "@/lib/db/schema";
 import type { PgInsertValue } from "drizzle-orm/pg-core";
@@ -52,6 +51,7 @@ import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { encolarVenta } from "@/lib/meta-capi/disparo";
 import { encolarAvisoDeEstudiante } from "@/lib/avisos-cs/encolar";
 import { asignarLinea, asignarLineasPredeterminadas, asegurarLineaConCupo } from "./lineas";
+import { congelarComisionDeLineas } from "./comision-de-linea";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -357,22 +357,6 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     // movio el deal entre la lectura y esta escritura, no se pisa, se rechaza.
     // Al perder (P) se escribe `deals.motivo_id` en la misma transaccion (punto 5): la
     // ficha del deal muestra el motivo, no solo el historial.
-    let comisionPorcentaje: string | null | undefined;
-    if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a) && deal.comisionPorcentaje === null) {
-      const [programa] = await tx
-        .select({ comisionPorcentaje: programs.comisionPorcentaje })
-        .from(programs)
-        .where(eq(programs.id, deal.programId));
-      comisionPorcentaje = programa?.comisionPorcentaje ?? null;
-      if (comisionPorcentaje === null) {
-        throw new MovimientoRechazado(
-          "Este programa no tiene % de comisión. Cárgalo en la pestaña Programa, en «Comisión del closer», y vuelve a intentarlo.",
-          [],
-          422,
-        );
-      }
-    }
-
     const saleDeProximaCohorte = pendienteDe === "proxima_cohorte" && pendienteA !== "proxima_cohorte";
     const textoDestino = mov.datos?.cohorteDestinoTexto;
     const escritas = await tx
@@ -384,7 +368,6 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         ...(textoDestino !== undefined ? { cohorteDestinoTexto: textoDestino } : {}),
         ...(saleDeProximaCohorte ? { cohorteDestinoId: null, cohorteDestinoTexto: null } : {}),
         updatedAt: new Date(),
-        ...(comisionPorcentaje !== undefined ? { comisionPorcentaje } : {}),
         ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
         ...(t.id === "S4" ? { ventaDirectaEn: sql`clock_timestamp()` } : {}),
       })
@@ -392,6 +375,14 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       .returning();
     if (escritas.length === 0) {
       throw new ErrorDeApp("El deal cambió de etapa mientras tanto. Vuelve a cargarlo.", 409);
+    }
+    if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a)) {
+      await congelarComisionDeLineas(tx, deal.id, {
+        actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
+        etiqueta: deal.id,
+        origen: mov.origen ?? "app",
+        reversionId: mov.reversionId,
+      });
     }
     const cambiosDeEspera = [
       ...(textoDestino !== undefined && textoDestino !== deal.cohorteDestinoTexto

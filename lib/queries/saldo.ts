@@ -38,7 +38,11 @@ export interface SaldoDeDeal {
 export interface SaldoDeLinea {
   lineaId: string;
   dealId: string;
+  skuId: string;
+  skuSlug: string;
+  skuNombre: string;
   precio: number;
+  comisionPorcentaje: string | null;
   moneda: string | null;
   abonado: number;
   abonosVigentes: number;
@@ -144,7 +148,9 @@ export async function saldosDeLineas(db: Db, dealIds: readonly string[]): Promis
   return unaVezPorSolicitud(db, claveDe("saldosDeLineas", dealIds), async () => {
   const [lineas, sumas] = await Promise.all([
     db.select({
-      lineaId: dealLineas.id, dealId: dealLineas.dealId, precio: dealLineas.valorVendidoUsd,
+      lineaId: dealLineas.id, dealId: dealLineas.dealId, skuId: skus.id, skuSlug: skus.slug,
+      skuNombre: skus.nombre, precio: dealLineas.valorVendidoUsd,
+      comisionPorcentaje: dealLineas.comisionPorcentaje,
       etapa: deals.etapa, cortesia: deals.cortesia, cuentaComoCupo: skus.cuentaComoCupo,
     }).from(dealLineas)
       .innerJoin(deals, and(eq(deals.id, dealLineas.dealId), vigente(deals)))
@@ -172,7 +178,9 @@ export async function saldosDeLineas(db: Db, dealIds: readonly string[]): Promis
     const abonosVigentes = suyas.reduce((total, s) => total + Number(s.cuantos), 0);
     const precio = Number(linea.precio);
     resultado.set(linea.lineaId, {
-      lineaId: linea.lineaId, dealId: linea.dealId, precio, moneda: "USD", abonado, abonosVigentes,
+      lineaId: linea.lineaId, dealId: linea.dealId, skuId: linea.skuId, skuSlug: linea.skuSlug,
+      skuNombre: linea.skuNombre, precio, comisionPorcentaje: linea.comisionPorcentaje,
+      moneda: "USD", abonado, abonosVigentes,
       saldo: monedaDistinta ? null : Math.round((precio - abonado) * 100) / 100,
       sinSaldoPorque: monedaDistinta ? "moneda_distinta" : null,
       vendida: esLineaVendida({

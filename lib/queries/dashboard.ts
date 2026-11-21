@@ -1,4 +1,3 @@
-import { valorComisionableSql } from "@/lib/queries/comision";
 import { hoyEnBogota } from "@/lib/format";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import {
@@ -39,8 +38,8 @@ import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
-import { dineroDeSaldos, dineroDeVentas, SIN_DINERO, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
-import { saldosDeDeals } from "@/lib/queries/saldo";
+import { dineroDeVentas, SIN_DINERO, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import { saldosDeLineas, type SaldoDeLinea } from "@/lib/queries/saldo";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
@@ -304,9 +303,6 @@ export interface VentaDelRangoConValor {
   claveCloserHistorica: string | null;
   cohortId: string | null;
   valorVendidoUsd: string | null;
-  /** Base de la comisión: valor vendido sin las líneas de SKUs con 0 % de comisión (ADR 0137, enmienda del 20-nov). */
-  valorComisionableUsd: string | null;
-  comisionPorcentaje: string | null;
 }
 
 /** Las ventas del rango con los valores necesarios para dinero derivado. */
@@ -327,12 +323,31 @@ export async function ventasDelRangoConValor(
       end`,
       cohortId: deals.cohortId,
       valorVendidoUsd: deals.valorVendidoUsd,
-      valorComisionableUsd: valorComisionableSql(),
-      comisionPorcentaje: deals.comisionPorcentaje,
     })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(filtroCierres(alcance, db), vigente(deals))));
+}
+
+/** Las ventas del rango y sus líneas vendidas, leídas una sola vez; los filtros de SKU acotan las líneas, no solo los deals. */
+async function ventasConLineasDelRango(
+  alcance: Alcance,
+  db: Db,
+): Promise<{ ventas: VentaDelRangoConValor[]; lineas: SaldoDeLinea[] }> {
+  const ventas = await ventasDelRangoConValor(alcance, db);
+  const saldos = await saldosDeLineas(db, ventas.map((venta) => venta.dealId));
+  const lineas = [...saldos.values()].filter((linea) => linea.vendida
+    && (!alcance.nombreDeSku || linea.skuSlug === alcance.nombreDeSku)
+    && (!alcance.skuId || linea.skuId === alcance.skuId));
+  return { ventas, lineas };
+}
+
+/** Líneas vendidas de las ventas elegidas (la fuente de SKUs vendidos, Vendido, Recaudado y Por cobrar). */
+export async function lineasVendidasDelRango(
+  alcance: Alcance,
+  db: Db = dbDeLaApp,
+): Promise<SaldoDeLinea[]> {
+  return (await ventasConLineasDelRango(alcance, db)).lineas;
 }
 
 /**
@@ -340,8 +355,8 @@ export async function ventasDelRangoConValor(
  * ventas, el que dejan pasar el periodo, la cohorte y el closer. Lo recaudado es a hoy, no por fecha.
  */
 export async function dineroDelRango(alcance: Alcance, db: Db = dbDeLaApp): Promise<DineroDeVentas> {
-  const ventas = await ventasDelRangoConValor(alcance, db);
-  return dineroDeVentas(db, ventas.map((venta) => venta.dealId));
+  const { ventas, lineas } = await ventasConLineasDelRango(alcance, db);
+  return dineroDeVentas(db, ventas.map((venta) => venta.dealId), lineas);
 }
 
 /** El dinero de todas las filas del comparativo desde una sola lectura de ventas y otra de sus saldos. */
@@ -356,8 +371,7 @@ export async function dineroPorCloserDelRango(
   );
   if (unicas.length === 0) return resultado;
 
-  const ventas = await ventasDelRangoConValor(alcance, db);
-  const saldos = await saldosDeDeals(db, ventas.map((venta) => venta.dealId));
+  const { ventas, lineas } = await ventasConLineasDelRango(alcance, db);
   const idsPorCloser = new Map<string, string[]>();
   for (const venta of ventas) {
     for (const clave of new Set([venta.claveCloser, venta.claveCloserHistorica])) {
@@ -368,10 +382,8 @@ export async function dineroPorCloserDelRango(
     }
   }
   for (const [clave, ids] of idsPorCloser) {
-    resultado.set(clave, dineroDeSaldos(ids.flatMap((id) => {
-      const saldo = saldos.get(id);
-      return saldo ? [saldo] : [];
-    })));
+    const conjunto = new Set(ids);
+    resultado.set(clave, await dineroDeVentas(db, ids, lineas.filter((linea) => conjunto.has(linea.dealId))));
   }
   return resultado;
 }
@@ -412,9 +424,12 @@ async function leerVentasPorCohorte(alcance: Alcance, db: Db): Promise<VentasDeC
     grupo.push(venta);
     grupos.set(clave, grupo);
   }
+  const lineas = await lineasVendidasDelRango(alcance, db);
 
   return Promise.all([...grupos.values()].map(async (grupo) => {
-    const dinero = await dineroDeVentas(db, grupo.map((venta) => venta.dealId));
+    const ids = grupo.map((venta) => venta.dealId);
+    const conjunto = new Set(ids);
+    const dinero = await dineroDeVentas(db, ids, lineas.filter((linea) => conjunto.has(linea.dealId)));
     return {
       cohorteId: grupo[0]!.cohorteId,
       codigo: grupo[0]!.codigo,

@@ -17,16 +17,20 @@ export function PagosDeStudentCelda({
   nombre,
   pagos,
   slug,
+  lineaId,
 }: {
   nombre: string;
   pagos: PagosDeStudent;
   slug: string;
+  lineaId?: string;
 }) {
-  const abonosVigentes = pagos.abonos.filter((abono) => abono.anuladoEn == null).length;
+  const abonos = lineaId ? pagos.abonos.filter((abono) => abono.lineaId === lineaId) : pagos.abonos;
+  const linea = lineaId ? pagos.lineas.find((item) => item.lineaId === lineaId) : undefined;
+  const abonosVigentes = abonos.filter((abono) => abono.anuladoEn == null).length;
   const etiqueta = abonosVigentes === 0
     ? "Sin abonos"
     : `${abonosVigentes} ${abonosVigentes === 1 ? "abono" : "abonos"}`;
-  const saldo = saldoLegible(pagos.saldo.saldo, pagos.saldo.moneda ?? "USD", pagos.saldo.sinSaldoPorque);
+  const saldo = saldoLegible(linea ? linea.saldoUsd : pagos.saldo.saldo, "USD", linea?.sinSaldoPorque ?? pagos.saldo.sinSaldoPorque);
 
   return (
     <Dialog>
@@ -36,17 +40,17 @@ export function PagosDeStudentCelda({
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Pagos de {nombre}</DialogTitle>
-          <DialogDescription>Detalle de la venta y todos sus abonos.</DialogDescription>
+          <DialogDescription>{linea ? `Detalle de ${linea.skuNombre} y sus abonos.` : "Detalle de la venta y todos sus abonos."}</DialogDescription>
         </DialogHeader>
 
         <dl className="grid gap-3 rounded-xl bg-muted/50 p-4 text-sm sm:grid-cols-2">
-          <Resumen etiqueta="Valor vendido" valor={pagos.valorVendidoUsd == null ? "Sin definir" : usd(pagos.valorVendidoUsd)} cifra={pagos.valorVendidoUsd != null} />
+          <Resumen etiqueta="Valor vendido" valor={linea ? usd(linea.valorVendidoUsd) : pagos.valorVendidoUsd == null ? "Sin definir" : usd(pagos.valorVendidoUsd)} cifra={linea != null || pagos.valorVendidoUsd != null} />
           <Resumen
             etiqueta="Descuento"
             valor={pagos.descuento ? `${usd(pagos.descuento.usd)} (${pct(pagos.descuento.porcentaje)})` : "Sin definir"}
             cifra={pagos.descuento != null}
           />
-          <Resumen etiqueta="Abonado" valor={monto(pagos.saldo.abonado, pagos.saldo.moneda ?? "USD")} cifra />
+          <Resumen etiqueta="Abonado" valor={monto(linea ? linea.abonadoUsd : pagos.saldo.abonado, "USD")} cifra />
           <Resumen etiqueta="Saldo" valor={saldo.valor} cifra={saldo.esCifra} />
           <Resumen etiqueta="Acuerdo de pago" valor={pagos.acuerdoPago ?? "Sin definir"} />
           <Resumen etiqueta="Fecha límite" valor={pagos.fechaLimitePago ? fecha(pagos.fechaLimitePago) : "Sin definir"} cifra={pagos.fechaLimitePago != null} />
@@ -54,11 +58,11 @@ export function PagosDeStudentCelda({
 
         <section className="space-y-2">
           <h3 className="text-sm font-medium">Abonos</h3>
-          {pagos.abonos.length === 0 ? (
+          {abonos.length === 0 ? (
             <p className="rounded-xl border p-4 text-sm text-muted-foreground">Aún no hay abonos.</p>
           ) : (
             <ul className="divide-y rounded-xl border">
-              {pagos.abonos.map((abono) => {
+              {abonos.map((abono) => {
                 const anulado = abono.anuladoEn != null;
                 return (
                   <li key={abono.id} className={`space-y-2 p-4 text-sm ${anulado ? "text-muted-foreground" : ""}`}>

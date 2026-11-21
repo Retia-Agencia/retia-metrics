@@ -17,6 +17,7 @@ export function explicacionesDeHoy(): ExplicacionesDeHoy {
     citas_realizadas: explicacionDe("shows", { universo: "todas" }),
     citas_canceladas: explicacionDe("citas_canceladas", { universo: "todas" }),
     citas_pendientes: explicacionDe("citas_pendientes", { universo: "todas" }),
+    skus_vendidos: explicacionDe("skus_vendidos", { universo: "todas" }),
     vendido: explicacionDe("vendido", { universo: "todas" }),
     recaudado: explicacionDe("recaudado", { universo: "todas" }),
     por_cobrar: explicacionDe("por_cobrar", { universo: "todas" }),

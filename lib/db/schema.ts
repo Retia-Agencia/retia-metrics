@@ -1019,12 +1019,7 @@ export const deals = pgTable(
      * escrito por el closer. Se congela al vender; de aquí salen saldo y Completo.
      */
     valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }),
-    /**
-     * El % de comision CONGELADO al entrar a venta por primera vez (ticket 133, ADR 0065 punto
-     * 7): copia del de su programa en ese momento, que no se pisa si el deal sale y vuelve. La
-     * comision = valor vendido × este % / 100, calculada en `lib/queries/comision.ts`; el
-     * monto nunca se guarda. Nulo = el programa no tenia % cargado al vender.
-     */
+    /** @deprecated Retiro en el 463; la comisión congelada vive en cada línea. */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     /**
      * Cortesia (ADR 0071 punto 10): un deal con 100% de descuento. Es Student como
@@ -1154,6 +1149,7 @@ export const dealLineas = pgTable(
     skuId: uuid("sku_id").notNull(),
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
     valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }).notNull(),
+    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     asignadaPor: uuid("asignada_por").references(() => users.id, { onDelete: "restrict" }),
     asignadaEn: timestamp("asignada_en", { withTimezone: true }).notNull().defaultNow(),
     anuladaEn: timestamp("anulada_en", { withTimezone: true }),
@@ -1172,6 +1168,10 @@ export const dealLineas = pgTable(
       foreignColumns: [skus.id, skus.programId],
     }).onDelete("restrict"),
     check("deal_lineas_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} >= 0`),
+    check(
+      "deal_lineas_comision_porcentaje_rango",
+      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
+    ),
     check(
       "deal_lineas_anulacion_completa",
       sql`(${t.anuladaEn} IS NULL AND ${t.anuladaPor} IS NULL)

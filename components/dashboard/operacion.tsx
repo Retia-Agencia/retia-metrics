@@ -69,10 +69,8 @@ const LEYENDA_DE_AGENDAS = [
   { etiqueta: "Futuras", tono: "info" },
 ] as const;
 
-export function textoComisionPrograma(comisionPorcentaje: string | null): string {
-  return comisionPorcentaje != null
-    ? `Comisión: ${num(Number(comisionPorcentaje), 2)} % del valor vendido de cada venta, congelado al vender.`
-    : "Comisión: sin porcentaje cargado.";
+export function textoComisionPrograma(): string {
+  return "La comisión corresponde a cada SKU y su porcentaje se congela con el primer abono de la línea.";
 }
 
 /** Comparativo compacto que Hoy conserva; Comercial reúne estas cifras en su tabla de closers. */

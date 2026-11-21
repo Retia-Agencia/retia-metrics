@@ -10,7 +10,7 @@ import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
-import { cajaConMonedaDelPrograma, ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
+import { cajaConMonedaDelPrograma, lineasVendidasDelRango, ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -18,7 +18,7 @@ import { conAbonoVigente, conLlamadaSinGrain, filtroAtendidos, filtroPerdidosCon
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, dealsDelArea, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, ventasConDiaEn, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
+  primerosMovimientosDeVenta, ventasConDiaEn, leerVentasConDiaEn, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
 import { diaEnBogota } from "@/lib/queries/hechos/fechas";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
@@ -62,6 +62,7 @@ export type Metrica =
   | "no_shows"
   | "shows_sin_grain"
   | "cierres"
+  | "skus_vendidos"
   | "cortesias"
   | "leads"
   | "deals_creados"
@@ -91,7 +92,7 @@ export type Metrica =
  */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | MetricaDelEmbudoComercial | "escalera" | "pauta_meta">;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | MetricaDelEmbudoComercial | "escalera" | "pauta_meta" | "skus_vendidos">;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -1042,6 +1043,7 @@ async function leerMetricaSinMemoria(
   db: Db,
 ): Promise<FilaDeMetrica[]> {
   if (metrica === "pauta_meta") return leerMetricaDePauta(alcance, filtros, pagina, db);
+  if (metrica === "skus_vendidos") return leerSkusVendidos(alcance, filtros, pagina, db);
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDelEmbudoComercial(metrica)) return leerMetricaDelEmbudoComercial(metrica, alcance, filtros, pagina, db);
@@ -1073,6 +1075,40 @@ async function leerMetricaSinMemoria(
     .orderBy(asc(fuente.fecha), asc(fuente.id))
     .limit(TAMANO_PAGINA)
     .offset((pagina - 1) * TAMANO_PAGINA);
+}
+
+async function leerSkusVendidos(
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const lineas = await lineasVendidasDelRango(alcance, db);
+  const ids = [...new Set(lineas.map((linea) => linea.dealId))];
+  if (ids.length === 0) return [];
+  const [ventas, metadatos, personas] = await Promise.all([
+    leerVentasConDiaEn(db, alcance.rango),
+    db.select({
+      dealId: deals.id, etapa: deals.etapa, closer: etiquetaDeCloserSql(),
+      claveCloser: claveCloserSql(users.id, users.closerId),
+    }).from(deals).leftJoin(users, eq(users.id, deals.ownerUserId))
+      .where(and(inArray(deals.id, ids), vigente(deals))),
+    pagina === null ? Promise.resolve(new Map()) : personasDeDeals(db, alcance.programId, ids),
+  ]);
+  const diaPorDeal = new Map(ventas.map((venta) => [venta.dealId, venta.dia]));
+  const metaPorDeal = new Map(metadatos.map((fila) => [fila.dealId, fila]));
+  const filas = lineas.flatMap((linea) => {
+    const meta = metaPorDeal.get(linea.dealId);
+    const dia = diaPorDeal.get(linea.dealId);
+    if (!meta || !dia) return [];
+    return [{
+      ...filaDeDeal({ ...meta, fecha: dia }, filtros.hoy, personas),
+      id: linea.lineaId,
+      concepto: linea.skuNombre,
+      nota: linea.skuSlug,
+    }];
+  }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id));
+  return paginarOAgrupar(filas, pagina);
 }
 
 async function leerMetricaDePauta(

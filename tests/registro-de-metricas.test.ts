@@ -41,7 +41,7 @@ export function exportaLaFuncion(texto: string, nombre: string): boolean {
 
 /**
  * Un llamador es un archivo de código (no de `tests/`) que usa el nombre en una línea que no es su definición ni
- * un re-export. El propio archivo cuenta si la usa en otra línea (`dineroDeVentas` llama a `dineroDeSaldos`).
+ * un re-export. El propio archivo cuenta si la usa en otra línea (`dineroDeVentas` llama a `saldosDeLineas`).
  */
 export function llamadoresFueraDeTests(archivo: string, nombre: string, codigo = CODIGO): string[] {
   const palabra = new RegExp(`\\b${nombre}\\b`);

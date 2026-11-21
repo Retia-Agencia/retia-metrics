@@ -4,10 +4,10 @@ import { CONCEPTOS_DE_DINERO, cifrasDeDinero, cifrasPorCohorte } from "@/lib/hub
 import { explicacionDe } from "@/lib/metricas/explicacion";
 
 const contexto = { programa: "Programa", cohorte: null, rango: { desde: "2026-09-01", hasta: "2026-11-14" }, hoy: "2026-11-14", closer: null };
-const dinero = { ventas: 3, vendido: 2391, recaudado: 0, porCobrar: 2391, sobrepago: 0, sinValorVendido: 0, sinSaldoCalculable: 0 };
+const dinero = { ventas: 3, lineas: 4, vendido: 2391, recaudado: 0, porCobrar: 2391, sobrepago: 0, sinValorVendido: 0, sinSaldoCalculable: 0 };
 
 describe("explicaciones de Dinero", () => {
-  it("toma las cinco fichas con todas las áreas, sin texto paralelo", () => {
+  it("toma las seis fichas con todas las áreas, sin texto paralelo", () => {
     const explicaciones = explicacionesDeDinero();
     expect(Object.keys(explicaciones)).toEqual([...CONCEPTOS_DE_DINERO]);
     for (const clave of CONCEPTOS_DE_DINERO) {

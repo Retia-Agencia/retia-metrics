@@ -9,10 +9,12 @@ import { hoyEnBogota } from "@/lib/format";
 import {
   abonos,
   changeLog,
+  dealLineas,
   dealEtapaHistorial,
   deals,
   leads,
   programs,
+  skus,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -79,6 +81,8 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
 
 async function vender(porcentaje: string | null, valor = "1000") {
   await db.update(programs).set({ comisionPorcentaje: porcentaje }).where(eq(programs.id, programId));
+  // D9: el % es del SKU; el del programa solo es el valor por defecto con que nace.
+  await db.update(skus).set({ comisionPorcentaje: porcentaje }).where(eq(skus.programId, programId));
   const dealId = await dealAtendido(valor);
   await abonoDePrueba(db, { dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
   if (porcentaje === null) {
@@ -93,6 +97,10 @@ async function vender(porcentaje: string | null, valor = "1000") {
   return deal;
 }
 
+async function lineaDelDeal(dealId: string) {
+  return (await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId)))[0]!;
+}
+
 const vista = () => armarVistaDelDashboard({ programId, hoy: HOY, preset: "hoy" }, db);
 
 describe("comisionDeDeal", () => {
@@ -104,18 +112,18 @@ describe("comisionDeDeal", () => {
   });
 });
 
-describe("porcentaje congelado al vender", () => {
+describe("porcentaje del SKU congelado en la línea", () => {
   it("una venta conserva el porcentaje anterior y una nueva toma el vigente", async () => {
     const primera = await vender("10.04");
-    expect(primera.comisionPorcentaje).toBe("10.04");
+    expect((await lineaDelDeal(primera.id)).comisionPorcentaje).toBe("10.04");
 
     await db.update(programs).set({ comisionPorcentaje: "6.67" }).where(eq(programs.id, programId));
-    const [sinCambiar] = await db.select().from(deals).where(eq(deals.id, primera.id));
+    const sinCambiar = await lineaDelDeal(primera.id);
     expect(sinCambiar.comisionPorcentaje).toBe("10.04");
     expect(comisionDeDeal(sinCambiar.valorVendidoUsd, sinCambiar.comisionPorcentaje)).toBe(100.4);
 
     const segunda = await vender("6.67");
-    expect(segunda.comisionPorcentaje).toBe("6.67");
+    expect((await lineaDelDeal(segunda.id)).comisionPorcentaje).toBe("6.67");
     expect((await vista()).comparativo[0]).toMatchObject({ cierres: 2, comisionUsd: 167.1, ventasSinComision: 0 });
   });
 
@@ -136,8 +144,7 @@ describe("porcentaje congelado al vender", () => {
       });
     await moverEtapa(db, { dealId: vendido.id, a: "ganado_parcial", actor: sistema });
 
-    const [deVuelta] = await db.select().from(deals).where(eq(deals.id, vendido.id));
-    expect(deVuelta.comisionPorcentaje).toBe("10.04");
+    expect((await lineaDelDeal(vendido.id)).comisionPorcentaje).toBe("10.04");
   });
 
 });
@@ -154,17 +161,17 @@ describe("comision del comparativo", () => {
 
     const fila = (await vista()).comparativo[0];
     expect(fila).toMatchObject({ cierres: 2, comisionUsd: 100, ventasSinComision: 1 });
-    expect(comisionDeDeal(completa.valorVendidoUsd, completa.comisionPorcentaje)).toBe(100);
-    expect(sinPorcentaje.comisionPorcentaje).toBeNull();
+    const lineaCompleta = await lineaDelDeal(completa.id);
+    expect(comisionDeDeal(lineaCompleta.valorVendidoUsd, lineaCompleta.comisionPorcentaje)).toBe(100);
+    expect((await lineaDelDeal(sinPorcentaje.id)).comisionPorcentaje).toBeNull();
   });
 
   it("sin porcentaje conserva null, marca la venta y muestra el texto del pie", async () => {
     const deal = await vender(null);
     const v = await vista();
-    expect(deal.comisionPorcentaje).toBeNull();
-    expect(v.comisionPorcentaje).toBeNull();
+    expect((await lineaDelDeal(deal.id)).comisionPorcentaje).toBeNull();
     expect(v.comparativo[0]).toMatchObject({ cierres: 1, comisionUsd: 0, ventasSinComision: 1 });
-    expect(textoComisionPrograma(v.comisionPorcentaje)).toBe("Comisión: sin porcentaje cargado.");
+    expect(textoComisionPrograma()).toContain("cada SKU");
   });
 
   it("un closer sin closer_id aparece por su users.id en caja y comisión", async () => {

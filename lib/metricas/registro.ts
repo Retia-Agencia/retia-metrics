@@ -78,7 +78,7 @@ export type AnclaDeFecha =
   | "sin_fecha";
 
 /** Las tablas cuya lectura debe pasar por `vigente()` para esta métrica (ADR 0026, 0038). */
-export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades";
+export type TablaConVigencia = "deals" | "deal_lineas" | "abonos" | "calls" | "deal_actividades";
 
 /**
  * Cómo dice la métrica lo que NO pudo calcular (N3).
@@ -181,7 +181,7 @@ const DIMENSIONES_DE_VENTA = ["dia", "semana", "mes", "area", "canal", "cuenta",
 const DIMENSIONES_DE_ABONO = ["dia", "semana", "mes", "dueno", "cohorte", "moneda"] as const;
 
 const DINERO_DE_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeVentas" };
-const DINERO_DE_SALDOS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeSaldos" };
+const LINEA_VENDIDA: ReferenciaAFuncion = { archivo: "lib/deals/lineas.ts", nombre: "esLineaVendida" };
 
 const PAUTA_SEMANAL: ReferenciaAFuncion = { archivo: "lib/queries/hechos/pauta-semanal.ts", nombre: "cargarPautaSemanal" };
 
@@ -316,6 +316,21 @@ const REGISTRO_BASE = {
     gemelaTs: { archivo: "lib/deals/etapas.ts", nombre: "esEtapaVendida" },
     listas: ["cierres"],
   }),
+  skus_vendidos: ficha("venta", {
+    filaDelDiccionario: "SKUs vendidos",
+    tipo: "simple",
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primer_pago_del_deal",
+    dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
+    vigencia: ["deals", "deal_lineas"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/dashboard.ts", nombre: "lineasVendidasDelRango" },
+    gemelaTs: { archivo: "lib/deals/lineas.ts", nombre: "esLineaVendida" },
+    listas: ["skus_vendidos"],
+  }),
   // Cupos vendidos y Llevamos (392): la misma venta, leída en el día y acumulada hasta hoy. No tienen consulta propia.
   cupos_vendidos: ficha("venta", {
     filaDelDiccionario: "Cupos vendidos (hoy)",
@@ -360,7 +375,7 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
     funcionSql: DINERO_DE_VENTAS,
-    gemelaTs: DINERO_DE_SALDOS,
+    gemelaTs: LINEA_VENDIDA,
     listas: ["contratado"],
   }),
   recaudado: ficha("venta", {
@@ -375,7 +390,7 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
     funcionSql: DINERO_DE_VENTAS,
-    gemelaTs: DINERO_DE_SALDOS,
+    gemelaTs: LINEA_VENDIDA,
     listas: [],
   }),
   por_cobrar: ficha("venta", {
@@ -391,7 +406,7 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
     funcionSql: DINERO_DE_VENTAS,
-    gemelaTs: DINERO_DE_SALDOS,
+    gemelaTs: LINEA_VENDIDA,
     listas: [],
   }),
   entro_a_caja: ficha("abono", {
@@ -1233,6 +1248,10 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
     "Cuántos deals de personas de pauta pasaron a Abonado o Completo.", "conteo", ["deals en Abonado o Completo, por la fecha de la venta"],
     [ABONADO_O_COMPLETO],
   ),
+  skus_vendidos: texto(
+    "Cuántas líneas vendidas tienen los deals del periodo; una persona puede comprar más de un SKU en la misma venta.", "conteo", ["líneas vendidas de los deals del periodo"],
+    [{ nombre: "Línea vendida", explicacion: "Cada SKU con su primer abono vigente cuenta una vez; Ventas sigue contando el deal una sola vez." }],
+  ),
   cupos_vendidos: texto(
     "Cuántas ventas se cerraron hoy.", "conteo", ["ventas de hoy"],
     [{ nombre: "Venta", explicacion: "Cada deal vendido cuenta como un cupo." }],
@@ -1246,8 +1265,8 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
     [{ nombre: "Valor vendido", explicacion: "El precio pactado, en USD. Lo ya pagado es Recaudado y lo que falta es Por cobrar." }],
   ),
   recaudado: texto(
-    "Cuánto de lo vendido ya se pagó.", "suma", ["abonos del programa de esas mismas ventas, a hoy"],
-    [{ nombre: "Abonos del programa", explicacion: "Los pagos del programa hasta hoy; los adicionales no entran. Una venta con abonos en otra moneda queda aparte." }],
+    "Cuánto de lo vendido ya se pagó.", "suma", ["abonos de las líneas vendidas de esas mismas ventas, a hoy"],
+    [{ nombre: "Abonos de las líneas", explicacion: "Todos los pagos de cada línea vendida hasta hoy. Una línea con abonos en otra moneda queda aparte." }],
   ),
   por_cobrar: texto(
     "Cuánto falta por pagar de lo vendido.", "resta", ["Vendido", "Recaudado"],
@@ -1256,11 +1275,11 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
   ),
   entro_a_caja: texto(
     "Cuánta plata entró en el periodo.", "suma", ["abonos del periodo, por moneda"],
-    [{ nombre: "Abono", explicacion: "Un pago registrado, incluidos los adicionales. Cuenta el día del pago; cada moneda se muestra aparte y los anulados no cuentan." }],
+    [{ nombre: "Abono", explicacion: "Un pago registrado a una línea. Cuenta el día del pago; cada moneda se muestra aparte y los anulados no cuentan." }],
   ),
   comision: texto(
-    "Cuánto se le debe pagar al closer por sus ventas, en USD.", "suma", ["valor vendido × porcentaje de comisión de cada venta"],
-    [{ nombre: "Porcentaje de comisión", explicacion: "El del programa, fijado en la venta cuando entra a Abonado o Completo. Va al dueño del deal." }],
+    "Cuánto se le debe pagar al closer por sus ventas, en USD.", "suma", ["valor vendido × porcentaje de comisión de cada línea vendida"],
+    [{ nombre: "Porcentaje de comisión", explicacion: "El de cada SKU, fijado con el primer abono de su línea. Va al dueño del deal." }],
   ),
   leads: texto(
     "Cuántas personas distintas aplicaron por primera vez en el periodo.", "conteo", ["personas cuya primera aplicación cae en el periodo"],
