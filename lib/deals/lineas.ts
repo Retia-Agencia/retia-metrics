@@ -1,5 +1,5 @@
 import { and, asc, eq, sql } from "drizzle-orm";
-import { abonos, changeLog, cohorts, dealLineas, deals, productos, programs, skus } from "@/lib/db/schema";
+import { abonos, changeLog, cohorts, dealLineas, deals, programs, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { ErrorDeApp } from "@/lib/errors";
@@ -180,31 +180,8 @@ export async function crearLineaSinClasificar(tx: Db, entrada: {
   deal: FilaDeal; montoUsd: number; cohortId: string;
 } & Actor) {
   // actorId nulo = el sistema (cobro de pasarela sin SKU, ver venta-de-la-pasarela.ts); el rastro lo guarda sin persona.
-  let [producto] = await tx.select().from(productos).where(and(
-    eq(productos.programId, entrada.deal.programId), eq(productos.slug, "sin_clasificar"),
-  ));
-  if (!producto) {
-    const id = crypto.randomUUID();
-    [producto] = await tx.insert(productos).values({
-      id, programId: entrada.deal.programId, nombre: "Sin clasificar", slug: "sin_clasificar",
-    }).onConflictDoNothing().returning();
-    if (producto) {
-      await tx.insert(changeLog).values(["programId", "nombre", "slug"].map((campo) => ({
-        tabla: "productos", registroId: id, etiqueta: "Sin clasificar", campo,
-        valorAnterior: null,
-        valorNuevo: campo === "programId" ? entrada.deal.programId : campo === "nombre" ? "Sin clasificar" : "sin_clasificar",
-        origen: entrada.origen ?? "app", userId: entrada.actorId,
-      })));
-    } else {
-      [producto] = await tx.select().from(productos).where(and(
-        eq(productos.programId, entrada.deal.programId), eq(productos.slug, "sin_clasificar"),
-      ));
-    }
-  }
-  if (!producto) throw new Error("No se pudo crear el producto sin clasificar.");
-
   let [sku] = await tx.select().from(skus).where(and(
-    eq(skus.productoId, producto.id), eq(skus.cohortId, entrada.cohortId),
+    eq(skus.programId, entrada.deal.programId), eq(skus.slug, "sin_clasificar"), eq(skus.cohortId, entrada.cohortId),
   ));
   if (!sku) {
     const [datos] = await tx.select({ slug: programs.slug, codigo: cohorts.codigo })
@@ -214,18 +191,18 @@ export async function crearLineaSinClasificar(tx: Db, entrada: {
     const codigo = `${datos.slug.replaceAll("-", "_")}_sin_clasificar_${datos.codigo.toLowerCase()}`;
     const id = crypto.randomUUID();
     [sku] = await tx.insert(skus).values({
-      id, programId: entrada.deal.programId, nombre: producto.nombre, slug: producto.slug, productoId: producto.id,
+      id, programId: entrada.deal.programId, nombre: "Sin clasificar", slug: "sin_clasificar",
       cohortId: entrada.cohortId, codigo, precioListaUsd: "0", cuentaComoCupo: false, comisionPorcentaje: "0",
     }).onConflictDoNothing().returning();
     if (sku) {
-      const valores = { programId: entrada.deal.programId, nombre: producto.nombre, slug: producto.slug, productoId: producto.id, cohortId: entrada.cohortId, codigo, precioListaUsd: "0", cuentaComoCupo: "false", comisionPorcentaje: "0" };
+      const valores = { programId: entrada.deal.programId, nombre: "Sin clasificar", slug: "sin_clasificar", cohortId: entrada.cohortId, codigo, precioListaUsd: "0", cuentaComoCupo: "false", comisionPorcentaje: "0" };
       await tx.insert(changeLog).values(Object.entries(valores).map(([campo, valor]) => ({
         tabla: "skus", registroId: id, etiqueta: codigo, campo,
         valorAnterior: null, valorNuevo: valor, origen: entrada.origen ?? "app", userId: entrada.actorId,
       })));
     } else {
       [sku] = await tx.select().from(skus).where(and(
-        eq(skus.productoId, producto.id), eq(skus.cohortId, entrada.cohortId),
+        eq(skus.programId, entrada.deal.programId), eq(skus.slug, "sin_clasificar"), eq(skus.cohortId, entrada.cohortId),
       ));
     }
   }
@@ -255,17 +232,15 @@ export async function cambiarSkuDeLineaConCupo(tx: Db, entrada: {
 } & Actor) {
   const linea = await lineaConCupoVigente(tx, entrada.deal.id);
   if (!linea) return asegurarLineaConCupo(tx, entrada);
-  const [origen] = await tx.select({ productoId: skus.productoId }).from(skus).where(eq(skus.id, linea.skuId));
-  const [mismoProducto] = origen?.productoId
+  const [origen] = await tx.select({ slug: skus.slug }).from(skus).where(eq(skus.id, linea.skuId));
+  const [mismoNombre] = origen
     ? await tx.select({ sku: skus }).from(skus)
-      .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
       .where(and(
         eq(skus.programId, entrada.deal.programId), eq(skus.cohortId, entrada.cohortId),
-        eq(skus.productoId, origen.productoId), eq(skus.activo, true),
-        eq(productos.activo, true), eq(skus.cuentaComoCupo, true),
+        eq(skus.slug, origen.slug), eq(skus.activo, true), eq(skus.cuentaComoCupo, true),
       ))
     : [];
-  const sku = mismoProducto?.sku ?? await skuConCupoDeCohorte(tx, entrada.deal.programId, entrada.cohortId);
+  const sku = mismoNombre?.sku ?? await skuConCupoDeCohorte(tx, entrada.deal.programId, entrada.cohortId);
   await editarConRastro(
     {
       db: tx, tabla: dealLineas, nombreTabla: "deal_lineas", actorId: entrada.actorId,

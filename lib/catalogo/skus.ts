@@ -104,7 +104,6 @@ async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programa
     programId: datos.programId,
     nombre: datos.nombre,
     slug,
-    productoId: null,
     cohortId,
     codigo,
     precioListaUsd: decimal(datos.precioListaUsd),

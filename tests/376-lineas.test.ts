@@ -263,8 +263,7 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const [abono] = await db.select().from(abonos).where(eq(abonos.id, registrado.abonoId));
     const [linea] = await db.select().from(dealLineas).where(eq(dealLineas.id, abono.lineaId));
     const [sku] = await db.select().from(skus).where(eq(skus.id, linea.skuId));
-    const [producto] = await db.select().from(productos).where(eq(productos.id, sku.productoId!));
-    expect(producto.slug).toBe("sin_clasificar");
+    expect(sku.slug).toBe("sin_clasificar");
     expect(linea.valorVendidoUsd).toBe("25.00");
   });
 
