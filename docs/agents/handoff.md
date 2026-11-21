@@ -14,9 +14,9 @@ Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Todo es
 empuja su rama y abre el PR, sin mergear y sin correr tests en local; la padre lee el diff, espera el CI verde del PR y mergea. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
 Estado: main en el commit de este handoff (CI verde), con #37 a #42 dentro. La 0152 (mcp_lectura) está aplicada en producción.
 Lo que sigue, cada punto se puede abrir como una sesión aparte:
-0. PRIORIDAD (20-nov, noche): SKUs por deal. Lee la entrada "20-nov (noche)" en Memory. En main: 459, 461 pasos 1-2-4, 462 parcial y
-   464 paso 5. Siguiente, en orden: conteo de líneas anuladas en producción → resto del 464 (Alejo) → 460 → 465 → 461 paso 3 (D9) →
-   resto del 462 → 463.
+0. PRIORIDAD (21-nov): SKUs por deal. Lee la entrada "21-nov" en Memory. En main y producción: 459 a 462, 464 y 465 (PR 58 a 65),
+   migraciones 0158 y 0159 aplicadas. Falta: recorrido en producción con un closer, re-colgado de `sin_clasificar` cuando Michael cree
+   los SKUs (ok de Mani), avisarle a Alejo que el 464 lo tomó esta sesión, y al final el 463 (destructiva).
 1. 407: llamar `consultar_datos` y `definiciones_de_metricas` desde un cliente MCP reconectado (Claude con el conector del CRM) como
    developer, gerente y paid trafficker. Probar la petición forjada (programa ajeno, `set_config`, varias sentencias). Después, fase 2:
    `lib/queries/hechos` lee las vistas de `mcp_lectura` (una sola definición), `siguientes_pasos` y prompts MCP.
@@ -34,6 +34,24 @@ Pendiente de Mani: revocar y reemitir el token Bearer del MCP impreso el 14-nov;
 esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pull --rebase antes de push. Al cerrar, actualiza este handoff.
 ```
 ## Memory
+
+### 21-nov · SKUs por deal en producción: 460, 461 paso 3, 462, 464 y 465 (sesión orquestadora de Mani, hijas en Sonnet)
+- **En main con CI verde (squash):** #62 (regla: ningún test en local, todo por PR; excepción: los archivos que el CI marque rojos, uno
+  por uno), #63 (465: `heredarUmbrales` en `lib/catalogo/objetivos.ts`, por el molde, solo ciclos que empiezan antes), #64 (464 + 460:
+  `skus.predeterminado` con backfill del SKU con cupo del ciclo que vende hoy, `abrirDeal` con líneas propuestas, sección SKUs en la
+  ficha, abono por línea, sale `concepto` de lectores y escritores, `scripts/recolgar-abonos.ts` en simulación, `lineaParaElCobro` de la
+  pasarela que nunca rechaza un cobro: una línea con cupo → esa; sin líneas → ciclo que vende hoy; ambiguo → `sin_clasificar` con nota;
+  se retira con el 449), #65 (461 paso 3 + 462: `deal_lineas.comision_porcentaje` congelado con el primer abono, comisión = Σ valor
+  vendido × % por línea, dinero por línea, SKUs vendidos, Students por SKU; `deals.comision_porcentaje` sin lectores; sale
+  `rellenar-comision`).
+- **Producción:** 0158 aplicada (predeterminados: comunicarte C4, comunicate_confianza C2, liderarte C1, tactical C4); 0159 aplicada
+  (94 deals con % congelado = 94 con línea con %). Conteo de anuladas: 2 de 4.790, del deal `bf940c18…`, cada una con un abono colgado;
+  el re-colgado lo resuelve con `--aplicar` y ok de Mani.
+- **Decidido por la padre:** una línea `sin_clasificar` con abono cuenta como venta (ADR 0137 punto 14), también para la pasarela.
+  Trinquete de acciones MCP pendientes 98 → 102 (las 4 acciones de líneas, deuda). Tope de `/deals/[id]` 50 → 52.
+- **Lecciones:** sin tests locales cada vuelta de CI cuesta ~8 min y los shards destapan rojos nuevos; correr solo los archivos rojos lo
+  cortó. Dos hijas generaron la misma 0158: el brief de la segunda debe decir el número que le toca. Una hija rechaza permisos que le
+  llegan de otra sesión: la excepción la tiene que dar Mani en esa sesión.
 
 ### 20-nov (noche) · SKUs: 459, 461, 462 parcial y 464 paso 5 en main (sesión orquestadora de Mani, hijas en Sonnet)
 - **En main con CI verde (squash):** #59 (459: popup Nuevo SKU, el ciclo nace con él, `skus.nombre`/`skus.slug`, 0157), #60 (461 pasos
