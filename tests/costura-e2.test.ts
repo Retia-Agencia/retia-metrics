@@ -159,7 +159,7 @@ beforeEach(async () => {
     })
     .returning();
   // ADR 0140: el deal que nace del webhook recibe los SKUs predeterminados; sin ellos nacería Sin SKU.
-  const virtual = await skuVirtualDePrueba(db, cohorte.id);
+  const virtual = await skuVirtualDePrueba(db, cohorte.id, "1500");
   await db.update(skus).set({ predeterminado: true }).where(eq(skus.id, virtual.id));
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();

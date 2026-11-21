@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { cohorts, deals, enlacesPago, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -57,6 +57,8 @@ beforeEach(async () => {
     ])
     .returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohorte.id, "1200");
+  await skuVirtualDePrueba(db, otraCohorte.id, "900");
   otraCohortId = otraCohorte.id;
 
   const [registrador, anulador] = await db

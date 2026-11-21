@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -200,6 +200,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     fechaInicioVentas: HOY,
     fechaCierreVentas: "2026-09-30",
   }).returning();
+  await skuVirtualDePrueba(db, cohorte.id, "100", "10");
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programaA,

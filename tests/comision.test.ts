@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -10,6 +10,7 @@ import {
   dealEtapaHistorial,
   deals,
   leads,
+  cohorts,
   programs,
   skus,
   users,
@@ -25,6 +26,7 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programId: string;
+let cohortId: string;
 let gerente: string;
 let closer: string;
 let secuencia = 0;
@@ -45,6 +47,7 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   programId = p.id;
+  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10 }).returning())[0].id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
   const [u] = await db
@@ -68,6 +71,7 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
     .values({
       leadId: lead.id,
       programId,
+      cohortId,
       etapa: "atendido",
       ownerUserId: closer,
       valorVendidoUsd,
@@ -78,6 +82,7 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
 
 async function vender(porcentaje: string | null, valor = "1000") {
   // D9: el % es del SKU.
+  await skuVirtualDePrueba(db, cohortId, "1000", porcentaje);
   await db.update(skus).set({ comisionPorcentaje: porcentaje }).where(eq(skus.programId, programId));
   const dealId = await dealAtendido(valor);
   await abonoDePrueba(db, { dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });

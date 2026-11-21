@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -40,14 +40,15 @@ beforeEach(async () => {
   programas = programas.map(({ id, slug, nombre }) => ({ id, slug, nombre }));
 
   for (const [indice, programa] of programas.entries()) {
-    await db.insert(cohorts).values({
+    const [cohorte] = await db.insert(cohorts).values({
       programId: programa.id,
       codigo: `C${indice + 1}`,
       metaCupos: 10 + indice,
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-    });
+    }).returning();
+    await skuVirtualDePrueba(db, cohorte.id, indice ? "1500" : "797", indice ? "5" : "10");
     const [lead] = await db.insert(leads).values({
       programId: programa.id,
       emailNormalizado: `persona-${indice}@retia.co`,

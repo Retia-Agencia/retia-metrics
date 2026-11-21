@@ -44,7 +44,7 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
     fechaInicioClases: "2026-11-01", }).returning();
   cohortId = cohorte.id;
-  await skuVirtualDePrueba(db, cohortId);
+  await skuVirtualDePrueba(db, cohortId, "100");
   contador = 0;
 });
 afterAll(async () => cerrar());
@@ -153,6 +153,7 @@ it("la cohorte elegida filtra A y B con su propia cohorte, y su meta es cupos po
     programId, codigo: "ANTES", metaCupos: 10,
     fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31",
     fechaInicioClases: "2026-09-01", }).returning();
+  await skuVirtualDePrueba(db, otra.id, "50");
   await venta({ dia: "2026-10-02", valor: "100" });
   const deAntes = await venta({ dia: "2026-08-05", valor: "50" });
   await db.update(deals).set({ cohortId: otra.id }).where(eq(deals.id, deAntes));

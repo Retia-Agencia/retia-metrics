@@ -57,7 +57,7 @@ beforeEach(async () => {
     fechaCierreVentas: "2026-11-30",
   }).returning();
   cohortId = cohorte.id;
-  await skuVirtualDePrueba(db, cohortId);
+  await skuVirtualDePrueba(db, cohortId, "149");
   plataformaId = (await db.insert(plataformasPago).values({ nombre: `Hotmart ${secuencia}` }).returning())[0].id;
   closerId = (await db.insert(users).values({ email: `closer-${secuencia}@retia.co`, rol: "closer" }).returning())[0].id;
   gerenteId = (await db.insert(users).values({ email: `gerente-${secuencia}@retia.co`, rol: "gerente" }).returning())[0].id;

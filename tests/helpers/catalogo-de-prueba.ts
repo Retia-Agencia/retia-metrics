@@ -25,7 +25,9 @@ async function cohorteParaDealSinCohorte(db: Db, programId: string) {
   return creada;
 }
 
-export async function skuVirtualDePrueba(db: Db, cohortId: string, precioListaUsd: string = PRECIO_VIRTUAL_DE_PRUEBA) {
+export async function skuVirtualDePrueba(
+  db: Db, cohortId: string, precioListaUsd: string = PRECIO_VIRTUAL_DE_PRUEBA, comisionPorcentaje: string | null = "10",
+) {
   const [cohorte] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));
   if (!cohorte) throw new Error(`No existe la cohorte de prueba ${cohortId}.`);
 
@@ -41,7 +43,7 @@ export async function skuVirtualDePrueba(db: Db, cohortId: string, precioListaUs
       cohortId: cohorte.id,
       codigo: `${programa.slug.replaceAll("-", "_")}_programa_virtual_${cohorte.codigo.toLowerCase()}`,
       precioListaUsd, cuentaComoCupo: true,
-      comisionPorcentaje: "10",
+      comisionPorcentaje,
     }).onConflictDoNothing().returning();
     if (!sku) {
       [sku] = await db.select().from(skus).where(and(
