@@ -361,10 +361,8 @@ describe("fichaDeDeal", () => {
     expect(f.etapa).toBe("atendido");
   });
 
-  it("sin cohorte propia, la sugerencia es el inicio de clases de la activa; sin ninguna, null", async () => {
+  it("sin cohorte propia (Sin SKU) no hay sugerencia: ya no se toma la cohorte activa por fecha (ADR 0140)", async () => {
     await db.update(deals).set({ cohortId: null });
-    expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBe("2026-10-01");
-    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" });
     expect((await fichaDeDeal(db, programId, dealId))!.fechaLimiteSugerida).toBeNull();
   });
 });

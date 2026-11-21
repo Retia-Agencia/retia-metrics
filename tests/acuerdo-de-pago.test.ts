@@ -101,7 +101,7 @@ describe("fechaEfectivaDePago: una sola prioridad de fechas", () => {
 });
 
 describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => {
-  it("usa la cohorte del deal; sin cohorte, la activa del programa; sin ninguna, null", async () => {
+  it("usa la cohorte del deal; sin cohorte (Sin SKU) no inventa una por fecha y da null (ADR 0140)", async () => {
     const conCohorte = await nuevoDeal("compromiso_verbal");
     expect(await fechaLimiteMaxima(db, conCohorte)).toBe("2026-10-15");
 
@@ -113,9 +113,6 @@ describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => 
     expect(await fechaLimiteMaxima(db, enOtra)).toBe("2026-12-01");
 
     const sinCohorte = await nuevoDeal("compromiso_verbal", { cohortId: null });
-    expect(await fechaLimiteMaxima(db, sinCohorte)).toBe("2026-10-15");
-
-    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
     expect(await fechaLimiteMaxima(db, sinCohorte)).toBeNull();
   });
 });

@@ -23,6 +23,7 @@ vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("next/navigation", () => ({ notFound }));
 vi.mock("@/lib/queries/ficha-deal", () => ({ fichaDeDeal, opcionesDeFicha, alertasDelDeal }));
+vi.mock("@/lib/queries/lineas-de-deal", () => ({ lineasVisiblesDelDeal: vi.fn(async () => []), skusActivosDelPrograma: vi.fn(async () => []) }));
 vi.mock("@/lib/queries/escalera", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/escalera")>(),
   cargarHechosDeEscaleraDeDeal: vi.fn(async () => ({

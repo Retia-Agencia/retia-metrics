@@ -16,7 +16,7 @@ import { moverEtapa } from "./mover-etapa";
 import { puedeDeshacer, puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
-import { estadoDePagoPorLineas, lineasConCupoVigentes, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
+import { asegurarLineaConCupo, estadoDePagoPorLineas, lineasConCupoVigentes, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -209,17 +209,21 @@ export async function registrarAbono(
         throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
       }
       const lineas = await lineasConCupoVigentes(tx, deal.id);
-      if (lineas.length === 0) {
-        throw new ErrorDeApp("El deal no tiene SKU: asígnale uno antes de registrar el abono", 409);
-      }
       if (!entrada.lineaId && lineas.length > 1) {
         throw new ErrorDeApp("Elige qué SKU está pagando", 422);
       }
-      const linea = entrada.lineaId
+      // Sin línea pedida ni de cupo: un deal con cohorte propia (traslado, próxima cohorte) conserva su
+      // SKU con cupo de siempre; uno sin cohorte está "Sin SKU" y nunca se inventa un ciclo por fecha.
+      let linea = entrada.lineaId
         ? await lineaVigente(tx, deal.id, entrada.lineaId)
-        : lineas[0];
-      if (!lineas.some((fila) => fila.id === linea.id)) {
-        throw new ErrorDeApp("La línea elegida no es un SKU vigente que cuente como cupo.", 422);
+        : lineas[0] ?? null;
+      if (!linea) {
+        if (deal.cohortId == null) {
+          throw new ErrorDeApp("El deal no tiene SKU: asígnale uno antes de registrar el abono", 409);
+        }
+        linea = await asegurarLineaConCupo(tx, {
+          deal, cohortId: deal.cohortId, actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen ?? "app",
+        });
       }
       const cohorteAsignada: string | null = null;
       await exigirPlataformaActiva(entrada.plataformaId, tx);

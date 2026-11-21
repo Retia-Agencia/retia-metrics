@@ -6,7 +6,7 @@ import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { ErrorDeApp } from "@/lib/errors";
 import { usd } from "@/lib/format";
 import { saldosDeLineas } from "@/lib/queries/saldo";
-import { editarValorDeLinea, lineaConCupoVigente, lineaVigente } from "./lineas";
+import { asegurarLineaConCupo, editarValorDeLinea, lineaConCupoVigente, lineaVigente } from "./lineas";
 
 /** Descuento en USD escrito por el closer. Cero es un descuento válido. */
 export const esquemaDescuentoUsd = z
@@ -45,11 +45,18 @@ export async function congelarValorVendido(
   },
 ): Promise<ValorVendidoCongelado> {
   const descuentoUsd = esquemaDescuentoUsd.parse(entrada.descuentoUsd);
-  const linea = entrada.lineaId
+  let linea = entrada.lineaId
     ? await lineaVigente(tx, entrada.deal.id, entrada.lineaId)
     : await lineaConCupoVigente(tx, entrada.deal.id);
   if (!linea) {
-    throw new ErrorDeApp("El deal no tiene SKU: asígnale uno antes de registrar el valor vendido.", 409);
+    // Un deal con cohorte propia conserva su SKU con cupo; sin cohorte está "Sin SKU" (ADR 0140).
+    if (entrada.deal.cohortId == null) {
+      throw new ErrorDeApp("El deal no tiene SKU: asígnale uno antes de registrar el valor vendido.", 409);
+    }
+    linea = await asegurarLineaConCupo(tx, {
+      deal: entrada.deal, cohortId: entrada.deal.cohortId, actorId: entrada.actorId,
+      etiqueta: entrada.etiqueta, origen: entrada.origen,
+    });
   }
   const [sku] = await tx.select({ cohortId: skus.cohortId }).from(skus).where(eq(skus.id, linea.skuId));
   if (!sku) throw new ErrorDeApp("La línea no tiene un SKU válido.", 409);

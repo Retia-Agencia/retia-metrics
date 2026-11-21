@@ -11,6 +11,7 @@ import {
   leads,
   plataformasPago,
   programs,
+  skus,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -118,25 +119,26 @@ beforeEach(async () => {
 afterAll(async () => cerrar());
 
 describe("ticket 134 — cohorte y descuento", () => {
-  it("un deal nuevo nace en la cohorte activa, o sin cohorte cuando no existe una activa", async () => {
+  it("un deal nuevo nace Sin SKU y, con un SKU predeterminado, nace con su línea y su ciclo (ADR 0140, ya no por fecha)", async () => {
     const primera = await lead();
-    const conActiva = await abrirDeal(db, {
+    const sinSku = await abrirDeal(db, {
       leadId: primera.id,
       programId,
       etapa: "en_gestion",
       actor: { tipo: "usuario", ...actor() },
     });
-    expect((await db.select().from(deals).where(eq(deals.id, conActiva)))[0].cohortId).toBe(cohortId);
+    expect((await db.select().from(deals).where(eq(deals.id, sinSku)))[0].cohortId).toBeNull();
 
-    await db.update(cohorts).set({ fechaInicioVentas: "2999-01-01", fechaCierreVentas: "2999-01-02" }).where(eq(cohorts.id, cohortId));
+    const sku = await skuVirtualDePrueba(db, cohortId);
+    await db.update(skus).set({ predeterminado: true }).where(eq(skus.id, sku.id));
     const segunda = await lead();
-    const sinActiva = await abrirDeal(db, {
+    const conSku = await abrirDeal(db, {
       leadId: segunda.id,
       programId,
       etapa: "en_gestion",
       actor: { tipo: "usuario", ...actor() },
     });
-    expect((await db.select().from(deals).where(eq(deals.id, sinActiva)))[0].cohortId).toBeNull();
+    expect((await db.select().from(deals).where(eq(deals.id, conSku)))[0].cohortId).toBe(cohortId);
   });
 
   it("ticket 797 menos descuento 100 congela 697 y el precio posterior no mueve la venta", async () => {
@@ -154,23 +156,22 @@ describe("ticket 134 — cohorte y descuento", () => {
     expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id)))[0].valorVendidoUsd).toBe("697.00");
   });
 
-  it("el primer abono congela el ticket sin descuento y sin cohorte activa rechaza sin escribir", async () => {
-    const conActiva = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
+  it("el primer abono congela el ticket sin descuento; un deal Sin SKU rechaza sin escribir (ADR 0140)", async () => {
+    const conCohorte = await dealDirecto("atendido", { valorVendidoUsd: null });
     await registrarAbono(db, actor(), {
-      dealId: conActiva.id,
+      dealId: conCohorte.id,
       fecha: "2026-10-01",
       monto: "100",
       plataformaId,
       comprobanteUrl: "https://drive.google.com/abono",
     });
-    const [congelado] = await db.select().from(deals).where(eq(deals.id, conActiva.id));
+    const [congelado] = await db.select().from(deals).where(eq(deals.id, conCohorte.id));
     expect(congelado).toMatchObject({ cohortId, valorVendidoUsd: "797.00", etapa: "ganado_parcial" });
 
-    await db.update(cohorts).set({ fechaInicioVentas: "2999-01-01", fechaCierreVentas: "2999-01-02" }).where(eq(cohorts.id, cohortId));
-    const sinActiva = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
+    const sinSku = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
     const error = await capturar(
       registrarAbono(db, actor(), {
-        dealId: sinActiva.id,
+        dealId: sinSku.id,
         fecha: "2026-10-01",
         monto: "100",
         plataformaId,
@@ -178,11 +179,11 @@ describe("ticket 134 — cohorte y descuento", () => {
       }),
     );
     expect(error).toMatchObject({
-      status: 422,
-      message: "La cohorte del deal no tiene precio: asígnale una cohorte antes de vender.",
+      status: 409,
+      message: "El deal no tiene SKU: asígnale uno antes de registrar el abono",
     });
-    expect((await db.select().from(deals).where(eq(deals.id, sinActiva.id)))[0].valorVendidoUsd).toBeNull();
-    expect(await db.select().from(abonos).where(eq(abonos.dealId, sinActiva.id))).toHaveLength(0);
+    expect((await db.select().from(deals).where(eq(deals.id, sinSku.id)))[0].valorVendidoUsd).toBeNull();
+    expect(await db.select().from(abonos).where(eq(abonos.dealId, sinSku.id))).toHaveLength(0);
   });
 
   it("rechaza descuento igual al ticket y un total menor que lo abonado, sin mover la fila", async () => {

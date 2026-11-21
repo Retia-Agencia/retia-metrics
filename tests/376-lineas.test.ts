@@ -5,6 +5,7 @@ import {
   productos, programs, skus, users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { crearLineaSinClasificar } from "@/lib/deals/lineas";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import { cambiarCohorteDelDeal } from "@/lib/deals/cambiar-cohorte";
 import {
@@ -96,12 +97,18 @@ async function asignar(deal: typeof deals.$inferSelect, skuId: string, valor?: n
   }));
 }
 
-const pago = (dealId: string, monto: string, lineaId?: string, concepto: "ticket" | "adicional" = "ticket") =>
+const pago = (dealId: string, monto: string, lineaId?: string) =>
   registrarAbono(db, actor(), {
-    dealId, lineaId, fecha: "2026-11-19", monto, moneda: "USD", concepto,
-    nota: concepto === "adicional" ? "Mentoría" : undefined,
+    dealId, lineaId, fecha: "2026-11-19", monto, moneda: "USD",
     plataformaId, comprobanteUrl: "https://example.test/comprobante",
   });
+
+// Desde el 460 el abono elige su línea: un adicional sin clasificar se asigna aparte y se paga por su id.
+async function lineaSinClasificar(deal: typeof deals.$inferSelect, monto: number) {
+  return db.transaction((tx) => crearLineaSinClasificar(tx as Db, {
+    deal, montoUsd: monto, cohortId, actorId: closerId, etiqueta: "adicional",
+  }));
+}
 
 describe("ticket 376 B1: líneas como fuente de verdad", () => {
   it("el SKU virtual de prueba conserva su precio de lista al editar la cohorte", async () => {
@@ -222,7 +229,8 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const { deal } = await crearDeal();
     // Abono parcial al programa (el deal sigue abierto) y el 1:1 aparte.
     await pago(deal.id, "40");
-    await pago(deal.id, "25", undefined, "adicional");
+    const adicional = await lineaSinClasificar(deal, 25);
+    await pago(deal.id, "25", adicional.id);
     const [venta] = await db.select().from(deals).where(eq(deals.id, deal.id));
     expect(Number(venta.valorVendidoUsd)).toBe(125);
     const porcentaje = Number(venta.comisionPorcentaje);
@@ -253,9 +261,10 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     expect(conNulo.comisionUsd).toBe(Math.round(150 * porcentaje) / 100);
   });
 
-  it("ADR 0137 punto 14: un adicional crea línea sin clasificar y mueve el deal", async () => {
+  it("ADR 0137 punto 14: un abono a una línea sin clasificar elegida mueve el deal", async () => {
     const { deal } = await crearDeal();
-    const registrado = await pago(deal.id, "25", undefined, "adicional");
+    const adicional = await lineaSinClasificar(deal, 25);
+    const registrado = await pago(deal.id, "25", adicional.id);
     expect(registrado.etapa).toBe("ganado_completo");
     const [abono] = await db.select().from(abonos).where(eq(abonos.id, registrado.abonoId));
     const [linea] = await db.select().from(dealLineas).where(eq(dealLineas.id, abono.lineaId));

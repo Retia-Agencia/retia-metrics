@@ -7,6 +7,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { anularLinea, asignarLinea, editarValorDeLinea, quitarLinea, recalcularDealPorLineas } from "@/lib/deals/lineas";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db, cerrar: () => Promise<void>, vaciar: () => Promise<void>;
@@ -30,7 +31,7 @@ async function sku(codigo: string, cohortId: string, extra: Partial<typeof skus.
   return (await db.insert(skus).values({ programId, nombre: codigo, slug: codigo.toLowerCase(), cohortId, codigo, precioListaUsd: "100", cuentaComoCupo: true, ...extra }).returning())[0];
 }
 async function lead() {
-  return (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@test.local`, entrada: "formulario" }).returning())[0];
+  return (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@test.local`, entrada: "formulario", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA }).returning())[0];
 }
 
 describe("tickets 464 y 460", () => {
@@ -114,7 +115,7 @@ describe("tickets 464 y 460", () => {
 
   it("el backfill de la 0158 marca el SKU con cupo del ciclo que vende hoy y el deal nace con la misma línea de antes", async () => {
     const [vigente] = await db.insert(cohorts).values({ programId, codigo: "C8", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31" }).returning();
-    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-02-01" }).returning();
+    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "1999-01-01", fechaCierreVentas: "1999-02-01" }).returning();
     const hoy = await sku("HOY", vigente.id);
     const sinCupo = await sku("SIN-CUPO", vigente.id, { cuentaComoCupo: false });
     const inactivo = await sku("INACTIVO", vigente.id, { activo: false });
