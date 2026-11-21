@@ -25,8 +25,11 @@ BEGIN
 END $$;--> statement-breakpoint
 -- Gemelas SQL de idEnArbolSql y areaSql (lib/atribucion/canal-sql.ts), SIN alcance: la app ya filtra por programa y el
 -- MCP filtra por alcance fuera de la definicion. (mcp_lectura.id_en_arbol sigue siendo la que el agente puede llamar, con alcance.)
+-- Postgres revisa EXECUTE de una funcion con el rol que LLAMA (no con el de la dueña de la vista), asi que las dos reciben
+-- GRANT EXECUTE para mcp_lectura_login; sin USAGE en el esquema el agente no puede nombrarlas. `id_en_arbol` lee `pauta_objetos`,
+-- que ese rol no ve: va como DEFINER, igual que la de mcp_lectura, y solo contesta por el programa de la fila que la vista le pasa.
 CREATE FUNCTION crm_definicion.id_en_arbol(programa uuid, utm_id text, respuestas jsonb) RETURNS boolean
-LANGUAGE sql STABLE AS $$
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.pauta_objetos po
     WHERE po.program_id = programa
@@ -47,6 +50,7 @@ CREATE FUNCTION crm_definicion.utm_area(source text, medium text, programa uuid,
     ELSE 'sin_utm'
   END
 $$;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION crm_definicion.id_en_arbol(uuid, text, jsonb), crm_definicion.utm_area(text, text, uuid, text, jsonb) TO mcp_lectura_login;--> statement-breakpoint
 -- ─────────────────────────────────────────────── definiciones: una vista por hecho. Dia = dia de Bogota. Sin alcance, sin
 -- enmascarado: dueño y registrador salen con su valor real; quien los lee decide quien los ve.
 CREATE VIEW crm_definicion.envios AS

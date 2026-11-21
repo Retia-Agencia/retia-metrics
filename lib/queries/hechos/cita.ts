@@ -1,5 +1,5 @@
 import { and, between, eq, sql } from "drizzle-orm";
-import { definicionCitas as definicion } from "@/lib/db/schema";
+import { definicionCitas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
@@ -22,19 +22,19 @@ export type MedidaCita = "citas" | "shows";
  * cita ocurrió. Aquí solo van el filtro de programa, el de SKU y los filtros del llamador. Las vistas del MCP leen la misma.
  */
 const dimensiones = {
-  dia: definicion.dia,
-  semana: definicion.semana,
-  mes: definicion.mes,
-  area: definicion.area,
-  canal: definicion.canal,
-  cuenta: definicion.cuenta,
-  dueno: definicion.dueno,
-  cohorte: definicion.cohorteId,
-  etapa: definicion.etapa,
-  ocurrio: definicion.ocurrio,
+  dia: definicionCitas.dia,
+  semana: definicionCitas.semana,
+  mes: definicionCitas.mes,
+  area: definicionCitas.area,
+  canal: definicionCitas.canal,
+  cuenta: definicionCitas.cuenta,
+  dueno: definicionCitas.dueno,
+  cohorte: definicionCitas.cohorteId,
+  etapa: definicionCitas.etapa,
+  ocurrio: definicionCitas.ocurrio,
 } as const;
 
-const medidaDeShows = sql<number>`count(*) filter (where ${eq(definicion.ocurrio, "si")})::int`;
+const medidaDeShows = sql<number>`count(*) filter (where ${eq(definicionCitas.ocurrio, "si")})::int`;
 
 export interface FilaCita {
   callId: string;
@@ -53,9 +53,9 @@ export interface FilaCita {
 
 function alcance(db: Db, opciones: Pick<ConsultaDeLista<DimensionCita, string>, "programId" | "rango" | "filtros" | "filtrosDeSku">) {
   return and(
-    eq(definicion.programaId, opciones.programId),
-    condicionDeSkuParaDeal(db, opciones.programId, definicion.idDelDeal, opciones.filtrosDeSku),
-    between(definicion.dia, opciones.rango.desde, opciones.rango.hasta),
+    eq(definicionCitas.programaId, opciones.programId),
+    condicionDeSkuParaDeal(db, opciones.programId, definicionCitas.idDelDeal, opciones.filtrosDeSku),
+    between(definicionCitas.dia, opciones.rango.desde, opciones.rango.hasta),
     condicionesDeFiltros(dimensiones, opciones.filtros),
   );
 }
@@ -69,7 +69,7 @@ function consultaAgrupada<D extends DimensionCita>(
     ...elegidas,
     citas: sql<number>`count(*)::int`,
     shows: medidaDeShows,
-  }).from(definicion)
+  }).from(definicionCitas)
     .where(alcance(db, opciones))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({
@@ -109,7 +109,7 @@ async function leerLista<D extends DimensionCita = DimensionCita>(
   db: Db,
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaCita>> {
-  const construir = () => db.select({ callId: definicion.idDeLaLlamada, dealId: definicion.idDelDeal, ...dimensiones }).from(definicion)
+  const construir = () => db.select({ callId: definicionCitas.idDeLaLlamada, dealId: definicionCitas.idDelDeal, ...dimensiones }).from(definicionCitas)
     .where(alcance(db, opciones));
   let consulta = construir().$dynamic();
   const orden = expresionDeOrden(dimensiones, opciones.orden);

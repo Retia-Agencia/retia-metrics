@@ -2,7 +2,7 @@ import { fechaAnclaAgendaCreada } from "@/lib/queries/metricas-filtros";
 import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { filtrarDealsDelCorte } from "@/lib/queries/deals-del-corte-de-pauta";
 import { and, between, eq, lte, sql } from "drizzle-orm";
-import { calls, definicionAgendas as definicion, deals, submissions } from "@/lib/db/schema";
+import { calls, definicionAgendas, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
@@ -32,26 +32,26 @@ export type MedidaAgenda = "agendas";
  * del llamador. Las vistas del MCP leen la misma definición.
  */
 const dimensiones = {
-  dia: definicion.dia,
-  semana: definicion.semana,
-  mes: definicion.mes,
-  hora: definicion.hora,
-  area: definicion.area,
-  canal: definicion.canal,
-  cuenta: definicion.cuenta,
-  utm_source: definicion.utmSource,
-  utm_medium: definicion.utmMedium,
-  categoria: definicion.categoria,
-  tiene_envio: definicion.tieneEnvio,
-  dueno: definicion.dueno,
-  cohorte: definicion.cohorteId,
-  etapa: definicion.etapa,
+  dia: definicionAgendas.dia,
+  semana: definicionAgendas.semana,
+  mes: definicionAgendas.mes,
+  hora: definicionAgendas.hora,
+  area: definicionAgendas.area,
+  canal: definicionAgendas.canal,
+  cuenta: definicionAgendas.cuenta,
+  utm_source: definicionAgendas.utmSource,
+  utm_medium: definicionAgendas.utmMedium,
+  categoria: definicionAgendas.categoria,
+  tiene_envio: definicionAgendas.tieneEnvio,
+  dueno: definicionAgendas.dueno,
+  cohorte: definicionAgendas.cohorteId,
+  etapa: definicionAgendas.etapa,
 } as const;
 
 /**
  * Las dos lecturas que siguen sobre las TABLAS (la traza UTM agregada y el predicado de área que otras consultas montan sobre
  * `calls`, `deals` y `submissions`) no pueden leer la vista: usan la misma definición de día y de origen en TypeScript
- * (`fechas.ts` y `origen.ts`, gemelas de `crm_definicion`, comparadas en `tests/mcp-definicion-unica.test.ts`).
+ * (`fechas.ts` y `origen.ts`, gemelas de `crm_definicion`, comparadas en `tests/mcp-definicionAgendas-unica.test.ts`).
  */
 const diaDeCreacion = dimensionesDeFecha(calls.createdAt).dia;
 const areaDeTablas = dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId).area;
@@ -104,11 +104,11 @@ export async function agruparTrazas(
 
 function alcance(db: Db, opciones: AlcanceDeHecho & { filtros?: Filtros<DimensionAgenda>; creadaHasta?: Date }) {
   return and(
-    eq(definicion.programaId, opciones.programId),
-    condicionDeSkuParaDeal(db, opciones.programId, definicion.idDelDeal, opciones.filtrosDeSku),
-    between(definicion.dia, opciones.rango.desde, opciones.rango.hasta),
+    eq(definicionAgendas.programaId, opciones.programId),
+    condicionDeSkuParaDeal(db, opciones.programId, definicionAgendas.idDelDeal, opciones.filtrosDeSku),
+    between(definicionAgendas.dia, opciones.rango.desde, opciones.rango.hasta),
     condicionesDeFiltros(dimensiones, opciones.filtros),
-    opciones.creadaHasta ? lte(definicion.creadaEn, opciones.creadaHasta) : undefined,
+    opciones.creadaHasta ? lte(definicionAgendas.creadaEn, opciones.creadaHasta) : undefined,
   );
 }
 
@@ -117,7 +117,7 @@ function consultaAgrupada<D extends DimensionAgenda>(
   opciones: ConsultaAgendaAgrupada<D>,
 ) {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
-  let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(definicion)
+  let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(definicionAgendas)
     .where(alcance(db, opciones))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, agendas: sql<number>`count(*)::int` }, opciones.orden);
@@ -155,13 +155,13 @@ async function leerLista<D extends DimensionAgenda = DimensionAgenda>(
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
   const construir = () => db.select({
-    callId: definicion.idDeLaLlamada,
-    dealId: definicion.idDelDeal,
+    callId: definicionAgendas.idDeLaLlamada,
+    dealId: definicionAgendas.idDelDeal,
     ...dimensiones,
-    horaMinuto: definicion.horaMinuto,
-  }).from(definicion).where(alcance(db, opciones));
+    horaMinuto: definicionAgendas.horaMinuto,
+  }).from(definicionAgendas).where(alcance(db, opciones));
   let consulta = construir().$dynamic();
-  const orden = expresionDeOrden({ ...dimensiones, horaMinuto: definicion.horaMinuto }, opciones.orden);
+  const orden = expresionDeOrden({ ...dimensiones, horaMinuto: definicionAgendas.horaMinuto }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
   consulta = aplicarPagina(consulta, opciones.pagina);
   const [filas, total] = await Promise.all([consulta, totalDeConsulta(db, construir())]);
