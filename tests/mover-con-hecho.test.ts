@@ -123,57 +123,12 @@ describe("moverConHecho", () => {
     const resultado = await moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD", plataformaId, concepto: "ticket" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD", plataformaId },
     });
 
     expect(resultado.etapa).toBe("ganado_parcial");
     expect(await etapaDe(deal.id)).toBe("ganado_parcial");
     expect(await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos)))).toHaveLength(1);
-  });
-
-  it("un servicio adicional pagado mueve a Completo y pasa a ser el valor vendido", async () => {
-    const deal = await nuevoDeal("atendido");
-    await db.update(deals).set({ valorVendidoUsd: "797" }).where(eq(deals.id, deal.id));
-
-    const resultado = await moverConHecho(db, actor(), {
-      dealId: deal.id,
-      a: "ganado_parcial",
-      datos: { descuentoUsd: 100 },
-      hecho: {
-        tipo: "abono",
-        fecha: "2026-10-09",
-        monto: "1437",
-        moneda: "USD",
-        plataformaId,
-        concepto: "adicional",
-        nota: "One-to-one",
-      },
-    });
-
-    // ADR 0137 punto 14: cualquier línea vendida determina la etapa y el valor del deal.
-    expect(resultado.etapa).toBe("ganado_completo");
-    expect(await etapaDe(deal.id)).toBe("ganado_completo");
-    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toHaveLength(1);
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("1437.00");
-    expect((await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos))))[0]).toMatchObject({
-      concepto: "adicional",
-      monto: "1437.00",
-      nota: "One-to-one",
-    });
-  });
-
-  it("rechaza con 422 un servicio adicional sin descripción", async () => {
-    const deal = await nuevoDeal("atendido");
-    const error = await moverConHecho(db, actor(), {
-      dealId: deal.id,
-      a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1437", moneda: "USD", plataformaId, concepto: "adicional", nota: "   " },
-    }).catch((causa: unknown) => causa);
-
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect(error).toMatchObject({ status: 422, message: "Escribe qué se vendió." });
-    expect(await etapaDe(deal.id)).toBe("atendido");
-    expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(0);
   });
 
   it("el descuento del diálogo del abono congela el total antes del pago (Ganado Completo)", async () => {

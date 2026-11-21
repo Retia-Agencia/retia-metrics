@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { readFileSync, readdirSync } from "node:fs";
 import { cohorts, dealLineas, deals, leads, plataformasPago, programs, skus, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
@@ -109,5 +110,27 @@ describe("tickets 464 y 460", () => {
     await asignarLinea(db, { deal, skuId: deC1.id, asignadaEn: instante, actorId: closerId, etiqueta: "C1" });
     await recalcularDealPorLineas(db, deal.id, { actorId: closerId, etiqueta: "deal" });
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].cohortId).toBe(c1);
+  });
+
+  it("el backfill de la 0158 marca el SKU con cupo del ciclo que vende hoy y el deal nace con la misma línea de antes", async () => {
+    const [vigente] = await db.insert(cohorts).values({ programId, codigo: "C8", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31" }).returning();
+    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-02-01" }).returning();
+    const hoy = await sku("HOY", vigente.id);
+    const sinCupo = await sku("SIN-CUPO", vigente.id, { cuentaComoCupo: false });
+    const inactivo = await sku("INACTIVO", vigente.id, { activo: false });
+    const viejo = await sku("VIEJO", cerrada.id);
+    const archivo = readdirSync("drizzle").find((f) => f.startsWith("0158_") && f.endsWith(".sql"))!;
+    const pasos = readFileSync(`drizzle/${archivo}`, "utf8").split("--> statement-breakpoint");
+    await db.execute(sql.raw(pasos.find((p) => p.includes('UPDATE "skus"'))!));
+    const marcado = async (id: string) => (await db.select().from(skus).where(eq(skus.id, id)))[0].predeterminado;
+    expect(await marcado(hoy.id)).toBe(true);
+    expect(await marcado(sinCupo.id)).toBe(false);
+    expect(await marcado(inactivo.id)).toBe(false);
+    expect(await marcado(viejo.id)).toBe(false);
+    const persona = await lead();
+    const id = await abrirDeal(db, { leadId: persona.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
+    const lineas = await db.select().from(dealLineas).where(eq(dealLineas.dealId, id));
+    expect(lineas.map((l) => l.skuId)).toEqual([hoy.id]);
+    expect((await db.select().from(deals).where(eq(deals.id, id)))[0].cohortId).toBe(vigente.id);
   });
 });
