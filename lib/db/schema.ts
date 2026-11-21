@@ -3122,3 +3122,6 @@ export type Tematica = typeof tematicas.$inferSelect;
 export type Referente = typeof referentes.$inferSelect;
 export type Candidato = typeof candidatos.$inferSelect;
 export type Calificacion = typeof calificaciones.$inferSelect;
+
+// Definiciones de hecho (407 fase 2): vistas de SOLO LECTURA creadas por la migracion 0160, no tablas.
+export { definicionAgendas, definicionCitas } from "./definiciones";

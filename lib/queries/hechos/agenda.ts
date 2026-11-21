@@ -2,7 +2,7 @@ import { fechaAnclaAgendaCreada } from "@/lib/queries/metricas-filtros";
 import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { filtrarDealsDelCorte } from "@/lib/queries/deals-del-corte-de-pauta";
 import { and, between, eq, lte, sql } from "drizzle-orm";
-import { calls, deals, submissions } from "@/lib/db/schema";
+import { calls, definicionAgendas, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
@@ -13,10 +13,9 @@ import {
   seleccionarDimensiones,
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
-import type { ConsultaAgrupada, ConsultaDeLista, Filtros, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
-import { dimensionesDeFecha, horaMinutoEnBogota } from "@/lib/queries/hechos/fechas";
+import type { AlcanceDeHecho, ConsultaAgrupada, ConsultaDeLista, Filtros, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
+import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
-import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
 import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -26,22 +25,36 @@ import { condicionDeSkuParaDeal } from "@/lib/queries/filtros-de-sku";
 export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "utm_source" | "utm_medium" | "categoria" | "tiene_envio" | "dueno" | "cohorte" | "etapa";
 export type MedidaAgenda = "agendas";
 
+/**
+ * LAS AGENDAS LEEN SU DEFINICIÓN ÚNICA (407 fase 2, migración 0160): `crm_definicion.agendas` ya trae la vigencia (llamada y
+ * deal no anulados, la llamada suelta sí cuenta), el día de Bogotá de la creación, el origen (área, canal, cuenta, UTM) y el
+ * dueño, la cohorte y la etapa del deal. Aquí solo van el filtro de programa, el de SKU, el corte `creadaHasta` y los filtros
+ * del llamador. Las vistas del MCP leen la misma definición.
+ */
 const dimensiones = {
-  ...dimensionesDeFecha(calls.createdAt),
-  ...dimensionesDeOrigen(
-    submissions.id,
-    submissions.utmSource,
-    submissions.utmMedium,
-    calls.programId,
-  ),
-  utm_source: submissions.utmSource,
-  utm_medium: submissions.utmMedium,
-  categoria: categoriaUtmSql(),
-  tiene_envio: sql<string>`case when ${submissions.id} is null then 'no' else 'si' end`,
-  dueno: deals.ownerUserId,
-  cohorte: deals.cohortId,
-  etapa: deals.etapa,
+  dia: definicionAgendas.dia,
+  semana: definicionAgendas.semana,
+  mes: definicionAgendas.mes,
+  hora: definicionAgendas.hora,
+  area: definicionAgendas.area,
+  canal: definicionAgendas.canal,
+  cuenta: definicionAgendas.cuenta,
+  utm_source: definicionAgendas.utmSource,
+  utm_medium: definicionAgendas.utmMedium,
+  categoria: definicionAgendas.categoria,
+  tiene_envio: definicionAgendas.tieneEnvio,
+  dueno: definicionAgendas.dueno,
+  cohorte: definicionAgendas.cohorteId,
+  etapa: definicionAgendas.etapa,
 } as const;
+
+/**
+ * Las dos lecturas que siguen sobre las TABLAS (la traza UTM agregada y el predicado de área que otras consultas montan sobre
+ * `calls`, `deals` y `submissions`) no pueden leer la vista: usan la misma definición de día y de origen en TypeScript
+ * (`fechas.ts` y `origen.ts`, gemelas de `crm_definicion`, comparadas en `tests/mcp-definicionAgendas-unica.test.ts`).
+ */
+const diaDeCreacion = dimensionesDeFecha(calls.createdAt).dia;
+const areaDeTablas = dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId).area;
 
 export interface FilaAgenda {
   callId: string;
@@ -82,11 +95,21 @@ export async function agruparTrazas(
     .innerJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(
       eq(calls.programId, opciones.programId),
-      between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
+      between(diaDeCreacion, opciones.rango.desde, opciones.rango.hasta),
       vigente(calls),
       vigente(deals),
     ))
     .groupBy(...Object.values(columnasUtmDelEnvio));
+}
+
+function alcance(db: Db, opciones: AlcanceDeHecho & { filtros?: Filtros<DimensionAgenda>; creadaHasta?: Date }) {
+  return and(
+    eq(definicionAgendas.programaId, opciones.programId),
+    condicionDeSkuParaDeal(db, opciones.programId, definicionAgendas.idDelDeal, opciones.filtrosDeSku),
+    between(definicionAgendas.dia, opciones.rango.desde, opciones.rango.hasta),
+    condicionesDeFiltros(dimensiones, opciones.filtros),
+    opciones.creadaHasta ? lte(definicionAgendas.creadaEn, opciones.creadaHasta) : undefined,
+  );
 }
 
 function consultaAgrupada<D extends DimensionAgenda>(
@@ -94,18 +117,8 @@ function consultaAgrupada<D extends DimensionAgenda>(
   opciones: ConsultaAgendaAgrupada<D>,
 ) {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
-  let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(calls)
-    .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
-    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(
-      eq(calls.programId, opciones.programId),
-      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
-      between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
-      condicionesDeFiltros(dimensiones, opciones.filtros),
-      opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
-      vigente(calls),
-      llamadaSinDealAnulado(db),
-    ))
+  let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(definicionAgendas)
+    .where(alcance(db, opciones))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, agendas: sql<number>`count(*)::int` }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
@@ -141,20 +154,14 @@ async function leerLista<D extends DimensionAgenda = DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
-  const horaMinuto = horaMinutoEnBogota(calls.createdAt);
-  const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones, horaMinuto }).from(calls)
-    .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
-    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId)).where(and(
-      eq(calls.programId, opciones.programId),
-      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
-      between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
-      condicionesDeFiltros(dimensiones, opciones.filtros),
-      opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
-      vigente(calls),
-      llamadaSinDealAnulado(db),
-    ));
+  const construir = () => db.select({
+    callId: definicionAgendas.idDeLaLlamada,
+    dealId: definicionAgendas.idDelDeal,
+    ...dimensiones,
+    horaMinuto: definicionAgendas.horaMinuto,
+  }).from(definicionAgendas).where(alcance(db, opciones));
   let consulta = construir().$dynamic();
-  const orden = expresionDeOrden({ ...dimensiones, horaMinuto }, opciones.orden);
+  const orden = expresionDeOrden({ ...dimensiones, horaMinuto: definicionAgendas.horaMinuto }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
   consulta = aplicarPagina(consulta, opciones.pagina);
   const [filas, total] = await Promise.all([consulta, totalDeConsulta(db, construir())]);
@@ -175,7 +182,7 @@ function filtrosDeAreaDePauta() {
 
 /** El predicado canónico del área Paid para cualquier lectura de citas. */
 export function condicionDeAreaDePauta() {
-  return condicionesDeFiltros(dimensiones, filtrosDeAreaDePauta());
+  return condicionesDeFiltros({ area: areaDeTablas }, filtrosDeAreaDePauta());
 }
 
 type FilaAgrupada<D extends DimensionAgenda> = Record<D, string | null> & { agendas: number };
