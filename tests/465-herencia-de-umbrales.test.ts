@@ -59,7 +59,7 @@ afterAll(async () => cerrar());
 describe("ticket 465 — un ciclo nuevo hereda los umbrales del anterior (ADR 0141)", () => {
   it("copia costo_por_agenda con la misma meta, aceptable y moneda, y el umbral ya existe al nacer", async () => {
     await db.insert(objetivos).values([
-      { cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "USD" },
+      { cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "COP" },
       { cohortId: cicloAnteriorId, area: "paid", metrica: "roas", meta: "3.00", aceptable: "2.00" },
     ]);
 
@@ -67,7 +67,7 @@ describe("ticket 465 — un ciclo nuevo hereda los umbrales del anterior (ADR 01
 
     const filas = await objetivosDeCohortes(db, [nuevo.cohortId]);
     const costo = filas.find((f) => f.metrica === "costo_por_agenda" && f.area === null);
-    expect(costo).toMatchObject({ meta: 12.5, aceptable: 18, moneda: "USD", activo: true });
+    expect(costo).toMatchObject({ meta: 12.5, aceptable: 18, moneda: "COP", activo: true });
     expect(filas.find((f) => f.metrica === "roas" && f.area === "paid")).toMatchObject({ meta: 3, aceptable: 2, moneda: null });
     expect(nuevo.herencia?.desde).toBe("C3");
     expect(nuevo.herencia?.metricas).toHaveLength(2);
@@ -80,12 +80,31 @@ describe("ticket 465 — un ciclo nuevo hereda los umbrales del anterior (ADR 01
     expect(nuevo.herencia).toBeNull();
   });
 
+  it("un ciclo atrasado hereda del anterior en el tiempo, no del más reciente", async () => {
+    await db.insert(objetivos).values({
+      cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "COP",
+    });
+    const c5 = await crearSku(db, actorId, entrada(5, "2027-03-01", "2027-03-31"));
+    await db.update(objetivos).set({ meta: "99.00", aceptable: "120.00" }).where(eq(objetivos.cohortId, c5.cohortId));
+
+    // C2 empieza antes que C3 (2026-10-01): no hay ciclo anterior en el tiempo, aunque existan C3 y C5.
+    const atrasado = await crearSku(db, actorId, entrada(2, "2026-06-01", "2026-06-30"));
+    expect(atrasado.herencia).toBeNull();
+    expect(await objetivosDeCohortes(db, [atrasado.cohortId])).toEqual([]);
+
+    // C4 empieza entre C3 y C5: hereda de C3 (12.50), no de C5 (99).
+    const medio = await crearSku(db, actorId, entrada(4, "2027-01-01", "2027-01-31"));
+    expect(medio.herencia?.desde).toBe("C3");
+    const [fila] = await db.select().from(objetivos).where(eq(objetivos.cohortId, medio.cohortId));
+    expect(fila.meta).toBe("12.50");
+  });
+
   it("no copia cupos, agendas ni inversión", async () => {
     await db.insert(objetivos).values([
-      { cohortId: cicloAnteriorId, area: null, metrica: "costo_por_venta", meta: "90.00", aceptable: "120.00", moneda: "USD" },
+      { cohortId: cicloAnteriorId, area: null, metrica: "costo_por_venta", meta: "90.00", aceptable: "120.00", moneda: "COP" },
       { cohortId: cicloAnteriorId, area: "paid", metrica: "cupos", meta: "10.00" },
       { cohortId: cicloAnteriorId, area: null, metrica: "agendas", meta: "200.00" },
-      { cohortId: cicloAnteriorId, area: null, metrica: "inversion", meta: "5000.00", moneda: "USD" },
+      { cohortId: cicloAnteriorId, area: null, metrica: "inversion", meta: "5000.00", moneda: "COP" },
     ]);
 
     const nuevo = await crearSku(db, actorId, entrada(4, "2027-01-01", "2027-01-31"));
@@ -96,7 +115,7 @@ describe("ticket 465 — un ciclo nuevo hereda los umbrales del anterior (ADR 01
 
   it("cada fila copiada deja su change_log con actor y 'heredado de C3'", async () => {
     await db.insert(objetivos).values({
-      cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "USD",
+      cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "COP",
     });
 
     const nuevo = await crearSku(db, actorId, entrada(4, "2027-01-01", "2027-01-31"));

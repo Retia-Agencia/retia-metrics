@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { editaObjetivo, esAdministrador, type Rol } from "@/lib/auth/roles";
 import { cohorts, objetivos } from "@/lib/db/schema";
@@ -91,7 +91,7 @@ export interface ObjetivoDeCohorte {
 type ActorObjetivos = { id: string; rol: Rol };
 type BaseConTransaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-function catalogo(db: Db) {
+function catalogo(db: Db, nota?: string) {
   return moldeDeCatalogo(
     {
       tabla: objetivos,
@@ -100,7 +100,7 @@ function catalogo(db: Db) {
       etiqueta: (fila) => {
         const metrica = fila.metrica as MetricaObjetivo;
         const area = fila.area === null ? "total" : String(fila.area);
-        return `${DEFINICION_METRICAS_OBJETIVO[metrica]?.nombre ?? metrica} · ${area}`;
+        return `${DEFINICION_METRICAS_OBJETIVO[metrica]?.nombre ?? metrica} · ${area}${nota ? ` (${nota})` : ""}`;
       },
       nombreEntidad: "un objetivo",
       mensajeDuplicado: "Ya hay un objetivo de esa métrica para esa área en esta cohorte.",
@@ -229,13 +229,13 @@ async function normalizarEscritura<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-async function crearEnTransaccion(db: Db, actor: ActorObjetivos, input: EntradaObjetivo) {
+async function crearEnTransaccion(db: Db, actor: ActorObjetivos, input: EntradaObjetivo, nota?: string) {
   const datos = esquemaObjetivo.parse(input);
   if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
     throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
   }
   await validarReparto(db, datos);
-  return aObjetivo((await catalogo(db).crear(actor.id, datos)) as typeof objetivos.$inferSelect);
+  return aObjetivo((await catalogo(db, nota).crear(actor.id, datos)) as typeof objetivos.$inferSelect);
 }
 
 export async function crearObjetivo(db: Db, actor: ActorObjetivos, input: EntradaObjetivo) {
@@ -334,4 +334,62 @@ export async function copiarObjetivos(
       return copiados;
     }),
   );
+}
+
+/** ADR 0141: los umbrales (calidad del gasto) que un ciclo nuevo hereda; cupos, agendas e inversión son del tamaño de cada ciclo. */
+export const METRICAS_HEREDABLES: readonly MetricaObjetivo[] = [
+  "costo_por_agenda",
+  "costo_por_venta",
+  "roas",
+  "conversion_agenda_venta",
+];
+
+export interface HerenciaDeUmbrales {
+  desde: string;
+  metricas: string[];
+}
+
+/**
+ * Dentro de la transacción que crea el ciclo (`tx` ya abierta, actor real): copia los umbrales activos del ciclo
+ * anterior del programa, el de ventana más reciente que empieza ANTES del nuevo (un ciclo atrasado no hereda de uno
+ * posterior). Cada fila pasa por el esquema y el molde, y su rastro dice "heredado de C<N>". Nunca inventa un valor.
+ * La moneda la deriva el esquema de la métrica (`monedaDeMetrica`), igual que en cualquier alta.
+ */
+export async function heredarUmbrales(
+  tx: Db,
+  actor: ActorObjetivos,
+  ids: { programId: string; cohortIdNuevo: string; inicioVentasNuevo: string },
+): Promise<HerenciaDeUmbrales | null> {
+  const [anterior] = await tx
+    .select({ id: cohorts.id, codigo: cohorts.codigo })
+    .from(cohorts)
+    .where(and(
+      eq(cohorts.programId, ids.programId),
+      ne(cohorts.id, ids.cohortIdNuevo),
+      isNotNull(cohorts.fechaCierreVentas),
+      lt(cohorts.fechaInicioVentas, ids.inicioVentasNuevo),
+    ))
+    .orderBy(desc(cohorts.fechaInicioVentas), desc(cohorts.fechaCierreVentas))
+    .limit(1);
+  if (!anterior) return null;
+  const origen = await tx
+    .select()
+    .from(objetivos)
+    .where(and(
+      eq(objetivos.cohortId, anterior.id),
+      eq(objetivos.activo, true),
+      inArray(objetivos.metrica, [...METRICAS_HEREDABLES]),
+    ));
+  if (origen.length === 0) return null;
+  for (const fila of origen) {
+    await crearEnTransaccion(tx, actor, {
+      cohortId: ids.cohortIdNuevo,
+      area: fila.area as AreaDeObjetivo | null,
+      metrica: fila.metrica,
+      meta: fila.meta,
+      aceptable: fila.aceptable,
+    }, `heredado de ${anterior.codigo}`);
+  }
+  const metricas = [...new Set(origen.map((f) => DEFINICION_METRICAS_OBJETIVO[f.metrica]?.nombre ?? f.metrica))];
+  return { desde: anterior.codigo, metricas };
 }
