@@ -14,8 +14,9 @@ Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Las hij
 rebasa sobre origin/main, empuja, abre el PR y mergea con CI verde. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
 Estado: main en el commit de este handoff (CI verde), con #37 a #42 dentro. La 0152 (mcp_lectura) está aplicada en producción.
 Lo que sigue, cada punto se puede abrir como una sesión aparte:
-0. PRIORIDAD (20-nov): SKUs por deal, para que gerencia lo maneje todo y los closers operen sin huecos. Lee la entrada "20-nov" en
-   Memory. Orden: 459 (popup y tabla de SKUs, antes del 10-dic) → 460 + 464 en paralelo, salen juntos (ADR 0140) → 461 → 462 → 463.
+0. PRIORIDAD (20-nov, noche): SKUs por deal. Lee la entrada "20-nov (noche)" en Memory. En main: 459, 461 pasos 1-2-4, 462 parcial y
+   464 paso 5. Siguiente, en orden: conteo de líneas anuladas en producción → resto del 464 (Alejo) → 460 → 465 → 461 paso 3 (D9) →
+   resto del 462 → 463.
 1. 407: llamar `consultar_datos` y `definiciones_de_metricas` desde un cliente MCP reconectado (Claude con el conector del CRM) como
    developer, gerente y paid trafficker. Probar la petición forjada (programa ajeno, `set_config`, varias sentencias). Después, fase 2:
    `lib/queries/hechos` lee las vistas de `mcp_lectura` (una sola definición), `siguientes_pasos` y prompts MCP.
@@ -33,6 +34,37 @@ Pendiente de Mani: revocar y reemitir el token Bearer del MCP impreso el 14-nov;
 esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pull --rebase antes de push. Al cerrar, actualiza este handoff.
 ```
 ## Memory
+
+### 20-nov (noche) · SKUs: 459, 461, 462 parcial y 464 paso 5 en main (sesión orquestadora de Mani, hijas en Sonnet)
+- **En main con CI verde (squash):** #59 (459: popup Nuevo SKU, el ciclo nace con él, `skus.nombre`/`skus.slug`, 0157), #60 (461 pasos
+  1, 2 y 4: `precioDeReferenciaDelCiclo` en `lib/cohortes/precio-de-referencia.ts`, descuento por línea, crear programa sin ticket ni %,
+  sale `sincronizarPrecioDeCohorte`), #58 (464 paso 5: filtros de Deals Ciclo, Nombre del SKU, SKU y Sin SKU, sin cohorte activa por
+  defecto; `vigente(dealLineas)` reconoce `anulada_en`; la sesión padre le trajo main y pasó el tablero a `skus.slug` y al precio del
+  ciclo), #61 (462 parcial: filtros del Hub y del MCP por SKU con una fuente `lib/queries/filtros-de-sku.ts`; Compras en la ficha del
+  lead y en `ficha_de_lead`), y `8ea0cba5` (ADR 0141 + ticket 465).
+- **Decidido (ADR 0141):** un ciclo nuevo copia del anterior `costo_por_agenda`, `costo_por_venta`, `roas` y `conversion_agenda_venta`;
+  `cupos`, `agendas` e `inversion` no. Sin eso el semáforo y la alerta de Pauta de Juanito se apagan en cada ciclo nuevo.
+- **Cómo funciona hoy un deal (verificado en main):** la ficha del deal **no muestra ni deja elegir SKU**. Las líneas se crean solas:
+  `abrirDeal` y los cierres (`lib/deals/mover-etapa.ts:715` y `:897`, `valor-vendido.ts:63`, `historico.ts:94`) llaman a
+  `asegurarLineaConCupo` con el SKU con cupo del ciclo que vende hoy; "Cambiar cohorte" cambia el SKU de esa línea
+  (`cambiar-cohorte.ts:48`); un abono adicional cae en `sin_clasificar` (`abonos.ts:229`). El closer ve cohorte, no SKU.
+  `skus.predeterminado` todavía no existe.
+- **Pendiente, en orden de prioridad:**
+  1. Correr en producción `select count(*) from deal_lineas where anulada_en is not null;` (lo pidió el PR 58): si da más de 0, los saldos
+     por línea cambiaron con el despliegue. No se ha corrido.
+  2. Resto del 464 (Alejo): migración `skus.predeterminado`, interruptor en la tabla de SKUs, `abrirDeal` con líneas propuestas por
+     predeterminado o "Sin SKU", flujos del closer leyendo líneas en vez de `cohorteActiva`, MCP. Es lo que le quita la duda al closer.
+  3. 460 (espera al resto del 464, comparte `lineas.ts`): líneas en la ficha del deal (ver, asignar, cambiar SKU), abono por línea, sale
+     `abonos.concepto`, re-colgar los `sin_clasificar` con la lista de adicionales de Mani. Incluye las líneas en `ficha_de_deal` del MCP
+     que el 462 dejó fuera.
+  4. 465 (listo para lanzar: el 461 está en main).
+  5. 461 paso 3: comisión por línea, espera D9 de Mani con Daniel Tovar.
+  6. Resto del 462 (espera 460 y 461): Vendido, Recaudado y Por cobrar por línea; "SKUs vendidos" en `docs/metricas.md` y en el registro
+     con N1 a N9; Students por nombre de SKU.
+  7. 463 (destructiva): cuando 459 a 462 estén en producción, avisarle a Mani.
+- **Lecciones:** una hija mergeó su PR sin pedirlo (el brief decía "PR abierto con CI verde"): los briefs dicen "no mergees". El barrido
+  de worktrees borró el worktree de una hija antes de que Codex arrancara: el brief prohíbe correr el barrido mientras Codex trabaja.
+  Antes de mergear un PR paralelo, traerle main y repetir el CI (el 61 pasaba sin el 58 ni el 60, que tocan sus archivos).
 
 ### 20-nov · SKUs por deal: ADR 0140 y ticket 464 (sesión de Mani, solo docs)
 - **Por qué:** los closers preguntan "ya vendemos corte 2, me llegó un deal y apareció en la corte 2 pero no estoy seguro". Hoy un deal

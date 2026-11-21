@@ -3,7 +3,7 @@ id: 376
 etapa: deals
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-13) · ADR 0137 (reemplaza el 0113) · ADR 0012, 0037, 0065, 0123, 0125, 0136"
 depends: [377, 369]
-status: todo
+status: en curso
 ---
 
 # 376 — Productos y SKUs: qué compró cada persona
@@ -129,6 +129,11 @@ Nombres orientativos; respetar las convenciones de `docs/agents/convenciones.md`
 - [ ] Lista de adicionales entregada a Mani.
 
 ### Después del corte 1: el SKU reemplaza todo (ADR 0139, 20-nov)
+
+**Estado al 20-nov (noche), en orden de prioridad** (detalle en `docs/agents/handoff.md`, entrada «20-nov (noche)»):
+en main 459 (#59), 461 pasos 1, 2 y 4 (#60), 462 parcial (#61), 464 paso 5 (#58) y el ADR 0141. Hoy la ficha del deal no muestra ni
+deja elegir SKU: las líneas se crean solas con el SKU con cupo del ciclo que vende hoy. Sigue: (1) conteo de líneas anuladas en
+producción, (2) resto del 464, (3) 460, (4) 465, (5) 461 paso 3 con D9, (6) resto del 462, (7) 463.
 
 **El ADR 0139 reemplaza el punto 5 del 0137** y cambia lo que sigue. Lo que había aquí como cortes 2 y 3 se rehízo en
 cinco tickets. Resumen de lo que cambia: no hay tabla `productos` (el nombre vive en el SKU); precio, % de comisión y
