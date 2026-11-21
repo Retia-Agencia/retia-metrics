@@ -27,11 +27,11 @@ beforeEach(async () => {
   await vaciar();
   const [programa] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
     .returning();
   const [otro] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "800" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" })
     .returning();
   programId = programa.id;
   otroProgramId = otro.id;

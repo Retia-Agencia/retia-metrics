@@ -38,8 +38,8 @@ afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "d369", nombre: "D369", ticketUsd: "1500" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "d369-ajeno", nombre: "Ajeno", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "d369", nombre: "D369" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "d369-ajeno", nombre: "Ajeno" },
   ]).returning();
   programId = a.id;
   otroPrograma = b.id;
@@ -126,8 +126,8 @@ describe("las tres cifras (369)", () => {
 describe("siguen los filtros del Hub y la lista suma lo mismo (369)", () => {
   it("cohorte, periodo y closer acotan las tres cifras; otro programa, cortesía y anulado no entran", async () => {
     const [c1, c2] = await db.insert(cohorts).values([
-      { programId, codigo: "C1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-31" },
-      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" },
+      { programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-31" },
+      { programId, codigo: "C2", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" },
     ]).returning();
     await vender("1500", [1500], { cohortId: c1.id, owner: closerA, etapa: "ganado_completo" });
     await vender("1000", [250], { cohortId: c1.id, owner: closerB });

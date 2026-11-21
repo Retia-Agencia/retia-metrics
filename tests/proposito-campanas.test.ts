@@ -36,7 +36,7 @@ afterAll(async () => cerrar());
 
 async function crearCampana(slug: string, idMeta: string, destino: string | null) {
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug, nombre: slug,
   }).returning();
   const [cuenta] = await db.insert(cuentasPublicitarias).values({
     idMeta: `cuenta-${slug}`, programId: programa.id, nombre: "Cuenta", moneda: "COP",

@@ -53,8 +53,8 @@ async function cita(programId: string, dealId: string | null, dia: string, resul
 beforeEach(async () => {
   await vaciar();
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-comercial", nombre: "Dorado Comercial", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "otro-dorado-comercial", nombre: "Otro Dorado", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-comercial", nombre: "Dorado Comercial" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "otro-dorado-comercial", nombre: "Otro Dorado" },
   ]).returning();
   programaA = a.id;
   programaB = b.id;

@@ -29,7 +29,6 @@ describe("cuadre diario de pauta", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "cuadre-pauta",
       nombre: "Cuadre pauta",
-      ticketUsd: "1000",
     }).returning();
     programId = programa.id;
   });

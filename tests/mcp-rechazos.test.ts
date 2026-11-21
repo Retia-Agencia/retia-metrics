@@ -22,7 +22,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "visible-a", nombre: "Visible A", ticketUsd: "797" });
+  await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "visible-a", nombre: "Visible A" });
   const [gerente] = await db.insert(users).values({ email: "gerente-rechazos@retia.test", nombre: "Gerente", rol: "gerente" }).returning();
   gerenteId = gerente.id;
   token = await emitirTokenPersonal(db, { userId: gerenteId, actorId: gerenteId, nombre: "Gerente", scope: "lectura" });

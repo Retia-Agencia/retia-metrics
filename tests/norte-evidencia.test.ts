@@ -19,11 +19,11 @@ describe("419: paridad del norte con cierres del mes y de la cohorte", () => {
 
   it("excluye anuladas, otro programa y futuras; la cohorte incluye ventas anteriores a su apertura", async () => {
     const [p, otro] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "norte", nombre: "Norte", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro-norte", nombre: "Otro", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "norte", nombre: "Norte" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro-norte", nombre: "Otro" },
     ]).returning();
     const [c] = await db.insert(cohorts).values({
-      programId: p.id, codigo: "C1", metaCupos: 20, precioUsd: "1000", fechaInicioVentas: "2026-11-02", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01",
+      programId: p.id, codigo: "C1", metaCupos: 20, fechaInicioVentas: "2026-11-02", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01",
     }).returning();
     let n = 0;
     async function venta(programId: string, dia: string, anulada = false, valor: string | null = "900") {

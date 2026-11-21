@@ -102,7 +102,6 @@ describe("auditarCalendly", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: "auditoria",
         nombre: "Auditoría",
-        ticketUsd: "1500",
         activo: false,
       })
       .returning();
@@ -252,7 +251,6 @@ describe("auditarCalendly", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: "sin-token",
         nombre: "Sin token",
-        ticketUsd: "100",
         activo: false,
       })
       .returning();
@@ -274,7 +272,6 @@ describe("auditarCalendly", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: "otro",
         nombre: "Otro",
-        ticketUsd: "100",
         activo: false,
       })
       .returning();

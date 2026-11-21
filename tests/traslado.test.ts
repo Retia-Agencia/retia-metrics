@@ -224,7 +224,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte" })
     .returning();
   programId = p.id;
   const [f] = await db

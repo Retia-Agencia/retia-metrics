@@ -257,12 +257,11 @@ describe("leerProyeccion contra la base", () => {
   afterAll(async () => cerrar());
 
   async function sembrar(personas: number, vendidas: number) {
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proyeccion", nombre: "Proyección", ticketUsd: "1000" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proyeccion", nombre: "Proyección" }).returning();
     await db.insert(cohorts).values({
       programId: programa.id,
       codigo: "C3",
       metaCupos: 50,
-      precioUsd: "1000",
       fechaInicioClases: "2026-12-01",
       fechaInicioVentas: "2026-10-01",
       fechaCierreVentas: "2026-11-30",

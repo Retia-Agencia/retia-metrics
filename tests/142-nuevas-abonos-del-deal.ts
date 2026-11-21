@@ -20,9 +20,9 @@ let n = 0;
 const actor = () => ({ userId: closer, rol: "closer" as const, operaComoCloser: false });
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const p = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0];
+  const p = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning())[0];
   programId = p.id;
-  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", fechaInicioVentas: "2026-09-01" }).returning())[0].id;
+  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", fechaInicioVentas: "2026-09-01" }).returning())[0].id;
   await skuVirtualDePrueba(db, cohortId);
   closer = (await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Closer" }).returning())[0].id;
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma 142" }).returning())[0].id;

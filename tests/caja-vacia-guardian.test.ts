@@ -24,7 +24,7 @@ describe("la caja vacía: un solo vacío, en la fuente", () => {
   beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "caja-vacia", nombre: "Caja vacía", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "caja-vacia", nombre: "Caja vacía" }).returning();
     programId = p.id;
     [{ id: gerenteId }] = await db.insert(users).values({ email: "gerente-caja@retia.test", rol: "gerente" }).returning();
   });

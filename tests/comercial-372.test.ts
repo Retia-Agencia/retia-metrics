@@ -34,7 +34,7 @@ describe("372: deals de un formulario completo y de un parcial, aparte", () => {
 
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-372", nombre: "P" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prueba-372", nombre: "P" }).returning();
     programId = programa.id;
     const [owner] = await db.insert(users).values({ email: "ana@example.test", rol: "closer", closerId: "Ana" }).returning();
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Formulario" }).returning();

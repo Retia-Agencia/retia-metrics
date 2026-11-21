@@ -26,7 +26,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "cohorte-deducida",
     nombre: "Cohorte deducida",
-    ticketUsd: "797",
   }).returning();
   programId = programa.id;
 });
@@ -54,13 +53,11 @@ describe("376 B2 — estado deducido de la ventana", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: `borde-${caso.codigo.toLowerCase()}`,
         nombre: `Borde ${caso.codigo}`,
-        ticketUsd: "797",
       }).returning();
       await db.insert(cohorts).values({
         programId: programa.id,
         codigo: caso.codigo,
         metaCupos: 10,
-        precioUsd: "797",
         fechaInicioVentas: caso.fechaInicioVentas,
         fechaCierreVentas: caso.fechaCierreVentas,
       });
@@ -83,9 +80,9 @@ describe("376 B2 — estado deducido de la ventana", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-21T04:30:00.000Z"));
     await db.insert(cohorts).values([
-      { programId, codigo: "CERRADA", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-19" },
-      { programId, codigo: "ACTIVA", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-20", fechaCierreVentas: "2026-11-20" },
-      { programId, codigo: "FUTURA", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-21", fechaCierreVentas: null },
+      { programId, codigo: "CERRADA", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-19" },
+      { programId, codigo: "ACTIVA", metaCupos: 10, fechaInicioVentas: "2026-11-20", fechaCierreVentas: "2026-11-20" },
+      { programId, codigo: "FUTURA", metaCupos: 10, fechaInicioVentas: "2026-11-21", fechaCierreVentas: null },
     ]);
     expect((await cohorteActiva(programId, db))?.codigo).toBe("ACTIVA");
   });

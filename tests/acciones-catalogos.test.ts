@@ -227,7 +227,7 @@ describe("operaciones de catalogos — borrar solo lo que nunca se uso (ticket 0
 
     const [programa] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte" })
       .returning();
     await db.insert(enlacesPago).values({
       programId: programa.id,

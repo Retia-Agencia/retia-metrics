@@ -19,7 +19,7 @@ afterAll(async () => cerrar());
 describe("paridad del gasto", () => {
   it("ROAS y semáforo comparten conversión y el costo expone la ventana incompleta", async () => {
     const [programa] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "gasto-paridad", nombre: "Paridad", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "gasto-paridad", nombre: "Paridad",
     }).returning();
     const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
     const [lead] = await db.insert(leads).values({

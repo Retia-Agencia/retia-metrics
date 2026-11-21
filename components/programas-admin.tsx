@@ -14,8 +14,6 @@ export interface ProgramaVista {
   id: string;
   slug: string;
   nombre: string;
-  /** Porcentaje vigente; se congela en el deal al vender. */
-  comisionPorcentaje: string | null;
   webUrl: string | null;
   calendlyUrl: string | null;
   diasSinActividad: number;
@@ -27,7 +25,6 @@ export interface ProgramaVista {
 export interface Borrador {
   nombre: string;
   slug: string;
-  comisionPorcentaje: string;
   webUrl: string;
   calendlyUrl: string;
   diasSinActividad: string;
@@ -38,7 +35,6 @@ export function aBorrador(p: ProgramaVista): Borrador {
   return {
     nombre: p.nombre,
     slug: p.slug,
-    comisionPorcentaje: p.comisionPorcentaje ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
     diasSinActividad: String(p.diasSinActividad),
@@ -51,7 +47,6 @@ export function aEntrada(b: Borrador) {
   return {
     nombre: b.nombre,
     slug: b.slug,
-    comisionPorcentaje: b.comisionPorcentaje,
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
     diasSinActividad: b.diasSinActividad || undefined,
@@ -137,22 +132,6 @@ export function FormularioPrograma({
           placeholder="Sin definir"
           className={claseInput}
           aria-label="Corte de pago rápido en días hábiles"
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Comisión (% del valor vendido)</span>
-        <input
-          type="number"
-          min="0"
-          max="100"
-          step="0.01"
-          value={borrador.comisionPorcentaje}
-          onChange={(e) => setBorrador({ ...borrador, comisionPorcentaje: e.target.value })}
-          inputMode="decimal"
-          placeholder="Por ejemplo 10,04"
-          className={claseInput}
-          aria-label="Comisión en porcentaje del valor vendido"
         />
       </label>
 

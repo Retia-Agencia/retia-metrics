@@ -73,7 +73,7 @@ describe("vincular la cuenta de una membresia", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
       .returning();
     programId = p.id;
     await sembrarIntegracion(db, programId, "calendly", { token: "pat" });
@@ -221,7 +221,7 @@ describe("vincular la cuenta de una membresia", () => {
   it("cuentasPorPrograma: el programa sin token dice por que, sin tumbar a los demas", async () => {
     const [sin] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797", activo: false })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", activo: false })
       .returning();
     const r = await cuentasPorPrograma(db, [programId, sin.id], { fetch: calendly(ORGANIZACION) });
     expect(r[programId]).toMatchObject({ ok: true });
@@ -232,7 +232,7 @@ describe("vincular la cuenta de una membresia", () => {
     await db.update(miembrosPrograma).set({ calendlyEmail: "maru@calendly.co", activo: false }).where(eq(miembrosPrograma.id, membresiaMaru));
     const [otro] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-ocupado", nombre: "Otro", ticketUsd: "797" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-ocupado", nombre: "Otro" })
       .returning();
     await db.insert(miembrosPrograma).values({ userId: maru, programId: otro.id });
     await sembrarIntegracion(db, otro.id, "calendly", { token: "pat" });

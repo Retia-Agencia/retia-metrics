@@ -80,7 +80,7 @@ beforeEach(async () => {
 
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa" })
     .returning();
   programId = p.id;
 });

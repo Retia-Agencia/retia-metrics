@@ -33,7 +33,7 @@ const AHORA = new Date("2026-10-18T23:59:59-05:00");
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "paridad-pauta", nombre: "Paridad", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "paridad-pauta", nombre: "Paridad" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({
     programId, idMeta: "par-cuenta", nombre: "Cuenta", moneda: "COP", zonaHoraria: "America/Bogota",
@@ -154,7 +154,7 @@ describe("I-8: una semana sin gasto cargado no muestra inversión 0", () => {
 describe("el filtro de cohorte y el área llegan igual a todas las superficies", () => {
   async function cohorte(codigo: string, inicio: string, cierre: string) {
     return (await db.insert(cohorts).values({
-      programId, codigo, metaCupos: 10, precioUsd: "1000", fechaInicioVentas: inicio,
+      programId, codigo, metaCupos: 10, fechaInicioVentas: inicio,
       fechaCierreVentas: cierre, fechaInicioClases: "2027-01-10", }).returning())[0].id;
   }
 

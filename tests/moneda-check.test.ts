@@ -26,11 +26,11 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "mon", nombre: "Mon", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "mon", nombre: "Mon" }).returning();
   programId = p.id;
   const [c] = await db
     .insert(cohorts)
-    .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
+    .values({ programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
     .returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   ownerId = u.id;

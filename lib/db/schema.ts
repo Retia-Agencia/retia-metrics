@@ -330,8 +330,6 @@ export const programs = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     slug: text("slug").notNull().unique(),
     nombre: text("nombre").notNull(),
-    /** Solo prellena el precio al crear una cohorte; ninguna métrica lee este valor. */
-    ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
     /** Corte de la escalera de conversion (ticket 319, ADR 0109): dias habiles de la cita al primer abono. Nulo = sin corte. */
     cortePagoRapidoDias: integer("corte_pago_rapido_dias"),
     /** Pagina de venta del programa. Editable desde la tab Programa (ticket 014). */
@@ -377,13 +375,6 @@ export const programs = pgTable(
      */
     diasSinActividad: integer("dias_sin_actividad").notNull().default(3),
     /**
-     * La comision como PORCENTAJE del valor vendido (ticket 133, ADR 0065 punto 7). Es el
-     * vigente: `moverEtapa()` lo copia al deal la primera vez que entra a venta, y desde ahi
-     * cambiarlo solo toca las ventas nuevas. Nulo = no cargado, nunca 0. Reemplazo al monto
-     * fijo por venta del ticket 062 (`comision_por_venta_usd`, retirado en la 0055).
-     */
-    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
-    /**
      * Nace INACTIVO (ADR 0057): un programa se activa solo con su integracion de Calendly y
      * su fuente principal (ADR 0068). Las dos son entre tablas desde el ADR 0095 y las
      * verifica `reactivarPrograma`.
@@ -396,10 +387,6 @@ export const programs = pgTable(
       .where(sql`${t.calendlyEventType} IS NOT NULL`),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
     check("programs_corte_pago_rapido_positivo", sql`${t.cortePagoRapidoDias} IS NULL OR ${t.cortePagoRapidoDias} > 0`),
-    check(
-      "programs_comision_porcentaje_rango",
-      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
-    ),
   ],
 );
 
@@ -412,7 +399,6 @@ export const cohorts = pgTable(
     metaCupos: integer("meta_cupos").notNull(),
     /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
     metaLeadsDia: integer("meta_leads_dia").default(META_LEADS_DIA_POR_DEFECTO),
-    precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
     /** Nullable mientras la cohorte esta "por definir" (ticket 227). */
     fechaInicioClases: date("fecha_inicio_clases"),
     /**
@@ -436,23 +422,6 @@ export const cohorts = pgTable(
   ],
 );
 
-export const productos = pgTable(
-  "productos",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
-    nombre: text("nombre").notNull(),
-    slug: text("slug").notNull(),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("productos_programa_slug_idx").on(t.programId, t.slug),
-    unique("productos_id_programa_uq").on(t.id, t.programId),
-  ],
-);
-
 export const skus = pgTable(
   "skus",
   {
@@ -460,7 +429,6 @@ export const skus = pgTable(
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     nombre: text("nombre").notNull(),
     slug: text("slug").notNull(),
-    productoId: uuid("producto_id"),
     cohortId: uuid("cohort_id").notNull(),
     codigo: text("codigo").notNull(),
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
@@ -480,14 +448,8 @@ export const skus = pgTable(
       sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
     ),
     uniqueIndex("skus_codigo_idx").on(t.codigo),
-    uniqueIndex("skus_producto_cohorte_idx").on(t.productoId, t.cohortId),
     uniqueIndex("skus_programa_slug_cohorte_idx").on(t.programId, t.slug, t.cohortId),
     unique("skus_id_programa_uq").on(t.id, t.programId),
-    foreignKey({
-      name: "skus_producto_programa_fk",
-      columns: [t.productoId, t.programId],
-      foreignColumns: [productos.id, productos.programId],
-    }).onDelete("restrict"),
     foreignKey({
       name: "skus_cohorte_programa_fk",
       columns: [t.cohortId, t.programId],
@@ -1019,8 +981,6 @@ export const deals = pgTable(
      * escrito por el closer. Se congela al vender; de aquí salen saldo y Completo.
      */
     valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }),
-    /** @deprecated Retiro en el 463; la comisión congelada vive en cada línea. */
-    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     /**
      * Cortesia (ADR 0071 punto 10): un deal con 100% de descuento. Es Student como
      * cualquiera, pero no cuenta en ventas, ni en la tasa de cierre, ni en la comision, y
@@ -1076,10 +1036,6 @@ export const deals = pgTable(
       foreignColumns: [cohorts.id, cohorts.programId],
     }).onDelete("restrict"),
     check("deals_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} IS NULL OR ${t.valorVendidoUsd} >= 0`),
-    check(
-      "deals_comision_porcentaje_rango",
-      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
-    ),
     uniqueIndex("deals_huella_migracion_idx")
       .on(t.huellaMigracion)
       .where(sql`${t.huellaMigracion} is not null`),

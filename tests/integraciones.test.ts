@@ -21,7 +21,7 @@ beforeEach(async () => {
   const [actor] = await db.insert(users).values({ email: "integraciones@retia.test", rol: "gerente" }).returning();
   actorId = actor.id;
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "integraciones", nombre: "Integraciones", ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: "integraciones", nombre: "Integraciones",
   }).returning();
   programId = programa.id;
 });
@@ -151,7 +151,7 @@ describe("integraciones por programa", () => {
 
   it("una cuenta sin token reporta error y las demás se siguen procesando", async () => {
     const [otro] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro",
     }).returning();
     await db.insert(cuentasPublicitarias).values([
       { idMeta: "sin-token", programId, nombre: "Cuenta A", moneda: "COP", zonaHoraria: "America/Bogota" },

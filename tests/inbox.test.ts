@@ -52,9 +52,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000", diasSinActividad: 3 }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", diasSinActividad: 3 }).returning();
   programId = p.id;
-  const [p2] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "800" }).returning();
+  const [p2] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
   otroProgramId = p2.id;
   const [c] = await db
     .insert(cohorts)
@@ -62,7 +62,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-30",

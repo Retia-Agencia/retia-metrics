@@ -32,7 +32,7 @@ const ahora = new Date(`${DIA}T23:59:59.999-05:00`);
 const a = (hora: string) => new Date(`${DIA}T${hora}-05:00`);
 
 async function sembrar() {
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "paridad", nombre: "Paridad", ticketUsd: "100" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "paridad", nombre: "Paridad" }).returning();
   const programId = programa!.id;
   const [fuente] = await db.insert(sources).values({ programId, nombre: "Formulario" }).returning();
   const nuevoDeal = async (correo: string, etapa: "agendado" | "atendido" | "ganado_completo") => {

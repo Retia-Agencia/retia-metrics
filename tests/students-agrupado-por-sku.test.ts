@@ -27,10 +27,10 @@ afterAll(async () => cerrar());
 
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "students-sku", nombre: "Students SKU", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "students-sku", nombre: "Students SKU" }).returning();
   programId = programa.id;
   [ownerUserId] = (await db.insert(users).values({ email: "students-sku@retia.test", rol: "closer", closerId: "Students Sku" }).returning()).map((u) => u.id);
-  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const filas = await db.insert(skus).values([
     { programId, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "VIRTUAL-C3", precioListaUsd: "1000", cuentaComoCupo: true, comisionPorcentaje: "10" },
     { programId, nombre: "Uno a uno", slug: "uno-a-uno", cohortId: cohorte.id, codigo: "UNO-C3", precioListaUsd: "200", comisionPorcentaje: "5" },

@@ -35,8 +35,8 @@ beforeEach(async () => {
   const [p, q] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" },
     ])
     .returning();
   programId = p.id;
@@ -45,7 +45,6 @@ beforeEach(async () => {
     programId,
     codigo,
     metaCupos: 10,
-    precioUsd: "1000",
     // Ventanas contiguas: dos cohortes del programa no venden el mismo dia (0122).
     fechaInicioVentas: codigo === "C1" ? "2026-08-01" : "2026-09-02",
     fechaCierreVentas: codigo === "C1" ? "2026-09-01" : "2026-10-01",

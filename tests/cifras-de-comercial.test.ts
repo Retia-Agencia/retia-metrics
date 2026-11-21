@@ -276,8 +276,8 @@ describe("419 E-2: paridad cifra = lista en Comercial", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const [a, b] = (await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "e419-a", nombre: "A" },
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "e419-b", nombre: "B" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-a", nombre: "A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-b", nombre: "B" },
     ]).returning()).map((p) => p.id);
     programaA = a;
     [ana, beto] = (await db.insert(users).values([

@@ -26,7 +26,6 @@ beforeEach(async () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: `evidencia-setter-${++secuencia}`,
       nombre: "Programa Evidencia Setter",
-      ticketUsd: "797",
     })
     .returning();
   const [setter, otro] = await db

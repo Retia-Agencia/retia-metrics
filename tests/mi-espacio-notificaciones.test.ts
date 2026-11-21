@@ -83,12 +83,12 @@ beforeEach(async () => {
   sesionHolder.id = "";
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
     .returning();
   programId = p.id;
   const [p2] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p2", nombre: "P2", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p2", nombre: "P2" })
     .returning();
   otroProgramId = p2.id;
   const [s] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
@@ -101,7 +101,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-11-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-11-14",

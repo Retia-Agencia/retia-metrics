@@ -53,14 +53,12 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "reporte-whatsapp",
     nombre: "Reporte WhatsApp",
-    ticketUsd: "1000.00",
   }).returning();
   programId = programa.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo: "R-1",
     metaCupos: 20,
-    precioUsd: "1000.00",
     fechaInicioClases: "2026-11-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-01",

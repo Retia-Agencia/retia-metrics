@@ -293,21 +293,18 @@ describe("embudoPorEtapas con PGlite", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "principal",
       nombre: "Principal",
-      ticketUsd: "1000",
     }).returning();
     programId = programa.id;
     const [otro] = await db.insert(programs).values({
       ...PROGRAMA_DE_PRUEBA,
       slug: "otro",
       nombre: "Otro",
-      ticketUsd: "800",
     }).returning();
     otroProgramId = otro.id;
     const [cohorte] = await db.insert(cohorts).values({
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",

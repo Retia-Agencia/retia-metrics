@@ -84,27 +84,10 @@ export const esquemaPrograma = z.object({
     .optional(),
 });
 
-const esquemaEdicionPrograma = esquemaPrograma.extend({
-  // Compatibilidad hasta el paso 3/D9 del 461: al editar, el porcentaje del programa
-  // sigue vigente y se congela en el deal al vender.
-  comisionPorcentaje: z
-    .string()
-    .trim()
-    .regex(/^(\d+(\.\d{1,2})?)?$/, "La comisión debe ser un porcentaje con máximo dos decimales.")
-    .nullable()
-    .optional()
-    .refine((v) => v == null || v === "" || Number(v) <= 100, "La comisión debe estar entre 0 y 100.")
-    .transform((v) => (v && v.length > 0 ? v : null)),
-});
-
 /** Entrada validada de un programa (lo que el llamador escribe). */
-export type EntradaPrograma = z.input<typeof esquemaEdicionPrograma> & {
-  /** Compatibilidad transitoria para llamadores anteriores al 461; el esquema los ignora. */
-  ticketUsd?: string;
-  comisionPorcentaje?: string | null;
-};
+export type EntradaPrograma = z.input<typeof esquemaPrograma>;
 /** Programa ya validado y normalizado. */
-export type ProgramaValidado = z.output<typeof esquemaEdicionPrograma>;
+export type ProgramaValidado = z.output<typeof esquemaPrograma>;
 
 /**
  * Un programa tal como lo ve el llamador: la fila del molde SIN el token de Calendly,
@@ -155,7 +138,7 @@ function moldePrograma(db: Db) {
     {
       tabla: programs,
       nombreTabla: "programs",
-      esquema: esquemaEdicionPrograma as unknown as z.ZodType<ProgramaValidado>,
+      esquema: esquemaPrograma as unknown as z.ZodType<ProgramaValidado>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un programa",
       columnas: columnasPrograma,
@@ -204,9 +187,6 @@ export async function crearPrograma(
         (tx as Db).insert(programs).values({
           id,
           ...datos,
-          // ponytail: ticket 463 retira estas dos columnas heredadas; hasta entonces el insert exige ticketUsd.
-          ticketUsd: "0",
-          comisionPorcentaje: null,
         }),
         ...Object.entries(datos).map(([campo, valor]) => (tx as Db).insert(changeLog).values({
           tabla: "programs",
@@ -242,7 +222,7 @@ export async function editarPrograma(
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    const datos = esquemaEdicionPrograma.parse(input);
+    const datos = esquemaPrograma.parse(input);
     const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
     if (datos.slug !== actual.slug) {

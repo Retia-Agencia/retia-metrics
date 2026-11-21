@@ -84,7 +84,6 @@ async function crearPrograma(
     activo,
     slug,
     nombre: `Programa ${slug}`,
-    ticketUsd: "1000",
   }).returning();
   await sembrarIntegracion(db, programa.id, "meta", { token: "token-meta" }, { nombre: "Retia" });
   await db.insert(reportesWhatsapp).values({

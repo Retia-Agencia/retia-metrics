@@ -35,7 +35,6 @@ describe("read model de Mis métricas", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "programa-a",
       nombre: "Programa A",
-      ticketUsd: "797",
     }).returning();
     const [closer] = await db.insert(users).values({ email: "ana@retia.co", rol: "closer", closerId: "Ana" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "lead@retia.co" }).returning();
@@ -45,7 +44,6 @@ describe("read model de Mis métricas", () => {
       ownerUserId: closer.id,
       etapa: "ganado_parcial",
       valorVendidoUsd: "1000",
-      comisionPorcentaje: "10",
     }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,
@@ -113,7 +111,6 @@ describe("ticket 167: el closer se identifica por users.id", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "programa-a",
       nombre: "Programa A",
-      ticketUsd: "797",
     }).returning();
     return programa;
   }
@@ -126,7 +123,6 @@ describe("ticket 167: el closer se identifica por users.id", () => {
       ownerUserId,
       etapa: "ganado_parcial",
       valorVendidoUsd: "1000",
-      comisionPorcentaje: "10",
     }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,

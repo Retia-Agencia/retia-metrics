@@ -19,7 +19,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "gasto", nombre: "Gasto", ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: "gasto", nombre: "Gasto",
   }).returning();
   programId = programa.id;
   const [cuenta] = await db.insert(cuentasPublicitarias).values({

@@ -34,7 +34,7 @@ describe("una llamada sobre un deal anulado no cuenta, en ninguna lectura", () =
   afterAll(async () => cerrar());
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "anulado", nombre: "Anulado", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "anulado", nombre: "Anulado" }).returning();
     programId = p.id;
     [{ id: fuenteId }] = await db.insert(sources).values({ programId, nombre: "Fuente" }).returning();
     dueno = await duenoDePrueba(db, programId);

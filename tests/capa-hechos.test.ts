@@ -35,8 +35,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "hechos", nombre: "Hechos", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "hechos-otro", nombre: "Otro", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "hechos", nombre: "Hechos" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "hechos-otro", nombre: "Otro" },
   ]).returning();
   [programId, otroProgramId] = programas.map((programa) => programa.id);
   ownerId = await db.insert(users).values({ email: "hechos@retia.test", rol: "closer" })

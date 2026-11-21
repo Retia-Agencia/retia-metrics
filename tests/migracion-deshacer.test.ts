@@ -50,12 +50,11 @@ let a: Programa;
 let b: Programa;
 
 async function crearPrograma(slug: string): Promise<Programa> {
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug }).returning();
   const [cohorte] = await db.insert(cohorts).values({
     programId: p.id,
     codigo: "C1",
     metaCupos: 30,
-    precioUsd: "1500",
     fechaInicioVentas: "2026-07-01",
     fechaCierreVentas: "2026-08-18",
     fechaInicioClases: "2026-08-20",

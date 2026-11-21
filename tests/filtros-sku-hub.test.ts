@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { cohorts, dealEtapaHistorial, dealLineas, deals, leads, productos, programs, skus, users } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, dealLineas, deals, leads, programs, skus, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ventasDelRangoConValor } from "@/lib/queries/dashboard";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -23,24 +23,19 @@ afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
   const [programa, ajeno] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "sku-hub", nombre: "SKU Hub", ticketUsd: "200" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "sku-hub-ajeno", nombre: "SKU Hub ajeno", ticketUsd: "200" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "sku-hub", nombre: "SKU Hub" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "sku-hub-ajeno", nombre: "SKU Hub ajeno" },
   ]).returning();
   programId = programa.id;
   [ownerUserId] = (await db.insert(users).values({ email: "sku-hub@retia.test", rol: "closer", closerId: "SKU Hub" }).returning()).map((fila) => fila.id);
   const [cohorte, cohorteAjena] = await db.insert(cohorts).values([
-    { programId, codigo: "C3", metaCupos: 10, precioUsd: "200", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
-    { programId: ajeno.id, codigo: "C3", metaCupos: 10, precioUsd: "200", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
-  ]).returning();
-  const [virtual, unoAUno, ajenoProducto] = await db.insert(productos).values([
-    { programId, nombre: "Virtual C3", slug: "virtual-c3" },
-    { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3" },
-    { programId: ajeno.id, nombre: "Solo ajeno", slug: "solo-ajeno" },
+    { programId, codigo: "C3", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
+    { programId: ajeno.id, codigo: "C3", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
   ]).returning();
   const filas = await db.insert(skus).values([
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohorte.id, codigo: "VIRTUAL-C3", precioListaUsd: "200", cuentaComoCupo: true },
-    { programId, nombre: unoAUno.nombre, slug: unoAUno.slug, productoId: unoAUno.id, cohortId: cohorte.id, codigo: "UNO-C3", precioListaUsd: "100", cuentaComoCupo: true },
-    { programId: ajeno.id, nombre: ajenoProducto.nombre, slug: ajenoProducto.slug, productoId: ajenoProducto.id, cohortId: cohorteAjena.id, codigo: "AJENO-C3", precioListaUsd: "100" },
+    { programId, nombre: "Virtual C3", slug: "virtual-c3", cohortId: cohorte.id, codigo: "VIRTUAL-C3", precioListaUsd: "200", cuentaComoCupo: true },
+    { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3", cohortId: cohorte.id, codigo: "UNO-C3", precioListaUsd: "100", cuentaComoCupo: true },
+    { programId: ajeno.id, nombre: "Solo ajeno", slug: "solo-ajeno", cohortId: cohorteAjena.id, codigo: "AJENO-C3", precioListaUsd: "100" },
   ]).returning();
   skuVirtual = filas[0].id;
   skuUnoAUno = filas[1].id;

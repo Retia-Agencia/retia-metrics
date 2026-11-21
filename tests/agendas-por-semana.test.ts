@@ -39,8 +39,8 @@ describe("ticket 189: agendas por semana", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const [a, b] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "s189-a", nombre: "A" },
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "s189-b", nombre: "B" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "s189-a", nombre: "A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "s189-b", nombre: "B" },
     ]).returning();
     programaA = a.id;
     const [closer] = await db.insert(users).values({ email: "c@s189.test", rol: "closer", closerId: "Caro" }).returning();

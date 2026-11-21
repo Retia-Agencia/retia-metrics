@@ -66,8 +66,8 @@ async function abono(dealId: string, datos: Partial<typeof abonos.$inferInsert> 
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseReutilizable());
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" },
   ]).returning();
   [programId, otroProgramId] = programas.map((p) => p.id);
   [ana, beto] = (await db.insert(users).values([
@@ -210,7 +210,7 @@ describe("banderas rojas del Pulso (191)", () => {
     expect(deBeto.filas).toHaveLength(1);
     expect((await banderasDelPulso({ programId, claveCloser: ana }, db)).perdidosConPagos.cantidad).toBe(1);
     // Un programa sin casos da 0 explícito, no ausencia.
-    const [vacio] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacio", ticketUsd: "1000" }).returning();
+    const [vacio] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacio" }).returning();
     expect((await banderasDelPulso({ programId: vacio.id }, db)).perdidosConPagos).toEqual({ cantidad: 0 });
   });
 });

@@ -47,7 +47,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     nombre: "Tactical Investor",
     slug: "tactical-investor",
-    ticketUsd: "797",
   }).returning();
   programId = programa.id;
   const anterior = await crearSku(db, actorId, entrada(3, "2026-10-01", "2026-10-31"));

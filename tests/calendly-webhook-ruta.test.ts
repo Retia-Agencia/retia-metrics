@@ -105,12 +105,12 @@ beforeEach(async () => {
   holder.db = db;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
     .returning();
   programId = p.id;
   const [o] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" })
     .returning();
   otroProgramId = o.id;
   await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: CLAVE });

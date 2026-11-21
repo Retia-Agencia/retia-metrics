@@ -39,8 +39,8 @@ const HOY = "2026-10-02";
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "roas", nombre: "ROAS", ticketUsd: "1000" }).returning())[0].id;
-  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-roas", nombre: "Otro", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "roas", nombre: "ROAS" }).returning())[0].id;
+  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-roas", nombre: "Otro" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   sourceOtro = (await db.insert(sources).values({ programId: otroProgramId, nombre: "Formulario" }).returning())[0].id;
   actor = (await db.insert(users).values({ email: "dev-roas@retia.test", rol: "developer" }).returning())[0].id;

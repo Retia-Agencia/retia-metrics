@@ -15,7 +15,7 @@ let cohorteId: string;
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "resolver", nombre: "Resolver", ticketUsd: "797" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "resolver", nombre: "Resolver" }).returning();
   programId = programa.id;
   const [a, b, cesar] = await db.insert(users).values([
     { email: "nico-a@retia.test", nombre: "Nicolás Pérez", rol: "closer", closerId: "nico-a" },
@@ -24,7 +24,7 @@ beforeEach(async () => {
   ]).returning();
   nicolasA = a.id;
   await db.insert(miembrosPrograma).values([a, b, cesar].map((usuario) => ({ userId: usuario.id, programId })));
-  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "NOV-26", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "NOV-26", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   cohorteId = cohorte.id;
   const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "dueno@retia.test", fechaPrimeraAplicacion: new Date("2026-11-01T12:00:00-05:00") }).returning();
   await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: a.id, cohortId: cohorte.id, etapa: "agendado" });

@@ -289,7 +289,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" }).returning();
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
@@ -326,7 +326,7 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     });
     const [otro] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-sueltas", nombre: "Otro", ticketUsd: "797" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-sueltas", nombre: "Otro" })
       .returning();
     const correo = "adoptar@correo.co";
     const propia = await registrarLlamadaDeCalendly(db, programId, {

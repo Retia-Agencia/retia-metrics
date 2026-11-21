@@ -21,7 +21,7 @@ describe("traducir una compra de Hotmart", () => {
   beforeAll(async () => ({ db, vaciar, cerrar } = await crearBaseReutilizable()));
   beforeEach(async () => {
     await vaciar();
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "lider-arte", nombre: "LíderArte", ticketUsd: "149" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "lider-arte", nombre: "LíderArte" }).returning();
     programId = programa.id;
     const [plataforma] = await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Hotmart"));
     const filas = await db.insert(enlacesPago).values([
@@ -30,7 +30,7 @@ describe("traducir una compra de Hotmart", () => {
       { programId, plataformaId: plataforma.id, nombre: "Separar", monto: "49", moneda: "USD", url: "https://pay.hotmart.com/C?off=ccc" },
     ]).returning();
     enlaces = { aaa: filas[0].id, bbb: filas[1].id, ccc: filas[2].id };
-    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" }).returning();
+    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "P7", metaCupos: 20, fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" }).returning();
     await skuVirtualDePrueba(db, cohorte.id);
   });
   afterAll(async () => cerrar());

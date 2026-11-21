@@ -36,7 +36,7 @@ beforeEach(async () => {
   actorId = u.id;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "por-definir", nombre: "Por definir", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "por-definir", nombre: "Por definir" })
     .returning();
   programId = p.id;
 });
@@ -49,7 +49,6 @@ function porDefinir(sobre: Partial<EntradaCohorte> = {}): EntradaCohorte {
     programId,
     codigo: "C1",
     metaCupos: 30,
-    precioUsd: "797.00",
     fechaInicioClases: "",
     fechaInicioVentas: "",
     fechaCierreVentas: "",

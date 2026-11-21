@@ -62,7 +62,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
 
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
     programId = p.id;
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
     const [owner] = await db.insert(users).values({ email: "ana@example.test", rol: "closer", closerId: "Ana" }).returning();

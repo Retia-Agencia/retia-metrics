@@ -124,12 +124,11 @@ afterAll(async () => cerrar());
 beforeEach(async () => vaciar());
 
 async function sembrarPrograma(slug: string, cantidad: number) {
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug }).returning();
   const [cohorte] = await db.insert(cohorts).values({
     programId: programa.id,
     codigo: `C-${slug}`,
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-11-02",
     fechaCierreVentas: "2026-11-06",

@@ -45,18 +45,17 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "proxima-cohorte",
     nombre: "Próxima cohorte",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   const filas = await db.insert(cohorts).values([
     {
-      programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
+      programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
     },
     {
-      programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-02-01", fechaInicioVentas: "2027-01-01", fechaCierreVentas: "2027-01-31",
+      programId, codigo: "C2", metaCupos: 10, fechaInicioClases: "2027-02-01", fechaInicioVentas: "2027-01-01", fechaCierreVentas: "2027-01-31",
     },
     {
-      programId, codigo: "C0", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-08-01", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-07-31",
+      programId, codigo: "C0", metaCupos: 10, fechaInicioClases: "2026-08-01", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-07-31",
     },
   ]).returning();
   activaId = filas[0].id;
@@ -120,8 +119,8 @@ describe("Próxima cohorte", () => {
     const anulado = await nuevoDeal();
     await esperarTexto(anulado.id);
     await db.update(deals).set({ anuladoEn: new Date(), anuladoPor: gerenteId, motivoAnulacion: "duplicado" }).where(eq(deals.id, anulado.id));
-    const [otroPrograma] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proxima", nombre: "Otro", ticketUsd: "1000" }).returning();
-    const [otraCohorte] = await db.insert(cohorts).values({ programId: otroPrograma.id, codigo: "O1", metaCupos: 1, precioUsd: "1000" }).returning();
+    const [otroPrograma] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proxima", nombre: "Otro" }).returning();
+    const [otraCohorte] = await db.insert(cohorts).values({ programId: otroPrograma.id, codigo: "O1", metaCupos: 1 }).returning();
     const ajeno = await nuevoDeal(otraCohorte.id, closerId, otroPrograma.id);
     await db.update(deals).set({ pendiente: "proxima_cohorte", cohorteDestinoTexto: "otra" }).where(eq(deals.id, ajeno.id));
 
@@ -151,10 +150,10 @@ describe("Próxima cohorte", () => {
     expect((await db.select().from(deals).where(eq(deals.id, valido.id)))[0].cohorteDestinoId).toBeNull();
 
     const [programaAjeno] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "asignar-ajeno", nombre: "Asignar ajeno", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "asignar-ajeno", nombre: "Asignar ajeno",
     }).returning();
     const [cohorteAjena] = await db.insert(cohorts).values({
-      programId: programaAjeno.id, codigo: "A1", metaCupos: 1, precioUsd: "1000", }).returning();
+      programId: programaAjeno.id, codigo: "A1", metaCupos: 1, }).returning();
     const extranjero = await nuevoDeal(cohorteAjena.id, closerId, programaAjeno.id);
     await db.update(deals).set({ pendiente: "proxima_cohorte", cohorteDestinoTexto: "otra" }).where(eq(deals.id, extranjero.id));
     await expect(asignarProximaCohorte(db, { dealIds: [valido.id, extranjero.id], destinoId: futuraId, actor: gerente() }))

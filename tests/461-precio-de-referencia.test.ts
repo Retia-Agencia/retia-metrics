@@ -25,19 +25,17 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "precio-referencia-461",
     nombre: "Precio referencia 461",
-    ticketUsd: "999",
   }).returning();
   programId = programa.id;
 });
 
 afterAll(async () => cerrar());
 
-async function ciclo(codigo: string, precioHeredado: string) {
+async function ciclo(codigo: string) {
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo,
     metaCupos: 10,
-    precioUsd: precioHeredado,
     fechaInicioVentas: "2026-11-01",
     fechaCierreVentas: "2026-11-30",
   }).returning();
@@ -88,7 +86,7 @@ function perdida(precioUsd: number | null) {
 
 describe("ticket 461 — precio de referencia y descuento por línea", () => {
   it("con un SKU de cupo conserva meta USD, ticket perdido y proyección ROAS", async () => {
-    const cohorte = await ciclo("C1", "797");
+    const cohorte = await ciclo("C1");
     await db.insert(skus).values({
       programId,
       cohortId: cohorte.id,
@@ -108,7 +106,7 @@ describe("ticket 461 — precio de referencia y descuento por línea", () => {
   });
 
   it("sin SKU activo de cupo conserva sin precio como null, nunca como cero", async () => {
-    const cohorte = await ciclo("C2", "999");
+    const cohorte = await ciclo("C2");
     await db.insert(skus).values({
       programId,
       cohortId: cohorte.id,
@@ -128,7 +126,7 @@ describe("ticket 461 — precio de referencia y descuento por línea", () => {
   });
 
   it("calcula el descuento con los precios congelados de cada línea", async () => {
-    const cohorte = await ciclo("C3", "999");
+    const cohorte = await ciclo("C3");
     const [sku] = await db.insert(skus).values({
       programId,
       cohortId: cohorte.id,

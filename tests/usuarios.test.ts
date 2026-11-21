@@ -57,8 +57,8 @@ beforeEach(async () => {
   const insertados = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "2000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" },
     ])
     .returning();
   programaAId = insertados.find((p) => p.slug === "programa-a")!.id;

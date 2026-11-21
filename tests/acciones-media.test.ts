@@ -37,8 +37,8 @@ afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
   auth.mockReset();
-  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "797" }).returning();
-  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" }).returning();
+  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A" }).returning();
+  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B" }).returning();
   programA = a.id;
   programB = b.id;
   const [m, ac, c, p] = await db

@@ -30,7 +30,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "archivos",
     nombre: "Archivos",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   const actores = await db.insert(users).values([

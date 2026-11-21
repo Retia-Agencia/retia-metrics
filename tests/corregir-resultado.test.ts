@@ -37,13 +37,12 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   secuencia = 0;
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = programa.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2026-10-30",
     fechaCierreVentas: "2026-10-29",
   }).returning();

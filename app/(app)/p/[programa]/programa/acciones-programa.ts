@@ -119,10 +119,7 @@ async function exigirProgramaDeMembresia(
   await exigirProgramaVisible(actor, membresia?.programId);
 }
 
-type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug"> & {
-  /** Compatibilidad con clientes anteriores al paso 4; crearPrograma lo ignora. */
-  ticketUsd?: string;
-};
+type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug">;
 type ResultadoCreacion = { ok: true; slug: string } | { ok: false; error: string };
 
 /** Crea el cascaron inactivo; se completa y activa desde su propia ficha. */

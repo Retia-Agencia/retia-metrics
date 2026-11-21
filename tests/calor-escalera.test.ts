@@ -66,7 +66,6 @@ describe("vista de escalera", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "calor",
       nombre: "Calor",
-      ticketUsd: "100",
       cortePagoRapidoDias: 3,
     }).returning();
     const [closer] = await db.insert(users).values({

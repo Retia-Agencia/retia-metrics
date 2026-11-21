@@ -35,7 +35,6 @@ describe("/hub/reporte", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: `reporte-${indice}`,
         nombre: `Programa ${indice}`,
-        ticketUsd: String(700 + indice),
       }).returning();
       programasSembrados.push(programa);
       for (let venta = 1; venta <= indice; venta += 1) {

@@ -39,7 +39,7 @@ beforeEach(async () => {
   holder.db = db;
   const [programa] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "una-cita", nombre: "Una cita", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "una-cita", nombre: "Una cita" })
     .returning();
   programId = programa.id;
   await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: CLAVE });

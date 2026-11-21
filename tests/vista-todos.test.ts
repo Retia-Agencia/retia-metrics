@@ -34,8 +34,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797", comisionPorcentaje: "10" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500", comisionPorcentaje: "5" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" },
   ]).returning();
   programas = programas.map(({ id, slug, nombre }) => ({ id, slug, nombre }));
 
@@ -44,7 +44,6 @@ beforeEach(async () => {
       programId: programa.id,
       codigo: `C${indice + 1}`,
       metaCupos: 10 + indice,
-      precioUsd: indice ? "1500" : "797",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
@@ -61,7 +60,6 @@ beforeEach(async () => {
       ownerUserId: await duenoDePrueba(db, programa.id),
       etapa: "ganado_parcial",
       valorVendidoUsd: indice ? "1500" : "797",
-      comisionPorcentaje: indice ? "5" : "10",
     }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,

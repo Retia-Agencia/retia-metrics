@@ -105,7 +105,7 @@ describe("el score aterriza en submission y en el resumen del lead", () => {
 
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" }).returning();
     programId = p.id;
     const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
     sourceId = f.id;

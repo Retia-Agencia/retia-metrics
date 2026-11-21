@@ -67,8 +67,8 @@ beforeEach(async () => {
   const [p, q] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" },
     ])
     .returning();
   programId = p.id;

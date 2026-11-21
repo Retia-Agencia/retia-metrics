@@ -19,7 +19,7 @@ afterAll(async () => cerrar());
 async function nuevo(input: { encendido: boolean; cortesia?: boolean }) {
   secuencia += 1;
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: `capi-${secuencia}`, nombre: `CAPI ${secuencia}`, ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: `capi-${secuencia}`, nombre: `CAPI ${secuencia}`,
   }).returning();
   await db.insert(integraciones).values({
     programId: programa.id, tipo: "meta_capi", secretos: { token: `token-${secuencia}` },
@@ -28,7 +28,7 @@ async function nuevo(input: { encendido: boolean; cortesia?: boolean }) {
   const [dueno] = await db.insert(users).values({ email: `dueno-${secuencia}@retia.co`, rol: "closer" }).returning();
   const [cohorte] = await db.insert(cohorts).values({
     programId: programa.id, codigo: `C${secuencia}`, metaCupos: 10,
-    precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaInicioClases: "2026-12-01",
+    fechaInicioVentas: "2026-10-01", fechaInicioClases: "2026-12-01",
     fechaCierreVentas: "2026-11-30",
   }).returning();
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: `p${secuencia}@retia.co` }).returning();

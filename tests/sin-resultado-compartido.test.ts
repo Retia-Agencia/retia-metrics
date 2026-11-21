@@ -19,7 +19,7 @@ describe("ticket 148: Inbox y dashboard comparten las llamadas pasadas sin resul
 
   beforeEach(async () => {
     await vaciar();
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "sin-resultado", nombre: "Sin resultado", ticketUsd: "100" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "sin-resultado", nombre: "Sin resultado" }).returning();
     programId = programa.id;
   }, 60_000);
   afterAll(async () => cerrar());

@@ -92,7 +92,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "programa-pauta", nombre: "Programa pauta", ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: "programa-pauta", nombre: "Programa pauta",
   }).returning();
   programId = programa.id;
   await sembrarIntegracion(db, programId, "meta", { token: TOKEN }, { nombre: "Retia" });
@@ -147,7 +147,7 @@ describe("sincronización de pauta", () => {
 
   it("una cuenta que falla no impide que otra escriba", async () => {
     const [otroPrograma] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "programa-dos", nombre: "Programa dos", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "programa-dos", nombre: "Programa dos",
     }).returning();
     await db.insert(cuentasPublicitarias).values({
       idMeta: "456", programId: otroPrograma.id, nombre: "Cuenta sana", moneda: "COP",
@@ -167,7 +167,7 @@ describe("sincronización de pauta", () => {
 
   it("omite un anuncio que no pertenece al árbol de esa cuenta", async () => {
     const [otroPrograma] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "otro-programa", nombre: "Otro", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "otro-programa", nombre: "Otro",
     }).returning();
     const [otraCuenta] = await db.insert(cuentasPublicitarias).values({
       idMeta: "456", programId: otroPrograma.id, nombre: "Otra cuenta", moneda: "USD",

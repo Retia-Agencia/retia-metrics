@@ -36,7 +36,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "mcp-confirmacion",
     nombre: "MCP confirmación",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   const [closer, gerente] = await db.insert(users).values([

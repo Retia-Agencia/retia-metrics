@@ -19,8 +19,8 @@ afterAll(async () => cerrar());
 describe("envíos por canal (ticket 246)", () => {
   it("cuenta completos por la regla, agrupa entre programas y separa Sin UTM", async () => {
     const [p1, p2] = await db.insert(programs).values([
-      { slug: "uno", nombre: "Uno", ticketUsd: "100.00" },
-      { slug: "dos", nombre: "Dos", ticketUsd: "200.00" },
+      { slug: "uno", nombre: "Uno" },
+      { slug: "dos", nombre: "Dos" },
     ]).returning();
     const [f1, f2] = await db.insert(sources).values([
       { programId: p1.id, nombre: "Formulario uno", sheetId: "s1", tab: "t1" },

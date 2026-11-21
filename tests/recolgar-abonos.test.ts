@@ -12,9 +12,9 @@ beforeEach(async () => vaciar());
 afterAll(async () => cerrar());
 
 it("reporta ambigüedad con dos líneas anuladas pagadas y dos vigentes del mismo SKU, y el flag desempata", async () => {
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "recolgado", nombre: "Recolgado", ticketUsd: "100" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "recolgado", nombre: "Recolgado" }).returning();
   const [actor] = await db.insert(users).values({ email: "recolgado@test.local", rol: "developer" }).returning();
-  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "C1", metaCupos: 10, precioUsd: "100" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "C1", metaCupos: 10 }).returning();
   const [sku] = await db.insert(skus).values({ programId: programa.id, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "VIRTUAL-C1", precioListaUsd: "100" }).returning();
   const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "recolgado@test.local", entrada: "crm", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA }).returning();
   const [deal] = await db.insert(deals).values({ leadId: lead.id, programId: programa.id, etapa: "ganado_parcial", ownerUserId: actor.id }).returning();

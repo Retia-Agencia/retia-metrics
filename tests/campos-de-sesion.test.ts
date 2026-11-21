@@ -27,7 +27,6 @@ describe("campos de sesion compartidos", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "campos-sesion",
       nombre: "Campos de sesion",
-      ticketUsd: "1000",
     }).returning();
     const registros = await db.insert(users).values([
       { email: "gerente-limitado@retia.co", rol: "gerente" },

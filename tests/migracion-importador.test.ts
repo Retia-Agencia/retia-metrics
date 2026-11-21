@@ -71,13 +71,12 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: P, nombre: "Programa A", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: P, nombre: "Programa A" }).returning();
   programa = p.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId: programa,
     codigo: "C1",
     metaCupos: 30,
-    precioUsd: "1500",
     fechaInicioVentas: "2026-07-01",
     fechaCierreVentas: "2026-08-18",
     fechaInicioClases: "2026-08-20",

@@ -35,7 +35,6 @@ async function crearPrograma(
     ...PROGRAMA_DE_PRUEBA,
     slug,
     nombre: `Programa ${slug}`,
-    ticketUsd: "1000",
   }).returning();
   if (opciones.reporte !== false) {
     await db.insert(reportesWhatsapp).values({

@@ -26,9 +26,9 @@ beforeEach(async () => {
   await vaciar();
   auth.mockReset();
   programaVisiblePorSlug.mockReset();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "visible", nombre: "Visible", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "visible", nombre: "Visible" }).returning();
   programId = programa.id;
-  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" }).returning();
+  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" }).returning();
   await db.insert(users).values([
     { ...gerente.user, nombre: "Gerencia" },
     { ...pauta.user, nombre: "Pauta" },

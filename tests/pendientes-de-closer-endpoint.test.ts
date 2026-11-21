@@ -51,14 +51,13 @@ beforeEach(async () => {
   process.env.SEMAFORO_SECRETO = SECRETO;
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-11-13T13:30:00Z")); // viernes, 8:30 a.m. en Bogotá
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, nombre: "Tactical", slug: "tactical", ticketUsd: "1500" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, nombre: "Tactical", slug: "tactical" }).returning();
   programId = programa.id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   cohortId = (await db.insert(cohorts).values({
     programId,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "1500",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",

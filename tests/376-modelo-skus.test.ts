@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as schema from "@/lib/db/schema";
-import { abonos, dealLineas, productos, skus } from "@/lib/db/schema";
+import { abonos, dealLineas, skus } from "@/lib/db/schema";
 
 const CARPETA_MIGRACIONES = fileURLToPath(new URL("../drizzle", import.meta.url));
 const P1 = "00000000-0000-4000-8000-000000000001";
@@ -92,7 +92,8 @@ async function aplicar0154(): Promise<void> {
 
 async function aplicarDespuesDe0154(): Promise<void> {
   const migraciones = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES });
-  for (const migracion of migraciones.slice(indiceDe("0154_") + 1)) {
+  // La 0161 (retiro, 463) se aplica aparte en su propio test: borra `productos`, que estas pruebas leen.
+  for (const migracion of migraciones.slice(indiceDe("0154_") + 1, indiceDe("0161_"))) {
     await cliente.exec(migracion.sql.join("\n"));
   }
 }
@@ -113,8 +114,10 @@ afterAll(async () => {
 
 describe("migracion 0153: productos, SKUs y lineas", () => {
   it("rellena catalogos, lineas y linea_id, incluidos tres adicionales del mismo dia", async () => {
-    const productosCreados = await db.select().from(productos).orderBy(asc(productos.programId), asc(productos.slug));
-    expect(productosCreados.map((p) => [p.programId, p.slug, p.nombre])).toEqual([
+    const { rows: productosCreados } = await cliente.query<{ program_id: string; slug: string; nombre: string }>(
+      "SELECT program_id, slug, nombre FROM productos ORDER BY program_id, slug",
+    );
+    expect(productosCreados.map((p) => [p.program_id, p.slug, p.nombre])).toEqual([
       [P1, "programa_virtual", "Programa virtual"],
       [P1, "sin_clasificar", "Sin clasificar"],
       [P2, "1_1_con_rosario", "1:1 con Rosario"],
@@ -175,5 +178,29 @@ describe("migracion 0153: productos, SKUs y lineas", () => {
       INSERT INTO abonos (deal_id, program_id, fecha, monto, moneda, concepto)
       VALUES ('${D_VENDIDO}', '${P1}', '2026-11-18', 1, 'USD', 'ticket')
     `)).rejects.toThrow();
+  });
+
+  it("0161 retira productos y las cuatro columnas del modelo viejo sin tocar SKUs ni líneas", async () => {
+    const antes = await db.select().from(skus).orderBy(asc(skus.codigo));
+    const lineasAntes = await db.select().from(dealLineas);
+    const migracion = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES })[indiceDe("0161_")];
+    await cliente.transaction(async (tx) => {
+      for (const sentencia of migracion.sql) await tx.exec(sentencia);
+    });
+
+    const { rows: tablas } = await cliente.query<{ existe: string | null }>("SELECT to_regclass('public.productos') AS existe");
+    expect(tablas[0].existe).toBeNull();
+    const { rows: columnas } = await cliente.query<{ tabla: string; columna: string }>(`
+      SELECT table_name AS tabla, column_name AS columna FROM information_schema.columns
+      WHERE table_schema = 'public' AND (
+        (table_name = 'programs' AND column_name IN ('ticket_usd', 'comision_porcentaje')) OR
+        (table_name = 'cohorts' AND column_name = 'precio_usd') OR
+        (table_name = 'deals' AND column_name = 'comision_porcentaje') OR
+        (table_name = 'skus' AND column_name = 'producto_id'))
+    `);
+    expect(columnas).toEqual([]);
+    // Lo que se queda: el precio y el % del SKU, y el % congelado de la línea.
+    expect(await db.select().from(skus).orderBy(asc(skus.codigo))).toEqual(antes);
+    expect(await db.select().from(dealLineas)).toEqual(lineasAntes);
   });
 });

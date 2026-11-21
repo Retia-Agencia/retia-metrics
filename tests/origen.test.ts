@@ -19,7 +19,7 @@ let sourceId: string;
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 async function prepararPrograma() {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "origen", nombre: "Origen", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "origen", nombre: "Origen" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
 }
 beforeEach(prepararPrograma);
@@ -166,7 +166,7 @@ describe("Hub Origen", () => {
     });
 
     const otro = (await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "origen-otro", nombre: "Otro", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "origen-otro", nombre: "Otro",
     }).returning())[0];
     const fuenteAjena = (await db.insert(sources).values({ programId: otro.id, nombre: "Formulario" }).returning())[0];
     const leadAjeno = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otro.id, emailNormalizado: "ajeno@retia.test" }).returning())[0];
@@ -255,7 +255,7 @@ describe("Plantillas por cuenta", () => {
       { cuentaId: cuenta.id, programId, idMeta: "ad-sin-id", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Sin Id", estado: "ACTIVE", urlTags: null },
       { cuentaId: cuenta.id, programId, idMeta: "ad-pausado", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Pausado", estado: "PAUSED", urlTags: vieja },
     ]);
-    const otroPrograma = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-origen", nombre: "Otro origen", ticketUsd: "1000" }).returning())[0];
+    const otroPrograma = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-origen", nombre: "Otro origen" }).returning())[0];
     const otraCuenta = (await db.insert(cuentasPublicitarias).values({
       idMeta: "otra-cuenta", programId: otroPrograma.id, nombre: "Otra cuenta", moneda: "COP", zonaHoraria: "America/Bogota",
     }).returning())[0];

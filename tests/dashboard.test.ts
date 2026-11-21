@@ -34,7 +34,7 @@ let programaA: string;
 async function crearPrograma(slug: string, nombre: string): Promise<string> {
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug, nombre, ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug, nombre })
     .returning();
   return p.id;
 }
@@ -371,7 +371,6 @@ async function crearCohorteActiva(args: {
       codigo: args.codigo,
       metaCupos: args.metaCupos,
       metaLeadsDia: args.metaLeadsDia ?? null,
-      precioUsd: "797.00",
       fechaInicioClases: args.fechaCierreVentas,
       fechaInicioVentas: args.fechaInicioVentas,
       fechaCierreVentas: args.fechaCierreVentas,
@@ -429,7 +428,6 @@ describe("cohorte sin fechaInicioVentas no inventa dias habiles (ADR 0022)", () 
       programId: programaA,
       codigo: "C1",
       metaCupos: 20,
-      precioUsd: "797.00",
       fechaInicioClases: "2026-08-11",
       fechaInicioVentas: null,
       fechaCierreVentas: "2026-09-10",

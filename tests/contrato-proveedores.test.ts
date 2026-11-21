@@ -169,7 +169,6 @@ it.each(proveedores)("una firma mala de %s no cambia ninguna tabla por la ruta r
         ...PROGRAMA_DE_PRUEBA,
         slug: `contrato-${nombre}`,
         nombre: `Contrato ${nombre}`,
-        ticketUsd: "1500",
       })
       .returning();
     const [fuente] = await db
@@ -242,7 +241,7 @@ it.each(proveedoresReales)(
     try {
       const [programa] = await db
         .insert(programs)
-        .values({ ...PROGRAMA_DE_PRUEBA, slug: `real-${nombre}`, nombre: `Real ${nombre}`, ticketUsd: "1500" })
+        .values({ ...PROGRAMA_DE_PRUEBA, slug: `real-${nombre}`, nombre: `Real ${nombre}` })
         .returning();
       const [fuente] = await db
         .insert(sources)

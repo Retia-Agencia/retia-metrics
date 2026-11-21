@@ -23,7 +23,6 @@ describe("cierre diario de salud", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "cierre",
       nombre: "Programa Cierre",
-      ticketUsd: "1000",
     }).returning();
     const [activa] = await db.insert(sources).values({
       programId: programa.id,

@@ -35,8 +35,6 @@ export interface DatosDelPrograma {
   slug: string;
   nombre: string;
   activo: boolean;
-  /** Porcentaje legado editable hasta el paso 3/D9 del ticket 461. */
-  comisionPorcentaje: string | null;
   /**
    * El destino del formulario: la fuente principal del programa (ADR 0068). Nulo = no hay a
    * donde mandar un link. Ya no sale de `programs.form_url`, que se retiro (paso 2 del ADR 0068).
@@ -163,7 +161,6 @@ export async function fichaDelPrograma(
       slug: String(programa.slug),
       nombre: String(programa.nombre),
       activo: Boolean(programa.activo),
-      comisionPorcentaje: (programa.comisionPorcentaje as string | null) ?? null,
       formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
       calendlyOrgCompartida: Boolean(programa.calendlyOrgCompartida),

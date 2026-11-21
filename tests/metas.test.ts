@@ -111,14 +111,14 @@ describe("146: lectura de metas con ventas reales", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const programas = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "2000", slug: "metas-a", nombre: "Metas A" },
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "2000", slug: "metas-b", nombre: "Metas B" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "metas-a", nombre: "Metas A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "metas-b", nombre: "Metas B" },
     ]).returning();
     [programaA, programaB] = programas.map((programa) => programa.id);
     [ownerId] = (await db.insert(users).values({ email: "metas@example.test", rol: "closer", closerId: "Meta" }).returning()).map((usuario) => usuario.id);
     const cohortes = await db.insert(cohorts).values([
-      { programId: programaA, codigo: "C1", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
-      { programId: programaA, codigo: "C2", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31" },
+      { programId: programaA, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+      { programId: programaA, codigo: "C2", metaCupos: 10, fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31" },
     ]).returning();
     [cohorte1, cohorte2] = cohortes.map((cohorte) => cohorte.id);
     await Promise.all(cohortes.map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));

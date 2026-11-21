@@ -31,7 +31,7 @@ afterAll(async () => cerrar());
 
 it("utm_id resuelve el anuncio, conjunto y campaña sincronizados", async () => {
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "arbol", nombre: "Árbol", ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: "arbol", nombre: "Árbol",
   }).returning();
   const [cuenta] = await db.insert(cuentasPublicitarias).values({
     idMeta: "cuenta-arbol", programId: programa.id, nombre: "Cuenta", moneda: "COP",
@@ -53,7 +53,7 @@ it("utm_id resuelve el anuncio, conjunto y campaña sincronizados", async () => 
 
 it("expone los conjuntos y permite resolver una campaña por su id", async () => {
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "arbol-campana", nombre: "Árbol campaña", ticketUsd: "1000",
+    ...PROGRAMA_DE_PRUEBA, slug: "arbol-campana", nombre: "Árbol campaña",
   }).returning();
   const [cuenta] = await db.insert(cuentasPublicitarias).values({
     idMeta: "cuenta-campana", programId: programa.id, nombre: "Cuenta", moneda: "COP",

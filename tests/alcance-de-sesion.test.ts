@@ -84,14 +84,14 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
 
     const [a] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
       .returning();
     programaA = a.id;
     slugA = a.slug;
 
     const [b] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" })
       .returning();
     programaB = b.id;
     slugB = b.slug;

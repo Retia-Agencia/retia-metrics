@@ -51,9 +51,9 @@ beforeEach(async () => {
   await vaciar();
   auth.mockReset();
   revalidatePath.mockReset();
-  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "1000" }).returning();
+  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A" }).returning();
   programaA = a.id;
-  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" }).returning();
+  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B" }).returning();
   programaB = b.id;
   const [c1] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closerA = c1.id;
@@ -132,7 +132,7 @@ describe("abono al mover", () => {
 describe("líneas del deal, forjando la peticion", () => {
   it("un closer NO asigna, edita, quita ni anula líneas de un deal ajeno y la base no se mueve", async () => {
     const dealId = await nuevoDeal(programaA, closerB);
-    const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "C1", metaCupos: 5, precioUsd: "100" }).returning();
+    const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "C1", metaCupos: 5 }).returning();
     const [sku] = await db.insert(skus).values({ programId: programaA, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "A-VIRTUAL-C1", precioListaUsd: "100", cuentaComoCupo: true }).returning();
     const [linea] = await db.insert(dealLineas).values({ dealId, programId: programaA, skuId: sku.id, precioListaUsd: "100", valorVendidoUsd: "100" }).returning();
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));

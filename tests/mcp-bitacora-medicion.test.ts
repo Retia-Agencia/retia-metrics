@@ -51,7 +51,6 @@ describe("medición de llamadas MCP", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "medicion",
       nombre: "Medición",
-      ticketUsd: "797",
     });
     const [usuario] = await db.insert(users).values({
       email: "medicion-mcp@retia.test",

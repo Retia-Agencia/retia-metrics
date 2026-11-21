@@ -11,7 +11,6 @@ import {
   leads,
   plataformasPago,
   programs,
-  productos,
   skus,
   users,
 } from "@/lib/db/schema";
@@ -55,7 +54,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
     .returning();
   programId = p.id;
   const [c] = await db
@@ -64,18 +63,14 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
     })
     .returning();
   cohortId = c.id;
-  const [producto] = await db.insert(productos).values({
-    programId, nombre: "Programa virtual", slug: "programa_virtual",
-  }).returning();
   await db.insert(skus).values({
-    programId, nombre: producto.nombre, slug: producto.slug, productoId: producto.id,
+    programId, nombre: "Programa virtual", slug: "programa_virtual",
     cohortId, codigo: `p_programa_virtual_${crypto.randomUUID()}`,
     precioListaUsd: "1000", cuentaComoCupo: true,
   });
@@ -712,7 +707,7 @@ describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal r
   it("un deal que ya tiene cohorte no se toca", async () => {
     const [otra] = await db
       .insert(cohorts)
-      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
+      .values({ programId, codigo: "C2", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     await skuVirtualDePrueba(db, otra.id);
     const dealId = await nuevoDeal("atendido", { cohortId: otra.id });

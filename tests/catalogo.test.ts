@@ -354,7 +354,7 @@ describe("motivos declara quien lo usa (ADR 0026 punto 5)", () => {
   it("un motivo usado por una llamada no se borra: devuelve el conteo", async () => {
     const cat = motivos(db);
     const m = await cat.crear(userId, { nombre: "Motivo usado", tipo: "perdida" });
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prog-motivo", nombre: "P", ticketUsd: "797.00" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prog-motivo", nombre: "P" }).returning();
     await db.insert(calls).values({ programId: p.id, motivoId: m.id });
     expect(await cat.borrarSiNoSeUso(userId, m.id)).toEqual({ borrado: false, referencias: 1 });
   });

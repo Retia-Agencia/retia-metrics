@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { cohorts, dealEtapaHistorial, dealLineas, deals, leads, productos, programs, skus, users } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, dealLineas, deals, leads, programs, skus, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { congelarComisionDeLineas } from "@/lib/deals/comision-de-linea";
 import { comisionesDeDeals } from "@/lib/queries/comision";
@@ -22,17 +22,13 @@ afterAll(async () => cerrar());
 
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "com-linea", nombre: "Comisión por línea", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "com-linea", nombre: "Comisión por línea" }).returning();
   programId = programa.id;
   [ownerUserId] = (await db.insert(users).values({ email: "com-linea@retia.test", rol: "closer", closerId: "Com Linea" }).returning()).map((u) => u.id);
-  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
-  const [virtual, unoAUno] = await db.insert(productos).values([
-    { programId, nombre: "Virtual C3", slug: "virtual-c3" },
-    { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3" },
-  ]).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const filas = await db.insert(skus).values([
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohorte.id, codigo: "VIRTUAL-C3", precioListaUsd: "1000", cuentaComoCupo: true, comisionPorcentaje: "10" },
-    { programId, nombre: unoAUno.nombre, slug: unoAUno.slug, productoId: unoAUno.id, cohortId: cohorte.id, codigo: "UNO-C3", precioListaUsd: "200", cuentaComoCupo: false, comisionPorcentaje: "5" },
+    { programId, nombre: "Virtual C3", slug: "virtual-c3", cohortId: cohorte.id, codigo: "VIRTUAL-C3", precioListaUsd: "1000", cuentaComoCupo: true, comisionPorcentaje: "10" },
+    { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3", cohortId: cohorte.id, codigo: "UNO-C3", precioListaUsd: "200", cuentaComoCupo: false, comisionPorcentaje: "5" },
   ]).returning();
   skuVirtual = filas[0].id;
   skuUnoAUno = filas[1].id;

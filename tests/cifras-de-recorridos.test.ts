@@ -40,8 +40,8 @@ let parametros: { programId: string; slug: string; hoy: string; periodo: typeof 
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseReutilizable());
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "rec419", nombre: "Prueba", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "rec419-ajeno", nombre: "Ajeno", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "rec419", nombre: "Prueba" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "rec419-ajeno", nombre: "Ajeno" },
   ]).returning();
   programId = a.id;
   const [u] = await db.insert(users).values({ email: "rec419@test.test", rol: "closer", closerId: "Prueba" }).returning();

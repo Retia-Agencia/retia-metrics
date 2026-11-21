@@ -35,10 +35,10 @@ beforeAll(async () => { ({ db, cerrar, vaciar } = await crearBaseReutilizable())
 beforeEach(async () => {
   await vaciar();
   sostener.db = db;
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proy", nombre: "Proy", ticketUsd: "797", muestraMinimaConversion: 10 }).returning())[0].id;
-  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proy", nombre: "Otro", ticketUsd: "1500", muestraMinimaConversion: 10 }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proy", nombre: "Proy", muestraMinimaConversion: 10 }).returning())[0].id;
+  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proy", nombre: "Otro", muestraMinimaConversion: 10 }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
-  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "797" }).returning())[0].id;
+  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10 }).returning())[0].id;
   andrea = (await db.insert(users).values({ email: "andrea@proy.test", rol: "closer", closerId: "Andrea" }).returning())[0].id;
   maru = (await db.insert(users).values({ email: "maru@proy.test", rol: "closer", closerId: "Maru" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({ programId, idMeta: "cuenta-proy", nombre: "Cuenta", moneda: "USD", zonaHoraria: "America/Bogota" }).returning())[0];

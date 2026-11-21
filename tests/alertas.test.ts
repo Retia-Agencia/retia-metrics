@@ -76,15 +76,15 @@ describe("los umbrales y las alertas del programa", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     [programaA, programaB] = (await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "a147", nombre: "A" },
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "b147", nombre: "B" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "a147", nombre: "A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "b147", nombre: "B" },
     ]).returning()).map((p) => p.id);
     [gerente, closer] = (await db.insert(users).values([
       { email: "g@a147.test", rol: "gerente" },
       { email: "c@a147.test", rol: "closer", closerId: "Caro" },
     ]).returning()).map((u) => u.id);
     const [c] = await db.insert(cohorts).values({
-      programId: programaA, codigo: "C1", metaCupos: 22, precioUsd: "100", fechaInicioClases: "2026-11-02",
+      programId: programaA, codigo: "C1", metaCupos: 22, fechaInicioClases: "2026-11-02",
       fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-30", }).returning();
     // Una sola venta, el 1-oct: después todo queda bajo el 80 %.
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "l@a147.test" }).returning();

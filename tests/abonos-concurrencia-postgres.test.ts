@@ -54,7 +54,7 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       const db2 = drizzle(cliente2, { schema });
       await migrate(db, { migrationsFolder: fileURLToPath(new URL("../drizzle", import.meta.url)) });
 
-      const [programa] = await db.insert(schema.programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prueba", nombre: "Prueba", ticketUsd: "1000" }).returning();
+      const [programa] = await db.insert(schema.programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prueba", nombre: "Prueba" }).returning();
       const [closer] = await db.insert(schema.users).values({ email: "closer@prueba.local", rol: "closer", closerId: "Prueba" }).returning();
       const [lead] = await db.insert(schema.leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "lead@prueba.local" }).returning();
       const [deal] = await db.insert(schema.deals).values({ programId: programa.id, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "1000" }).returning();

@@ -28,7 +28,7 @@ beforeAll(async () => {
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-328", nombre: "R 328", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-328", nombre: "R 328" }).returning();
   programId = p.id;
 });
 
@@ -114,7 +114,7 @@ describe("la alarma", () => {
   it("el programa es frontera", async () => {
     const id = await llamada(LINK);
     await leerYGuardarTranscript(db, id, { fetcher: http(503) });
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-328b", nombre: "R 328b", ticketUsd: "1000" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-328b", nombre: "R 328b" }).returning();
     expect(await saludDeGrain(db, otro.id)).toMatchObject({ marcada: false });
   });
 });

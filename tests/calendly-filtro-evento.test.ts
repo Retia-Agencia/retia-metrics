@@ -70,7 +70,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "estadox", nombre: "Second Brain", ticketUsd: "1500", calendlyOrgCompartida: true, calendlyEventType: RR })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "estadox", nombre: "Second Brain", calendlyOrgCompartida: true, calendlyEventType: RR })
     .returning();
   programId = p.id;
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();

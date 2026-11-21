@@ -53,7 +53,7 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "dorado-pauta", nombre: "Dorado Pauta", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "dorado-pauta", nombre: "Dorado Pauta" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({
     programId, idMeta: "dor-cuenta", nombre: "Cuenta", moneda: "COP", zonaHoraria: "America/Bogota",

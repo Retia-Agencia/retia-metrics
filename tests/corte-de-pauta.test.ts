@@ -33,7 +33,7 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "atribucion-pauta", nombre: "Pauta", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "atribucion-pauta", nombre: "Pauta" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   cuentaId = (await db.insert(cuentasPublicitarias).values({ programId, idMeta: "cuenta", nombre: "Cuenta", moneda: "USD", zonaHoraria: "America/Bogota" }).returning())[0].id;
   await db.insert(pautaObjetos).values([
@@ -67,7 +67,7 @@ async function gastoDe(idMeta: string, monto: string) {
 }
 async function dealDelEnvio(e: Awaited<ReturnType<typeof envio>>, vendido = false) {
   const dueno = await duenoDePrueba(db, programId);
-  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: crypto.randomUUID(), precioUsd: "100", metaCupos: 5 }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId, codigo: crypto.randomUUID(), metaCupos: 5 }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: e.leadId!, submissionOrigenId: e.id,
     cohortId: cohorte.id, ownerUserId: dueno,
     etapa: vendido ? "ganado_completo" : "agendado", valorVendidoUsd: vendido ? "100" : null }).returning();
@@ -82,7 +82,7 @@ async function dealDelEnvio(e: Awaited<ReturnType<typeof envio>>, vendido = fals
 
 describe("Ver solo, fase 2a", () => {
   it("lee únicamente las opciones del programa y valida UUID, nivel y frontera", async () => {
-    const otro = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-corte", nombre: "Otro", ticketUsd: "1000" }).returning())[0];
+    const otro = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-corte", nombre: "Otro" }).returning())[0];
     const cuentaAjena = (await db.insert(cuentasPublicitarias).values({ programId: otro.id, idMeta: "otra-cuenta", nombre: "Ajena", moneda: "USD", zonaHoraria: "America/Bogota" }).returning())[0];
     const objetoAjeno = (await db.insert(pautaObjetos).values({ programId: otro.id, cuentaId: cuentaAjena.id, idMeta: "otra-campana", nombre: "Ajena", nivel: "campana", estado: "ACTIVE" }).returning())[0];
     const opciones = await opcionesDeCorteDePauta(db, programId);
@@ -200,7 +200,7 @@ describe("Ver solo, fase 2a", () => {
 
   it("proyecta solo pendientes del corte usando las tasas del programa, aunque el closer tenga muestra propia", async () => {
     await db.update(programs).set({ muestraMinimaConversion: 1 }).where(eq(programs.id, programId));
-    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000" }).returning();
+    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10 }).returning();
     await skuVirtualDePrueba(db, cohorte.id);
     const [otroCloser] = await db.insert(users).values({ email: "otro@corte.test", rol: "closer", closerId: "Otro" }).returning();
     for (const vendido of [true, false]) {

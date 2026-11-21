@@ -35,17 +35,17 @@ beforeEach(async () => {
   auth.mockReset();
   const [g] = await db.insert(users).values({ email: "gerente@retia.test", rol: "gerente", nombre: "G" }).returning();
   gerenteId = g.id;
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "hoy-a", nombre: "Hoy A", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "hoy-a", nombre: "Hoy A" }).returning();
   programId = p.id;
   const [c] = await db.insert(cohorts).values({
-    programId, codigo: "C1", metaCupos: 50, metaLeadsDia: null, precioUsd: "797.00",
+    programId, codigo: "C1", metaCupos: 50, metaLeadsDia: null,
     fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", }).returning();
   cohortId = c.id;
 });
 
 /** El cuerpo que arma el panel: la fila de la cohorte más los textos de sus campos. */
 const cuerpoDelPanel = (extra: Record<string, unknown>) => ({
-  programId, codigo: "C1", metaCupos: "50", metaLeadsDia: null, precioUsd: "797.00",
+  programId, codigo: "C1", metaCupos: "50", metaLeadsDia: null,
   fechaInicioClases: "2026-11-20", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-06", ...extra,
 });
 const objetivoDelPanel = (extra: Record<string, unknown> = {}) => ({
@@ -99,7 +99,7 @@ describe("378: una petición forjada sin administración no mueve nada", () => {
     expect((await editarCohorteAccion("hoy-a", cohortId, cuerpoDelPanel({ metaCupos: "999", metaLeadsDia: "999", fechaCierreVentas: "2027-01-01" }))).ok).toBe(false);
     expect((await guardarObjetivoAccion(objetivoDelPanel({ metrica: "conversion_agenda_venta", meta: "99" }))).ok).toBe(false);
     expect((await editarProgramaAccion(programId, {
-      nombre: p.nombre, slug: p.slug, ticketUsd: String(p.ticketUsd), webUrl: "", calendlyUrl: "", muestraMinimaConversion: 99,
+      nombre: p.nombre, slug: p.slug, webUrl: "", calendlyUrl: "", muestraMinimaConversion: 99,
     })).ok).toBe(false);
 
     const [c] = await db.select().from(cohorts).where(eq(cohorts.id, cohortId));

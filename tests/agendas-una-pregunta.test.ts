@@ -31,11 +31,11 @@ describe("agendas: una pregunta por universo", () => {
   beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "agendas", nombre: "Agendas", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "agendas", nombre: "Agendas" }).returning();
     programId = p.id;
     [{ id: fuenteId }] = await db.insert(sources).values({ programId, nombre: "Fuente" }).returning();
     [{ id: c1 }] = await db.insert(cohorts).values({
-      programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-11-01",
+      programId, codigo: "C1", metaCupos: 10, fechaInicioVentas: "2026-11-01",
       fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", }).returning();
   });
   afterAll(async () => cerrar());

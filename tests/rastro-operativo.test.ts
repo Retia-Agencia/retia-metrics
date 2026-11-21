@@ -222,7 +222,7 @@ describe("crearConRastro y editarConRastro", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
       .returning();
     programaA = p.id;
     const [l] = await db

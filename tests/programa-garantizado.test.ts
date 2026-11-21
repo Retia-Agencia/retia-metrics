@@ -35,13 +35,13 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "A", ticketUsd: "1000" }).returning();
-  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "B", ticketUsd: "1000" }).returning();
+  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "A" }).returning();
+  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "B" }).returning();
   programaA = a.id;
   programaB = b.id;
   [{ id: leadA }] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "a@correo.co" }).returning();
   [{ id: leadB }] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "b@correo.co" }).returning();
-  [{ id: cohorteB }] = await db.insert(cohorts).values({ programId: programaB, codigo: "CB", metaCupos: 1, precioUsd: "1" }).returning();
+  [{ id: cohorteB }] = await db.insert(cohorts).values({ programId: programaB, codigo: "CB", metaCupos: 1 }).returning();
   [{ id: dealA }] = await db.insert(deals).values({ programId: programaA, leadId: leadA, etapa: "en_gestion" }).returning();
 });
 
@@ -112,7 +112,7 @@ describe("un programa con historia no se borra (restrict)", () => {
   });
 
   it("un programa sin nada se borra", async () => {
-    const [vacio] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "V", ticketUsd: "1" }).returning();
+    const [vacio] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "V" }).returning();
     await db.delete(programs).where(eqId(vacio.id));
     expect(await db.select().from(programs).where(eqId(vacio.id))).toHaveLength(0);
   });

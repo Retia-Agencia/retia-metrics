@@ -16,8 +16,8 @@ describe("trazaPorAnuncio", () => {
 
   it("cruza gasto con pagos sin id por nombre sin escoger coincidencias ambiguas", async () => {
     const [programa, otro] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "traza", nombre: "Traza", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "traza", nombre: "Traza" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" },
     ]).returning();
     const [fuente, fuenteAjena] = await db.insert(sources).values([
       { programId: programa.id, nombre: "Formulario" }, { programId: otro.id, nombre: "Otro formulario" },

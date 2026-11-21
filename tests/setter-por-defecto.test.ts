@@ -72,7 +72,7 @@ beforeEach(async () => {
   await vaciar();
   const [programa] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: `setter-${++secuencia}`, nombre: "Programa Setter", ticketUsd: "797" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: `setter-${++secuencia}`, nombre: "Programa Setter" })
     .returning();
   programId = programa.id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario", tipo: "google_sheet" }).returning())[0].id;
@@ -210,7 +210,7 @@ describe("Asignarme todos", () => {
     await db.insert(miembrosPrograma).values({ userId: closer.id, programId });
     const otroPrograma = (await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: `otro-${++secuencia}`, nombre: "Otro", ticketUsd: "797" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: `otro-${++secuencia}`, nombre: "Otro" })
       .returning())[0];
 
     async function crear(programa: string, correo: string, etapa: "potencial" | "registrado" | "agendado", ownerUserId: string | null = null) {

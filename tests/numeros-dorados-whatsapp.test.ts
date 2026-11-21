@@ -34,7 +34,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "dorado-whatsapp",
     nombre: "Dorado WhatsApp",
-    ticketUsd: "1000",
   }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({

@@ -25,8 +25,8 @@ beforeEach(async () => {
   await vaciar();
   slug = "hechos-a";
   const [programa, ajeno] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug, nombre: "Hechos A", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "hechos-b", nombre: "Hechos B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug, nombre: "Hechos A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "hechos-b", nombre: "Hechos B" },
   ]).returning();
   const [gerente, paid, closer] = await db.insert(users).values([
     { email: "gerente-hechos@retia.test", nombre: "Gerente", rol: "gerente" },
@@ -38,7 +38,7 @@ beforeEach(async () => {
   closerId = closer.id;
   await db.insert(miembrosPrograma).values({ userId: closerId, programId: programa.id });
   await db.insert(usuariosProgramasAlcance).values({ userId: paidId, programId: programa.id });
-  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "H-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "H-1", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
   const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "hecho@retia.test", nombre: "Hecho", fechaPrimeraAplicacion: new Date("2026-11-01T12:00:00-05:00") }).returning();
   leadId = lead.id;

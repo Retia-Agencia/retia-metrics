@@ -137,11 +137,10 @@ interface ProgramaVolumen {
   id: string;
   nombre: string;
   slug: string;
-  ticketUsd: string;
+  precioUsd: string;
   fuenteId: string;
   cohorteId: string;
   totalLeads: number;
-  comisionPorcentaje: string;
   prefijo: "p1" | "p2";
   distribucion: readonly { etapa: EtapaVolumen; pendiente?: PendienteDeal; cantidad: number }[];
 }
@@ -295,8 +294,6 @@ async function sembrarVolumen(
     await editarPrograma(db, actorId, programa.id, {
       nombre: programa.nombre,
       slug: programa.slug,
-      ticketUsd: programa.ticketUsd,
-      comisionPorcentaje: programa.comisionPorcentaje,
     });
   }
 
@@ -428,7 +425,7 @@ async function sembrarVolumen(
   const abonosHistoricos: AbonoHistorico[] = [];
   const candidatosParaAnular: number[] = [];
   for (const programa of programasDeVolumen) {
-    const precio = Number(programa.ticketUsd);
+    const precio = Number(programa.precioUsd);
     let abonadosVistos = 0;
     const pagadores = dealsCreados.filter(
       (deal) => leadPorCorreo.get(deal.correo)?.programId === programa.id
@@ -557,7 +554,6 @@ export async function sembrarLocal(): Promise<void> {
   const p1 = await crearPrograma(db, actorId, {
     nombre: "ComunicArte Local",
     slug: "comunicarte-local",
-    ticketUsd: "797.00",
   });
   await db.insert(integraciones).values({
     programId: p1.id, tipo: "calendly",
@@ -570,7 +566,6 @@ export async function sembrarLocal(): Promise<void> {
   const p2 = await crearPrograma(db, actorId, {
     nombre: "Tactical Investor Local",
     slug: "tactical-local",
-    ticketUsd: "1500.00",
   });
   await db.insert(integraciones).values({
     programId: p2.id, tipo: "calendly",
@@ -592,7 +587,6 @@ export async function sembrarLocal(): Promise<void> {
     programId: prog1.id,
     codigo: "C1",
     metaCupos: 30,
-    precioUsd: "797.00",
     fechaInicioClases: "2026-11-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-10-31",
@@ -602,7 +596,6 @@ export async function sembrarLocal(): Promise<void> {
     programId: prog2.id,
     codigo: "C1",
     metaCupos: 50,
-    precioUsd: "1500.00",
     fechaInicioClases: "2026-11-15",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-14",
@@ -1323,11 +1316,10 @@ export async function sembrarLocal(): Promise<void> {
         id: prog1.id,
         nombre: "ComunicArte Local",
         slug: "comunicarte-local",
-        ticketUsd: "797.00",
+        precioUsd: "797.00",
         fuenteId: f1.id,
         cohorteId: coh1.id,
         totalLeads: 150,
-        comisionPorcentaje: "10.04",
         prefijo: "p1",
         distribucion: [
           { etapa: "registrado", cantidad: 24 },
@@ -1350,11 +1342,10 @@ export async function sembrarLocal(): Promise<void> {
         id: prog2.id,
         nombre: "Tactical Investor Local",
         slug: "tactical-local",
-        ticketUsd: "1500.00",
+        precioUsd: "1500.00",
         fuenteId: f2.id,
         cohorteId: coh2.id,
         totalLeads: 120,
-        comisionPorcentaje: "6.67",
         prefijo: "p2",
         distribucion: [
           { etapa: "registrado", cantidad: 20 },

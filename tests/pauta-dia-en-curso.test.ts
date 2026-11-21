@@ -101,7 +101,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "programa-dia-en-curso",
     nombre: "Programa día en curso",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   await sembrarIntegracion(db, programId, "meta", { token: TOKEN }, { nombre: "Retia" });

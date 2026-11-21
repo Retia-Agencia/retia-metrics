@@ -68,12 +68,12 @@ beforeEach(async () => {
   sesionGerenteLimitado.user.id = gerenteId;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   programId = p.id;
   const [ajeno] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-ajeno", nombre: "Programa Ajeno", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-ajeno", nombre: "Programa Ajeno" })
     .returning();
   programaAjenoId = ajeno.id;
   const [developer] = await db
@@ -95,7 +95,6 @@ async function acciones() {
 const programaValido = {
   nombre: "Programa Beta",
   slug: "programa-beta",
-  ticketUsd: "797.00",
   webUrl: "",
   calendlyUrl: "",
 };
@@ -105,7 +104,6 @@ const cohorteValida = {
   codigo: "C1",
   metaCupos: 30,
   metaLeadsDia: 10,
-  precioUsd: "797.00",
   fechaInicioClases: "2026-08-11",
   fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
@@ -144,7 +142,7 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
       () => desactivarProgramaAccion(UUID),
       () => reactivarProgramaAccion(UUID),
       () => activarProgramaDesdeFichaAccion(programId),
-      () => crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado", ticketUsd: "100" }),
+      () => crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado" }),
       () => agregarAlProgramaAccion({ userId: UUID, programId }),
       () => quitarDelProgramaAccion({ userId: UUID, programId }),
     ]) {
@@ -178,7 +176,7 @@ describe("acciones de programas — el gerente administra", () => {
 
   it("un slug invalido devuelve ok:false con mensaje", async () => {
     const { crearProgramaInactivoAccion } = await acciones();
-    const res = await crearProgramaInactivoAccion({ nombre: "Inválido", slug: "Con Mayusculas", ticketUsd: "100" });
+    const res = await crearProgramaInactivoAccion({ nombre: "Inválido", slug: "Con Mayusculas" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
   });
@@ -188,7 +186,6 @@ describe("acciones de programas — el gerente administra", () => {
     const resultado = await crearProgramaInactivoAccion({
       nombre: "Programa incompleto",
       slug: "programa-incompleto",
-      ticketUsd: "900",
     });
     expect(resultado).toEqual({ ok: true, slug: "programa-incompleto" });
     const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-incompleto"));
@@ -230,7 +227,6 @@ describe("acciones de programas — el gerente administra", () => {
     const entrada = {
       nombre: actual.nombre,
       slug: actual.slug,
-      ticketUsd: String(actual.ticketUsd),
       webUrl: actual.webUrl,
       calendlyUrl: actual.calendlyUrl,
       muestraMinimaConversion: 25,
@@ -266,7 +262,7 @@ describe("acciones de programas — el gerente administra", () => {
     const { editarProgramaAccion } = await acciones();
     auth.mockResolvedValue({ user: { ...sesionGerente.user, id: gerenteId } });
     const [actual] = await db.select().from(programs).where(eq(programs.id, programId));
-    const entrada = { nombre: actual.nombre, slug: actual.slug, ticketUsd: String(actual.ticketUsd), webUrl: "", calendlyUrl: "" };
+    const entrada = { nombre: actual.nombre, slug: actual.slug, webUrl: "", calendlyUrl: "" };
     const filasDelCorte = () => db.select().from(changeLog).where(eq(changeLog.campo, "cortePagoRapidoDias"));
 
     expect(await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "3" })).toEqual({ ok: true });
@@ -296,7 +292,7 @@ describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094
 
   it("un gerente limitado no crea programas", async () => {
     const { crearProgramaInactivoAccion } = await acciones();
-    expect((await crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado", ticketUsd: "100" })).ok).toBe(false);
+    expect((await crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado" })).ok).toBe(false);
     expect(await db.select().from(programs).where(eq(programs.slug, "forjado"))).toHaveLength(0);
   });
 
@@ -333,6 +329,6 @@ describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094
   it("el developer conserva la creación global", async () => {
     auth.mockResolvedValue(sesionDeveloper);
     const { crearProgramaInactivoAccion } = await acciones();
-    expect((await crearProgramaInactivoAccion({ nombre: "Dev", slug: "dev", ticketUsd: "100" })).ok).toBe(true);
+    expect((await crearProgramaInactivoAccion({ nombre: "Dev", slug: "dev" })).ok).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { and, eq, isNull } from "drizzle-orm";
 import {
   abonos, cohorts, dealEtapaHistorial, dealLineas, deals, leads, plataformasPago,
-  productos, programs, skus, users,
+  programs, skus, users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearLineaSinClasificar } from "@/lib/deals/lineas";
@@ -49,7 +49,7 @@ afterEach(() => {
 beforeEach(async () => {
   await vaciar();
   const [programa] = await db.insert(programs).values({
-    ...PROGRAMA_DE_PRUEBA, slug: "lineas-376", nombre: "Líneas 376", ticketUsd: "100",
+    ...PROGRAMA_DE_PRUEBA, slug: "lineas-376", nombre: "Líneas 376",
   }).returning();
   programId = programa.id;
   [closerId] = (await db.insert(users).values({
@@ -57,19 +57,15 @@ beforeEach(async () => {
   }).returning()).map((fila) => fila.id);
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Prueba 376" }).returning())[0].id;
   const cohortes = await db.insert(cohorts).values([
-    { programId, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
-    { programId, codigo: "C2", metaCupos: 10, precioUsd: "120", fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2026-12-31", fechaInicioClases: "2027-01-02" },
+    { programId, codigo: "C1", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" },
+    { programId, codigo: "C2", metaCupos: 10, fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2026-12-31", fechaInicioClases: "2027-01-02" },
   ]).returning();
   cohortId = cohortes[0].id;
   cohort2Id = cohortes[1].id;
-  const [virtual, unoAUno] = await db.insert(productos).values([
-    { programId, nombre: "Programa virtual", slug: "programa_virtual" },
-    { programId, nombre: "Uno a uno", slug: "uno_a_uno" },
-  ]).returning();
   const filasSku = await db.insert(skus).values([
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true, comisionPorcentaje: "10" },
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true, comisionPorcentaje: "10" },
-    { programId, nombre: unoAUno.nombre, slug: unoAUno.slug, productoId: unoAUno.id, cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
+    { programId, nombre: "Programa virtual", slug: "programa_virtual", cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true, comisionPorcentaje: "10" },
+    { programId, nombre: "Programa virtual", slug: "programa_virtual", cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true, comisionPorcentaje: "10" },
+    { programId, nombre: "Uno a uno", slug: "uno_a_uno", cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
   ]).returning();
   virtual1 = filasSku[0].id;
   virtual2 = filasSku[1].id;
@@ -113,21 +109,19 @@ async function lineaSinClasificar(deal: typeof deals.$inferSelect, monto: number
 describe("ticket 376 B1: líneas como fuente de verdad", () => {
   it("el SKU virtual de prueba conserva su precio de lista al editar la cohorte", async () => {
     const cohorte = await crearCohorte(db, closerId, {
-      programId, codigo: "PUENTE", metaCupos: 3, precioUsd: "275", fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
+      programId, codigo: "PUENTE", metaCupos: 3, fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
     });
-    await skuVirtualDePrueba(db, cohorte.id);
-    const [skuCreado] = await db.select({ sku: skus, producto: productos }).from(skus)
-      .innerJoin(productos, eq(productos.id, skus.productoId))
+    await skuVirtualDePrueba(db, cohorte.id, "275");
+    const [skuCreado] = await db.select({ sku: skus }).from(skus)
       .where(eq(skus.cohortId, cohorte.id));
-    expect(skuCreado.producto).toMatchObject({ nombre: "Programa virtual", slug: "programa_virtual" });
-    const [programa] = await db.select().from(programs).where(eq(programs.id, programId));
     expect(skuCreado.sku).toMatchObject({
+      nombre: "Programa virtual", slug: "programa_virtual",
       codigo: "lineas_376_programa_virtual_puente", precioListaUsd: "275.00", cuentaComoCupo: true,
-      comisionPorcentaje: programa.comisionPorcentaje,
+      comisionPorcentaje: "10.00",
     });
 
     await editarCohorte(db, closerId, cohorte.id, {
-      programId, codigo: "PUENTE", metaCupos: 3, precioUsd: "300", fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
+      programId, codigo: "PUENTE", metaCupos: 3, fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
     });
     expect((await db.select().from(skus).where(eq(skus.id, skuCreado.sku.id)))[0].precioListaUsd)
       .toBe("275.00");

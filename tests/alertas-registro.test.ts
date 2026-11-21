@@ -89,7 +89,6 @@ describe("registro de alertas tecnicas", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "alertas",
       nombre: "Programa Alertas",
-      ticketUsd: "1000",
     }).returning();
     programId = programa.id;
     const [fuente] = await db.insert(sources).values({
@@ -264,7 +263,6 @@ describe("registro de alertas tecnicas", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "alertas-segundo",
       nombre: "Programa Alertas Segundo",
-      ticketUsd: "1000",
     }).returning();
     await db.insert(calls).values([
       { programId, origen: "calendly", resultado: "agendada", calendlyHostEmail: "host@calendly.co" },

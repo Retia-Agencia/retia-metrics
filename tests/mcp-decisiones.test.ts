@@ -53,8 +53,8 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "decision-a", nombre: "Decisión A", ticketUsd: "800" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "decision-b", nombre: "Decisión B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "decision-a", nombre: "Decisión A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "decision-b", nombre: "Decisión B" },
   ]).returning();
   programaA = a.id;
   programaB = b.id;
@@ -62,7 +62,6 @@ beforeEach(async () => {
     programId: programaA,
     codigo: "A1",
     metaCupos: 10,
-    precioUsd: "800",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
     fechaInicioClases: "2026-12-01",
@@ -73,7 +72,6 @@ beforeEach(async () => {
     programId: programaB,
     codigo: "B1",
     metaCupos: 10,
-    precioUsd: "1500",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
     fechaInicioClases: "2026-12-01",
@@ -224,7 +222,6 @@ describe("cartera_vencida", () => {
       programId: programaA,
       codigo: "A2",
       metaCupos: 10,
-      precioUsd: "800",
       fechaInicioVentas: "2027-01-01",
       fechaCierreVentas: "2027-01-31",
       fechaInicioClases: "2027-02-01",

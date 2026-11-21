@@ -120,7 +120,6 @@ describe("paridad de la reja de activación", () => {
     const programa = await crearPrograma(db, actorId, {
       nombre: "Programa de configuración",
       slug: "programa-configuracion",
-      ticketUsd: "797",
     });
     programId = programa.id;
   });

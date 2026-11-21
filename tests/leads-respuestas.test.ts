@@ -36,8 +36,8 @@ beforeEach(async () => {
   const [p, q] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" },
     ])
     .returning();
   programId = p.id;
@@ -155,7 +155,7 @@ describe("preguntasDisponiblesDelPrograma", () => {
   it("un programa sin envíos devuelve una lista vacía", async () => {
     const [vacio] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío" })
       .returning();
     expect(await preguntasDisponiblesDelPrograma(db, vacio.id)).toEqual([]);
   });

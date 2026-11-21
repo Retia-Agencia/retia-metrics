@@ -84,7 +84,6 @@ beforeEach(async () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "programa-perfil",
       nombre: "Programa perfil",
-      ticketUsd: "797",
     })
     .returning();
   await sembrarIntegracion(db, programa.id, "calendly", { token: "pat" });

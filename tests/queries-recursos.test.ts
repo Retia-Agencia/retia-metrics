@@ -47,12 +47,12 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte" })
     .returning();
   programaA = a.id;
   const [b] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical Investor", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical Investor" })
     .returning();
   programaB = b.id;
 

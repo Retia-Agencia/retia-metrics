@@ -227,8 +227,8 @@ describe("419 E-2: paridad cifra = lista en Hoy", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const [a, b] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "e419-h", nombre: "H", ticketUsd: "1500" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "e419-h-ajeno", nombre: "Ajeno", ticketUsd: "1500" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-h", nombre: "H" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-h-ajeno", nombre: "Ajeno" },
     ]).returning();
     programId = a.id;
     const [closer] = await db.insert(users).values({ email: "c@e419h.test", rol: "closer", closerId: "H419" }).returning();
