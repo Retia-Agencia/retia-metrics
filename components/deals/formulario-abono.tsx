@@ -27,7 +27,7 @@ export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAb
 
 type Plataforma = { id: string; nombre: string };
 
-export function FormularioAbono({ dealId, moneda, plataformas, datos, onChange, lineas = [], skusActivos = [], ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
+export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPadre, onChange, lineas = [], skusActivos = [], ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
   dealId: string;
   moneda: string;
   plataformas: Plataforma[];
@@ -42,7 +42,14 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos, onChange, 
   const [skuNuevo, setSkuNuevo] = useState(skusActivos[0]?.id ?? "");
   const [asignando, iniciarAsignacion] = useTransition();
   const vigentes = lineas.filter((linea) => linea.estado !== "anulada");
-  if (datos.lineaId == null && vigentes.length === 1) datos = { ...datos, lineaId: vigentes[0].id };
+  // Con una sola línea vigente se preselecciona sin mutar lo que llega del padre.
+  const datos = datosDelPadre.lineaId == null && vigentes.length === 1 ? { ...datosDelPadre, lineaId: vigentes[0].id } : datosDelPadre;
+  // El padre decide con su propio estado: la preselección también se le informa.
+  const lineaPreseleccionada = datosDelPadre.lineaId == null && vigentes.length === 1 ? vigentes[0].id : null;
+  useEffect(() => {
+    if (lineaPreseleccionada) onChange({ ...datosDelPadre, lineaId: lineaPreseleccionada });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineaPreseleccionada]);
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
   return <>
     <fieldset className="space-y-2">

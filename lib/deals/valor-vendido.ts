@@ -45,7 +45,7 @@ export async function congelarValorVendido(
   },
 ): Promise<ValorVendidoCongelado> {
   const descuentoUsd = esquemaDescuentoUsd.parse(entrada.descuentoUsd);
-  let linea = entrada.lineaId
+  const linea = entrada.lineaId
     ? await lineaVigente(tx, entrada.deal.id, entrada.lineaId)
     : await lineaConCupoVigente(tx, entrada.deal.id);
   if (!linea) {
