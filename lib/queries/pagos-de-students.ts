@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import {
   descuentosDeDeals,
   saldosDeDeals,
+  saldosDeLineas,
   type DescuentoDeDeal,
   type SaldoDeDeal,
 } from "@/lib/queries/saldo";
@@ -11,6 +12,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export interface AbonoDeStudent {
   id: string;
+  lineaId: string;
   fecha: string;
   monto: string;
   moneda: string;
@@ -33,6 +35,15 @@ export interface PagosDeStudent {
   acuerdoPago: string | null;
   fechaLimitePago: string | null;
   abonos: AbonoDeStudent[];
+  lineas: Array<{
+    lineaId: string;
+    skuSlug: string;
+    skuNombre: string;
+    valorVendidoUsd: number;
+    abonadoUsd: number;
+    saldoUsd: number | null;
+    sinSaldoPorque: "moneda_distinta" | null;
+  }>;
 }
 
 /**
@@ -59,12 +70,14 @@ export async function pagosDeStudents(
   const idsValidos = dealsFilas.map((fila) => fila.id);
   if (idsValidos.length === 0) return new Map();
 
-  const [saldos, descuentos, abonosFilas] = await Promise.all([
+  const [saldos, saldosDeCadaLinea, descuentos, abonosFilas] = await Promise.all([
     saldosDeDeals(db, idsValidos),
+    saldosDeLineas(db, idsValidos),
     descuentosDeDeals(db, idsValidos),
     db
       .select({
         id: abonos.id,
+        lineaId: abonos.lineaId,
         dealId: abonos.dealId,
         fecha: abonos.fecha,
         monto: abonos.monto,
@@ -128,6 +141,7 @@ export async function pagosDeStudents(
           .filter((abono) => abono.dealId === deal.id)
           .map((abono) => ({
             id: abono.id,
+            lineaId: abono.lineaId,
             fecha: abono.fecha,
             monto: abono.monto,
             moneda: abono.moneda,
@@ -145,6 +159,17 @@ export async function pagosDeStudents(
             anuladoPorNombre: abono.anuladoPorUserId
               ? usuariosPorId.get(abono.anuladoPorUserId) ?? null
               : null,
+          })),
+        lineas: [...saldosDeCadaLinea.values()]
+          .filter((linea) => linea.dealId === deal.id && linea.vendida)
+          .map((linea) => ({
+            lineaId: linea.lineaId,
+            skuSlug: linea.skuSlug,
+            skuNombre: linea.skuNombre,
+            valorVendidoUsd: linea.precio,
+            abonadoUsd: linea.abonado,
+            saldoUsd: linea.saldo,
+            sinSaldoPorque: linea.sinSaldoPorque,
           })),
       } satisfies PagosDeStudent] as const];
     }),

@@ -33,7 +33,7 @@ describe("458: el embudo comercial abre a pauta", () => {
     };
     const lista: ListaDeMetrica = {
       programId: "programa-1", disponible: true, subtotal: { cantidad: 1, caja: [] },
-      dinero: { vendido: 100, recaudado: 50, porCobrar: 50, sobrepago: 0, ventas: 1, sinSaldoCalculable: 0, sinValorVendido: 0 },
+      dinero: { vendido: 100, recaudado: 50, porCobrar: 50, sobrepago: 0, ventas: 1, lineas: 1, sinSaldoCalculable: 0, sinValorVendido: 0 },
       grupos: [{ closer: fila.closer, claveCloser: fila.claveCloser, etapa: fila.etapa, bucket: fila.bucket, moneda: fila.moneda, monto: fila.monto, cantidad: fila.cantidad }],
       pagina: 1, filas: [{ ...fila }],
     };

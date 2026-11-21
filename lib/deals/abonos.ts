@@ -17,6 +17,7 @@ import { puedeDeshacer, puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
 import { asegurarLineaConCupo, estadoDePagoPorLineas, lineasConCupoVigentes, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
+import { congelarComisionDeLineas } from "./comision-de-linea";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -258,6 +259,9 @@ export async function registrarAbono(
           origen: "app",
         },
       );
+      await congelarComisionDeLineas(tx, deal.id, {
+        actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
+      });
       await recalcularDealPorLineas(tx, deal.id, {
         actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
       });

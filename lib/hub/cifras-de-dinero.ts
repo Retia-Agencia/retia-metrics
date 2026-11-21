@@ -21,7 +21,7 @@ import { MONEDA_DE_CAJA, type CajaPorMoneda, type VentasDeCohorte } from "@/lib/
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
-export const CONCEPTOS_DE_DINERO = ["vendido", "recaudado", "por_cobrar", "entro_a_caja", "ventas"] as const;
+export const CONCEPTOS_DE_DINERO = ["skus_vendidos", "vendido", "recaudado", "por_cobrar", "entro_a_caja", "ventas"] as const;
 export type ConceptoDeDinero = (typeof CONCEPTOS_DE_DINERO)[number];
 export type ExplicacionesDeDinero = Record<ConceptoDeDinero, ExplicacionDeConcepto>;
 
@@ -67,6 +67,7 @@ export interface EntradaDeCifrasDeDinero {
 }
 
 export interface CifrasDeDinero {
+  skusVendidos: CifraDeMetrica;
   vendido: CifraDeMetrica;
   recaudado: CifraDeMetrica;
   porCobrar: CifraDeMetrica;
@@ -80,11 +81,11 @@ export function tresDeLasVentas(p: {
   anterior?: DineroDeVentas | null;
   referencia?: string;
   lista: ReturnType<typeof listaDeDetalle>;
-  explicaciones: Pick<ExplicacionesDeDinero, "vendido" | "recaudado" | "por_cobrar">;
+  explicaciones: Pick<ExplicacionesDeDinero, "skus_vendidos" | "vendido" | "recaudado" | "por_cobrar">;
   filtros: Array<readonly [string, string]>;
   periodo: string;
   enCurso: boolean;
-}): Pick<CifrasDeDinero, "vendido" | "recaudado" | "porCobrar"> {
+}): Pick<CifrasDeDinero, "skusVendidos" | "vendido" | "recaudado" | "porCobrar"> {
   const d = p.dinero;
   const ref = p.anterior ? p.referencia : undefined;
   const comun = { filtros: p.filtros, periodo: p.periodo, enCurso: p.enCurso, lista: p.lista };
@@ -94,6 +95,10 @@ export function tresDeLasVentas(p: {
   // La resta solo se escribe con sus números cuando cuadra a la vista: un sobrepago o una venta sin saldo la descuadran.
   const restaLimpia = d.sobrepago === 0 && d.sinSaldoCalculable === 0;
   return {
+    skusVendidos: armarCifra({
+      concepto: "skus_vendidos", explicacion: p.explicaciones.skus_vendidos, valor: d.lineas,
+      comparacion: comparacionCon(ref, p.anterior?.lineas), filtros: p.filtros, periodo: p.periodo, enCurso: p.enCurso,
+    }),
     vendido: armarCifra({
       concepto: "vendido", explicacion: p.explicaciones.vendido, valor: d.vendido,
       comparacion: comparacionCon(ref, p.anterior?.vendido), parcial: fraseSinValorVendido(d), ...comun,

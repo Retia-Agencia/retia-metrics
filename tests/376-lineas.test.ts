@@ -67,8 +67,8 @@ beforeEach(async () => {
     { programId, nombre: "Uno a uno", slug: "uno_a_uno" },
   ]).returning();
   const filasSku = await db.insert(skus).values([
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true },
-    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true },
+    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true, comisionPorcentaje: "10" },
+    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true, comisionPorcentaje: "10" },
     { programId, nombre: unoAUno.nombre, slug: unoAUno.slug, productoId: unoAUno.id, cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
   ]).returning();
   virtual1 = filasSku[0].id;
@@ -231,13 +231,11 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     await pago(deal.id, "40");
     const adicional = await lineaSinClasificar(deal, 25);
     await pago(deal.id, "25", adicional.id);
-    const [venta] = await db.select().from(deals).where(eq(deals.id, deal.id));
-    expect(Number(venta.valorVendidoUsd)).toBe(125);
-    const porcentaje = Number(venta.comisionPorcentaje);
-    expect(porcentaje).toBeGreaterThan(0);
+    const lineas = await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id));
+    expect(lineas.map((linea) => linea.comisionPorcentaje).sort()).toEqual(["0.00", "10.00"]);
 
     const [fila] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
-    expect(fila.comisionUsd).toBe(Math.round(100 * porcentaje) / 100);
+    expect(fila.comisionUsd).toBe(10);
     expect(fila.ventasSinComision).toBe(0);
   });
 
@@ -248,17 +246,13 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const unoAUno = await asignar(deal, unoAUno1, 50);
     await pago(deal.id, "40", virtual.id);
     await pago(deal.id, "50", unoAUno.id);
-    const [venta] = await db.select().from(deals).where(eq(deals.id, deal.id));
-    expect(Number(venta.valorVendidoUsd)).toBe(150);
-    const porcentaje = Number(venta.comisionPorcentaje);
-    expect(porcentaje).toBeGreaterThan(0);
     const [conCero] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
-    expect(conCero.comisionUsd).toBe(Math.round(100 * porcentaje) / 100);
+    expect(conCero.comisionUsd).toBe(10);
 
-    // Con % nulo el SKU no se excluye: la base vuelve a ser el valor vendido completo.
+    // El porcentaje ya quedó congelado: cambiar el SKU no altera la comisión de esta línea.
     await db.update(skus).set({ comisionPorcentaje: null }).where(eq(skus.id, unoAUno1));
     const [conNulo] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
-    expect(conNulo.comisionUsd).toBe(Math.round(150 * porcentaje) / 100);
+    expect(conNulo.comisionUsd).toBe(10);
   });
 
   it("ADR 0137 punto 14: un abono a una línea sin clasificar elegida mueve el deal", async () => {

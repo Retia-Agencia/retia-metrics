@@ -85,7 +85,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
                         <td className="py-2 text-right">{monto(a.monto, a.moneda)}</td>
                         <td className="py-2 pl-2 text-right text-muted-foreground">
                           {a.origen === "venta_nueva" ? "Venta de hoy"
-                            : a.origen === "adicional" ? "Abono adicional (1:1)"
+                            : a.origen === "adicional" ? "Abono de otra línea"
                             : `Completa la venta del ${fecha(a.ventaDelDia ?? "")}${a.closerDeLaVenta ? ` de ${a.closerDeLaVenta}` : ""}`}
                         </td>
                       </tr>

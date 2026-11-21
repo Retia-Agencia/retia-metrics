@@ -4,6 +4,7 @@ import type { ExplicacionesDeDinero } from "@/lib/hub/cifras-de-dinero";
 
 export function explicacionesDeDinero(): ExplicacionesDeDinero {
   return {
+    skus_vendidos: explicacionDe("skus_vendidos", { universo: "todas" }),
     vendido: explicacionDe("vendido", { universo: "todas" }),
     recaudado: explicacionDe("recaudado", { universo: "todas" }),
     por_cobrar: explicacionDe("por_cobrar", { universo: "todas" }),

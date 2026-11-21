@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { abonos, cohorts, deals, productos, programs, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { congelarComisionDeLineas } from "@/lib/deals/comision-de-linea";
 import { asegurarLineaConCupo, crearLineaSinClasificar, recalcularDealPorLineas } from "@/lib/deals/lineas";
 
 type AbonoDePrueba = typeof abonos.$inferInsert;
@@ -79,13 +80,15 @@ export async function lineaConCupoDePrueba(db: Db, dealId: string) {
         : await cohorteParaDealSinCohorte(tx, deal.programId);
       if (!cohorte) throw new Error("No existe la cohorte del deal de prueba.");
       await skuVirtualDePrueba(tx, cohorte.id);
-      return asegurarLineaConCupo(tx, {
+      const actor = { actorId: deal.ownerUserId, etiqueta: "Fixture de venta sin abono" };
+      const linea = await asegurarLineaConCupo(tx, {
         deal,
         cohortId: cohorte.id,
         valorVendidoUsd: Number(deal.valorVendidoUsd ?? cohorte.precioUsd),
-        actorId: deal.ownerUserId,
-        etiqueta: "Fixture de venta sin abono",
+        ...actor,
       });
+      await congelarComisionDeLineas(tx, deal.id, actor);
+      return linea;
     });
 }
 
@@ -98,7 +101,11 @@ export async function abonoDePrueba(
   for (const entrada of entradas) {
     const filas = await (db as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> })
       .transaction(async (tx) => {
-        if (entrada.lineaId) return tx.insert(abonos).values(entrada).returning();
+        if (entrada.lineaId) {
+          const filasDeLinea = await tx.insert(abonos).values(entrada).returning();
+          await congelarComisionDeLineas(tx, entrada.dealId, { actorId: null, etiqueta: "Fixture de abono" });
+          return filasDeLinea;
+        }
         const [deal] = await tx.select().from(deals).where(eq(deals.id, entrada.dealId));
         if (!deal) throw new Error(`No existe el deal de prueba ${entrada.dealId}.`);
         const cohorteId = deal.cohortId
@@ -121,6 +128,7 @@ export async function abonoDePrueba(
         }
         const insertados = await tx.insert(abonos).values({ ...entrada, lineaId: linea.id }).returning();
         await recalcularDealPorLineas(tx, deal.id, actor);
+        await congelarComisionDeLineas(tx, deal.id, actor);
         return insertados;
       });
     insertados.push(...filas);

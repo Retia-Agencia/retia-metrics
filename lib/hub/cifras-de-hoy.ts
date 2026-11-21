@@ -24,7 +24,7 @@ import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 export const CONCEPTOS_DE_HOY = [
   "cupos_vendidos", "leads", "leads_que_hacen_falta", "entro_a_caja", "asistencia", "cierre_de_ventas", "citas_sin_marcar",
   "registros", "citas_del_dia", "citas_realizadas", "citas_canceladas", "citas_pendientes",
-  "vendido", "recaudado", "por_cobrar", "llevamos", "show_por_cita", "citas_de_manana",
+  "skus_vendidos", "vendido", "recaudado", "por_cobrar", "llevamos", "show_por_cita", "citas_de_manana",
 ] as const;
 export type ConceptoDeHoy = (typeof CONCEPTOS_DE_HOY)[number];
 export type ExplicacionesDeHoy = Record<ConceptoDeHoy, ExplicacionDeConcepto>;

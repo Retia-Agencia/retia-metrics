@@ -1,5 +1,8 @@
 import type { Db } from "@/lib/db/tipos";
-import { saldosDeDeals, type SaldoDeDeal } from "@/lib/queries/saldo";
+import { and, inArray } from "drizzle-orm";
+import { deals } from "@/lib/db/schema";
+import { saldosDeLineas, type SaldoDeDeal, type SaldoDeLinea } from "@/lib/queries/saldo";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 
 /**
  * Las tres cifras del dinero de un conjunto de ventas (ticket 369, G-3 y DH-2 de `docs/hub.md` §0).
@@ -9,7 +12,7 @@ import { saldosDeDeals, type SaldoDeDeal } from "@/lib/queries/saldo";
  * - **Por cobrar:** Vendido − Recaudado, venta por venta. Un saldo negativo es un sobrepago: no resta
  *   deuda a otra venta, se muestra aparte (`saldoLegible`).
  *
- * Las tres salen de `saldosDeDeals` (ADR 0024) sobre el MISMO conjunto de ids, así que cuadran al centavo:
+ * Las tres salen de `saldosDeLineas` (ADR 0024 y 0137, por línea vendida) sobre el MISMO conjunto de ids, así que cuadran al centavo:
  * `vendido = recaudado + porCobrar − sobrepago`. Una venta sin saldo calculable (sin valor vendido, o con
  * abonos en otra moneda) no entra a ninguna de las tres, para que el invariante se sostenga, y se cuenta
  * aparte en `sinSaldoCalculable`: nunca se convierte moneda en silencio.
@@ -25,6 +28,8 @@ export interface DineroDeVentas {
   sobrepago: number;
   /** Ventas con las tres cifras calculadas. */
   ventas: number;
+  /** Líneas vendidas incluidas en las cifras. */
+  lineas: number;
   /** Ventas que quedaron fuera de las tres por no tener saldo calculable. */
   sinSaldoCalculable: number;
   /** Ventas sin valor vendido: alarma de integridad incluida en `sinSaldoCalculable`. */
@@ -32,42 +37,63 @@ export interface DineroDeVentas {
 }
 
 export const SIN_DINERO: DineroDeVentas = {
-  vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0,
+  vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, lineas: 0,
+  sinSaldoCalculable: 0, sinValorVendido: 0,
 };
 
 const centavos = (n: number) => Math.round(n * 100) / 100;
 
-/** Suma pura de saldos ya calculados: la comparten el servidor y los tests del invariante. */
-export function dineroDeSaldos(saldos: Iterable<SaldoDeDeal>): DineroDeVentas {
-  const total = { ...SIN_DINERO };
-  for (const s of saldos) {
-    if (s.saldo === null || s.precio === null) {
-      total.sinSaldoCalculable += 1;
-      if (s.sinSaldoPorque === "sin_valor_vendido") total.sinValorVendido += 1;
-      // Vendido es lo que escribio el closer en USD: un abono en otra moneda no lo borra (solo deja sin calcular
-      // Recaudado y Por cobrar hasta que exista la conversion a USD).
-      if (s.precio !== null) total.vendido += s.precio;
+/** Las tres cifras de ventas ya elegidas por id (las que dejan pasar los filtros del Hub). */
+export async function dineroDeVentas(
+  db: Db,
+  dealIds: readonly string[],
+  lineasElegidas?: readonly SaldoDeLinea[],
+): Promise<DineroDeVentas> {
+  if (dealIds.length === 0) return { ...SIN_DINERO };
+  const ids = [...new Set(dealIds)];
+  const [filasDeal, mapaDeLineas] = await Promise.all([
+    db.select({ id: deals.id, cortesia: deals.cortesia }).from(deals)
+      .where(and(inArray(deals.id, ids), incluyendoAnulados(deals))),
+    lineasElegidas ? Promise.resolve(null) : saldosDeLineas(db, ids),
+  ]);
+  const lineas = lineasElegidas ?? [...mapaDeLineas!.values()].filter((linea) => linea.vendida);
+  const porDeal = new Map<string, SaldoDeLinea[]>();
+  for (const linea of lineas) {
+    const grupo = porDeal.get(linea.dealId) ?? [];
+    grupo.push(linea);
+    porDeal.set(linea.dealId, grupo);
+  }
+  const total = { ...SIN_DINERO, lineas: lineas.length };
+  for (const deal of filasDeal) {
+    if (deal.cortesia) {
+      total.ventas += 1;
       continue;
     }
-    total.ventas += 1;
-    total.vendido += s.precio;
-    total.recaudado += s.abonado;
-    if (s.saldo >= 0) total.porCobrar += s.saldo;
-    else total.sobrepago += -s.saldo;
+    const suyas = porDeal.get(deal.id) ?? [];
+    if (suyas.length === 0) {
+      total.sinSaldoCalculable += 1;
+      total.sinValorVendido += 1;
+      continue;
+    }
+    let calculable = true;
+    for (const linea of suyas) {
+      total.vendido += linea.precio;
+      if (linea.saldo === null) {
+        calculable = false;
+        continue;
+      }
+      total.recaudado += linea.abonado;
+      if (linea.saldo >= 0) total.porCobrar += linea.saldo;
+      else total.sobrepago += -linea.saldo;
+    }
+    if (calculable) total.ventas += 1;
+    else total.sinSaldoCalculable += 1;
   }
   return {
     ...total,
-    vendido: centavos(total.vendido),
-    recaudado: centavos(total.recaudado),
-    porCobrar: centavos(total.porCobrar),
-    sobrepago: centavos(total.sobrepago),
+    vendido: centavos(total.vendido), recaudado: centavos(total.recaudado),
+    porCobrar: centavos(total.porCobrar), sobrepago: centavos(total.sobrepago),
   };
-}
-
-/** Las tres cifras de ventas ya elegidas por id (las que dejan pasar los filtros del Hub). */
-export async function dineroDeVentas(db: Db, dealIds: readonly string[]): Promise<DineroDeVentas> {
-  if (dealIds.length === 0) return { ...SIN_DINERO };
-  return dineroDeSaldos((await saldosDeDeals(db, dealIds)).values());
 }
 
 /** Las tres cifras de UNA venta, para la columna de una lista. `null` si no tiene saldo calculable. */
@@ -87,6 +113,7 @@ export function sumarDineroDeVentas(xs: readonly DineroDeVentas[]): DineroDeVent
     porCobrar: t.porCobrar + x.porCobrar,
     sobrepago: t.sobrepago + x.sobrepago,
     ventas: t.ventas + x.ventas,
+    lineas: t.lineas + x.lineas,
     sinSaldoCalculable: t.sinSaldoCalculable + x.sinSaldoCalculable,
     sinValorVendido: t.sinValorVendido + x.sinValorVendido,
   }), { ...SIN_DINERO });

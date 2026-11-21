@@ -1,5 +1,5 @@
 import { Enlace } from "@/components/enlace";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -66,6 +66,22 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const completos = filas.filter((f) => f.etapa === "ganado_completo").length;
   const sinOnboarding = filas.filter((f) => f.onboardedAt == null).length;
   const vencidos = filas.filter((f) => f.vencido != null).length;
+  const gruposPorSku = new Map<string, {
+    nombre: string;
+    filas: Array<{ student: (typeof filas)[number]; linea: NonNullable<ReturnType<typeof pagos.get>>["lineas"][number] | null }>;
+  }>();
+  for (const student of filas) {
+    const lineas = pagos.get(student.dealId)?.lineas ?? [];
+    for (const linea of lineas.length > 0 ? lineas : [null]) {
+      const clave = linea?.skuSlug ?? "\u0000sin-sku";
+      const grupo = gruposPorSku.get(clave) ?? { nombre: linea?.skuNombre ?? "Sin SKU", filas: [] };
+      grupo.filas.push({ student, linea });
+      gruposPorSku.set(clave, grupo);
+    }
+  }
+  const filasPorSku = [...gruposPorSku.entries()]
+    .sort(([a], [b]) => a === "\u0000sin-sku" ? 1 : b === "\u0000sin-sku" ? -1 : a.localeCompare(b, "es"))
+    .flatMap(([, grupo]) => grupo.filas.map((fila, indice) => ({ ...fila, grupo: grupo.nombre, iniciaGrupo: indice === 0 })));
   // Los filtros declarados de Students (ticket 202): Cohorte a la vista, Onboarding en el
   // popover. El resumen (completos, sin onboarding, cartera vencida) va a la línea de
   // estado cuando no hay filtros activos.
@@ -147,16 +163,17 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                   </tr>
                 </thead>
                 <tbody>
-                {filas.map((f) => {
+                {filasPorSku.map(({ student: f, linea, grupo, iniciaGrupo }) => {
                   const saldo = saldoLegible(
-                    f.saldo?.saldo ?? null,
-                    f.saldo?.moneda ?? "USD",
-                    f.saldo?.sinSaldoPorque,
+                    linea?.saldoUsd ?? f.saldo?.saldo ?? null,
+                    "USD",
+                    linea?.sinSaldoPorque ?? f.saldo?.sinSaldoPorque,
                   );
                   const href = enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen);
                   const hrefLead = enlaceConVuelta(`/p/${programa.slug}/leads/${f.leadId}`, origen);
-                  return (
-                    <tr key={f.dealId} className={abreFicha ? "cursor-pointer border-b hover:bg-muted/50" : "border-b hover:bg-muted/50"}>
+                  return <Fragment key={linea?.lineaId ?? `sin-sku:${f.dealId}`}>
+                    {iniciaGrupo ? <tr className="border-b bg-muted/60"><th className="px-2 py-2 text-left font-semibold" colSpan={cohorte ? 7 : 8}>{grupo}</th></tr> : null}
+                    <tr className={abreFicha ? "cursor-pointer border-b hover:bg-muted/50" : "border-b hover:bg-muted/50"}>
                       <td>
                         <CeldaDeal abreFicha={abreFicha} href={href} hrefBasico={hrefLead} extra="font-medium text-marca-texto" title={f.email} enfocable>
                           {f.nombre ?? f.email}
@@ -207,6 +224,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                             nombre={f.nombre ?? f.email}
                             pagos={pagos.get(f.dealId)!}
                             slug={programa.slug}
+                            lineaId={linea?.lineaId}
                           />
                         ) : null}
                       </td>
@@ -226,7 +244,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         </CeldaDeal>
                       </td>
                     </tr>
-                  );
+                  </Fragment>;
                 })}
                 </tbody>
               </table>

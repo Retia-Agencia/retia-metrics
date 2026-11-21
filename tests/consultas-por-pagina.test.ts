@@ -143,14 +143,14 @@ function datosDelHubDelPrograma(seccion: SeccionDelHubDelPrograma) {
 // tabla del 437 (dev:local, datos reales). El tope es EXACTO: si una página usa menos, el guardián falla
 // con el número nuevo, y se baja en el mismo commit (el trinquete nunca queda holgado).
 const PAGINAS = {
-  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 179, escalaConProgramas: true, cargar: datosDelHub("hoy") },
-  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
-    "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("pauta") },
-  "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
-  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 66, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
-  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 82, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
+  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 176, escalaConProgramas: true, cargar: datosDelHub("hoy") },
+  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 257, escalaConProgramas: true, cargar: datosDelHub("comercial") },
+    "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 164, escalaConProgramas: true, cargar: datosDelHub("pauta") },
+  "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 164, escalaConProgramas: true, cargar: datosDelHub("dinero") },
+  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 65, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
+  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 81, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
   "/p/[programa]/hub?seccion=pauta": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 22, escalaConProgramas: false, cargar: datosDelHubDelPrograma("pauta") },
-  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 55, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
+  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 54, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
     tope: 33, // +1 (ADR 0137 punto 8): las líneas normalizadas se leen en lote; el costo no crece con deals.
@@ -175,7 +175,7 @@ const PAGINAS = {
   "/ajustes/salud": { pagina: "app/(app)/ajustes/salud/page.tsx", tope: 23, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeSalud(db, { slugPedido: s.programas[0]!.slug, hoy: HOY, ahora: new Date(`${HOY}T12:00:00-05:00`), fetchCalendly: async () => new Response("{}") }) },
   "/ajustes/usuarios": { pagina: "app/(app)/ajustes/usuarios/page.tsx", tope: 7, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeUsuarios(db, { userId: s.closerId, rol: "developer" }) },
   "/hub/lista": { pagina: "app/(app)/hub/lista/page.tsx", tope: 6, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeListaDelHub(db, { programas: s.programas, metrica: "leads", periodo: resolverPeriodo({ preset: "este_mes" }, { hoy: HOY }), hoy: HOY, pagina: 1 }) },
-  "/hub/reporte": { pagina: "app/(app)/hub/reporte/page.tsx", tope: 139, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeReporteDelHub(db, { programas: s.programas, dia: HOY, puedeVerEquipo: true }) },
+  "/hub/reporte": { pagina: "app/(app)/hub/reporte/page.tsx", tope: 136, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeReporteDelHub(db, { programas: s.programas, dia: HOY, puedeVerEquipo: true }) },
   "/media": { pagina: "app/(app)/media/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeMedia(db, { userId: s.closerId, rol: "developer", pedido: {}, hoy: HOY }) },
   "/nerd-stats/bitacora": { pagina: "app/(app)/nerd-stats/bitacora/page.tsx", tope: 6, escalaConProgramas: false, cargar: (db) => cargarDatosDeBitacora(db, { busqueda: {} }) },
   "/nerd-stats": { pagina: "app/(app)/nerd-stats/page.tsx", tope: 17, escalaConProgramas: false, cargar: (db) => cargarDatosDeNerdStats(db) },

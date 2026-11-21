@@ -9,7 +9,7 @@
 export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
   | "agendadas" | "citas" | "shows" | "show_por_cita" | "no_asistio"
-  | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
+  | "ventas" | "skus_vendidos" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
   | "nacio_agenda_del_dia" | "nacio_seguimiento" | "nacio_sin_llamada"
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion"
   // Hub › Hoy (378): los nombres que Mani pidió sin jerga. "Meta" queda solo para la plataforma de pauta.
@@ -46,6 +46,7 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   show_por_cita: { corto: "% de show por cita", largo: "% de show por cita", definicion: "Citas que ocurrieron ÷ citas vivas que ya debían ocurrir." },
   no_asistio: { corto: "No asistió", largo: "Citas a las que no asistieron", definicion: "Citas ocurridas sin llamada atendida." },
   ventas: { corto: "Ventas", largo: "Ventas del periodo", definicion: "Deals en Abonado o Completo; cada uno es un cupo." },
+  skus_vendidos: { corto: "SKUs vendidos", largo: "SKUs vendidos en el periodo", definicion: "Líneas vendidas; cada línea cuenta una vez y un deal puede aportar varias." },
   vendido: { corto: "Vendido", largo: "Valor vendido", definicion: "Suma del valor vendido que el closer escribió en cada venta." },
   recaudado: { corto: "Recaudado", largo: "Recaudado de lo vendido", definicion: "Lo abonado, a hoy, a las ventas elegidas, sin importar cuándo se abonó." },
   por_cobrar: { corto: "Por cobrar", largo: "Por cobrar de lo vendido", definicion: "Lo vendido menos lo recaudado en las ventas elegidas; un sobrepago no resta deuda a otra venta." },
@@ -165,6 +166,7 @@ export const TITULOS_DE_LISTA = {
   no_shows: nombreLargo("no_asistio"),
   shows_sin_grain: "Realizadas sin Grain",
   cierres: nombreLargo("ventas"),
+  skus_vendidos: nombreLargo("skus_vendidos"),
   cortesias: "Cortesías",
   leads: nombreLargo("leads"),
   deals_creados: "Deals creados",

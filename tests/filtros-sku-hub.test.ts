@@ -72,8 +72,16 @@ describe("filtros de SKU del Hub", () => {
 
   it("mantiene coherentes las cifras filtradas del Hub con los deals que casan", async () => {
     const [virtual, uno] = await Promise.all([vista({ nombreDeSku: "virtual-c3" }), vista({ skuId: skuUnoAUno })]);
-    expect({ ventas: virtual.embudo.cierres, vendido: virtual.dinero.vendido }).toEqual({ ventas: 2, vendido: 500 });
-    expect({ ventas: uno.embudo.cierres, vendido: uno.dinero.vendido }).toEqual({ ventas: 1, vendido: 300 });
+    expect({ ventas: virtual.embudo.cierres, skus: virtual.dinero.lineas, vendido: virtual.dinero.vendido, recaudado: virtual.dinero.recaudado, porCobrar: virtual.dinero.porCobrar })
+      .toEqual({ ventas: 2, skus: 2, vendido: 400, recaudado: 0, porCobrar: 400 });
+    expect({ ventas: uno.embudo.cierres, skus: uno.dinero.lineas, vendido: uno.dinero.vendido, recaudado: uno.dinero.recaudado, porCobrar: uno.dinero.porCobrar })
+      .toEqual({ ventas: 1, skus: 1, vendido: 100, recaudado: 0, porCobrar: 100 });
+  });
+
+  it("sin filtro de SKU: 2 ventas (deals) y 3 SKUs vendidos; el dinero suma las líneas", async () => {
+    const todas = await vista();
+    expect({ ventas: todas.embudo.cierres, skus: todas.dinero.lineas, vendido: todas.dinero.vendido, porCobrar: todas.dinero.porCobrar })
+      .toEqual({ ventas: 2, skus: 3, vendido: 500, porCobrar: 500 });
   });
 
   it("un slug que solo existe en otro programa no casa ningún deal", async () => {

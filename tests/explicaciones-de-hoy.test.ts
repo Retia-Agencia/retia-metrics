@@ -13,7 +13,7 @@ const x = explicacionesDeHoy();
 const alias: Partial<Record<(typeof CONCEPTOS_DE_HOY)[number], ClaveRegistrada>> = {
   citas_realizadas: "shows", citas_sin_marcar: "citas_pendientes", citas_de_manana: "citas_del_dia",
 };
-const dinero = { ventas: 3, vendido: 2391, recaudado: 0, porCobrar: 2391, sinValorVendido: 0, sinSaldoCalculable: 0, sobrepago: 0 };
+const dinero = { ventas: 3, lineas: 4, vendido: 2391, recaudado: 0, porCobrar: 2391, sinValorVendido: 0, sinSaldoCalculable: 0, sobrepago: 0 };
 function datos(resueltos = 1, faltan = 0): DatosDeHoy {
   const cobertura = { base: resueltos, faltan, motivo: faltan ? `${faltan} de ${resueltos + faltan} citas pasadas siguen sin resultado` : null, calculable: true };
   const show = resueltos ? razon(resueltos, resueltos, cobertura) : razonVacia("Sin citas en el periodo");

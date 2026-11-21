@@ -110,12 +110,12 @@ export function PieDeVentas({ dinero, columnasAntes, columnasDespues = 0 }: { di
 
 /** Dinero del programa: las cifras llegan escritas; la barra conserva su lectura visual. */
 export function TarjetaDeCifrasDeDinero({ cifras, fraccion }: {
-  cifras: Pick<CifrasDeDinero, "vendido" | "recaudado" | "porCobrar">;
+  cifras: Pick<CifrasDeDinero, "skusVendidos" | "vendido" | "recaudado" | "porCobrar">;
   fraccion: number | null;
 }) {
   return <div className="min-w-0 space-y-3 lg:col-span-3">
-      <div className="grid min-w-0 gap-3 sm:grid-cols-3">
-        {[cifras.vendido, cifras.recaudado, cifras.porCobrar].map((cifra) => <Cifra key={cifra.concepto} cifra={cifra} />)}
+      <div className="grid min-w-0 gap-3 sm:grid-cols-4">
+        {[cifras.skusVendidos, cifras.vendido, cifras.recaudado, cifras.porCobrar].map((cifra) => <Cifra key={cifra.concepto} cifra={cifra} />)}
       </div>
       <div role="img" aria-label={cifras.recaudado.linea
         ? `${cifras.recaudado.linea.cifra}${cifras.recaudado.linea.despues}`

@@ -1,9 +1,6 @@
 import { db as dbDeLaApp } from "@/lib/db";
-import { programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { claveHistorica } from "@/lib/closers/identidad";
-import { eq } from "drizzle-orm";
 import { type SeleccionDeRango } from "@/lib/rangos";
 import { comparacionesDe, parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { cohorteDelHub, contextoDelFiltro, type OpcionDeCohorte } from "@/lib/queries/cohorte-del-hub";
@@ -25,19 +22,14 @@ import {
   type OpcionDeCloser,
   type VistaDeCohorte,
 } from "@/lib/queries/dashboard";
-import { comisionDeDeal, comisionesPorCloser } from "@/lib/queries/comision";
+import { comisionesDeDeals, comisionesPorCloser } from "@/lib/queries/comision";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
 import { banderasDelPulso, type BanderasDelPulso } from "@/lib/queries/banderas-del-pulso";
 import { descuentosDeDeals } from "@/lib/queries/saldo";
-import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
 import type { FiltrosDeSku } from "@/lib/queries/filtros-de-sku";
-
-async function comisionDelPrograma(db: Db, programId: string) {
-  return unaVezPorSolicitud(db, claveDe("comisionDelPrograma", programId), () =>
-    db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)));
-}
 
 /**
  * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
@@ -131,8 +123,6 @@ export interface VistaDelDashboard {
     comisionUsd: number;
     ventasSinComision: number;
   })[];
-  /** El porcentaje vigente; las ventas conservan el que se les congelo. */
-  comisionPorcentaje: string | null;
 }
 
 /**
@@ -240,7 +230,6 @@ export async function armarVistaDelDashboard(
     porCloser,
     comisiones,
     closers,
-    [programa],
     anterior,
   ] = await Promise.all([
     embudoDelRango(alcance, db, ahora),
@@ -257,7 +246,6 @@ export async function armarVistaDelDashboard(
     embudoPorCloser({ programId, rango, cohorteId }, db, ahora),
     comisionesPorCloser({ programId, rango, cohorteId }, db),
     contextoDeVista.closers(),
-    comisionDelPrograma(db, programId),
     periodo.b
       ? Promise.all([
           embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB, ...filtrosDeSku }, db, ahora),
@@ -272,9 +260,10 @@ export async function armarVistaDelDashboard(
       : Promise.resolve(null),
   ]);
   const idsDeVentas = ventasConValor.map((venta) => venta.dealId);
-  const [dinero, descuentosPorDeal] = await Promise.all([
-    dineroDeVentas(db, idsDeVentas),
+  const [dinero, descuentosPorDeal, comisionesPorDeal] = await Promise.all([
+    dineroDelRango(alcance, db),
     descuentosDeDeals(db, idsDeVentas),
+    comisionesDeDeals(db, idsDeVentas),
   ]);
   const comisionPorClave = new Map(comisiones.map((c) => [c.userId ?? claveHistorica(c.closerId ?? ""), c]));
   const comparativo = porCloser.map((c) => ({
@@ -285,7 +274,7 @@ export async function armarVistaDelDashboard(
   let totalComision = 0;
   let ventasSinComision = 0;
   const descuentos = ventasConValor.flatMap((venta) => {
-    const comision = comisionDeDeal(venta.valorComisionableUsd, venta.comisionPorcentaje);
+    const comision = comisionesPorDeal.get(venta.dealId) ?? null;
     if (comision === null) ventasSinComision += 1;
     else totalComision += comision;
     const descuento = descuentosPorDeal.get(venta.dealId) ?? null;
@@ -328,6 +317,5 @@ export async function armarVistaDelDashboard(
     metasDelMes,
     embudoEtapas,
     comparativo,
-    comisionPorcentaje: programa?.comisionPorcentaje ?? null,
   };
 }

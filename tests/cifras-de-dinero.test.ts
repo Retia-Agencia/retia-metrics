@@ -25,6 +25,7 @@ const plata = (rotulo: string, forma: "suma" | "resta" = "suma"): ExplicacionDeC
   formula: { forma, terminos: forma === "resta" ? ["Vendido", "Recaudado"] : ["valor de cada venta"] }, variables: [],
 });
 const explicaciones: ExplicacionesDeDinero = {
+  skus_vendidos: { rotulo: "SKUs vendidos", universo: "todas", unidad: "conteo", que: "Cuántas líneas se vendieron.", formula: { forma: "conteo", terminos: ["líneas vendidas"] }, variables: [] },
   vendido: plata("Vendido"),
   recaudado: plata("Recaudado"),
   por_cobrar: plata("Por cobrar", "resta"),

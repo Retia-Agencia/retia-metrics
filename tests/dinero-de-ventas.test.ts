@@ -4,9 +4,9 @@ import { and, eq } from "drizzle-orm";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada } from "@/lib/queries/dashboard";
-import { dineroDeSaldos, dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
-import { saldosDeDeals } from "@/lib/queries/saldo";
+import { saldosDeDeals, saldosDeLineas } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -71,7 +71,7 @@ describe("las tres cifras (369)", () => {
     const pagada = await vender("1500", [1500], { etapa: "ganado_completo" });
     const parcial = await vender("1500", [500]);
     expect(await dineroDeVentas(db, [pagada.id, parcial.id])).toEqual({
-      vendido: 3000, recaudado: 2000, porCobrar: 1000, sobrepago: 0, ventas: 2, sinSaldoCalculable: 0, sinValorVendido: 0,
+      vendido: 3000, recaudado: 2000, porCobrar: 1000, sobrepago: 0, ventas: 2, lineas: 2, sinSaldoCalculable: 0, sinValorVendido: 0,
     });
   });
 
@@ -88,6 +88,7 @@ describe("las tres cifras (369)", () => {
       ...antes,
       vendido: antes.vendido + 100,
       recaudado: antes.recaudado + 100,
+      lineas: antes.lineas + 1,
     });
     const cajaDespues = await cajaRecaudada(alcance(), db);
     expect(cajaDespues.find((c) => c.moneda === "USD")?.total).toBe((cajaAntes.find((c) => c.moneda === "USD")?.total ?? 0) + 100);
@@ -103,8 +104,10 @@ describe("las tres cifras (369)", () => {
     const d = await dineroDeVentas(db, ids);
     expect(d.sobrepago).toBe(200.3);
     expect(Math.round((d.recaudado + d.porCobrar - d.sobrepago) * 100)).toBe(Math.round(d.vendido * 100));
-    // La función pura y la de base dicen lo mismo.
-    expect(dineroDeSaldos((await saldosDeDeals(db, ids)).values())).toEqual(d);
+    // Las tres cifras son la suma, línea vendida por línea vendida, de los saldos por línea.
+    const vendidas = [...(await saldosDeLineas(db, ids)).values()].filter((linea) => linea.vendida);
+    expect(d.lineas).toBe(vendidas.length);
+    expect(d.vendido).toBe(Math.round(vendidas.reduce((t, l) => t + l.precio, 0) * 100) / 100);
   });
 
   it("sin valor vendido queda fuera; con abonos en otra moneda cuenta en Vendido pero no en Recaudado ni Por cobrar, y se cuenta aparte", async () => {
@@ -115,7 +118,7 @@ describe("las tres cifras (369)", () => {
     await abonoDePrueba(db, { programId, dealId: otraMoneda.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: "400000", moneda: "COP" });
     const buena = await vender("100", [40]);
     expect(await dineroDeVentas(db, [sinValor.id, otraMoneda.id, buena.id])).toEqual({
-      vendido: 200, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2, sinValorVendido: 1,
+      vendido: 200, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, lineas: 2, sinSaldoCalculable: 2, sinValorVendido: 1,
     });
   });
 });
