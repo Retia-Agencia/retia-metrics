@@ -30,14 +30,14 @@ afterAll(async () => cerrar());
 
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: "Paridad A", ticketUsd: "797" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: "Paridad A" }).returning();
   const [gerente, closer] = await db.insert(users).values([
     { email: "gerente-paridad@retia.test", nombre: "Gerente", rol: "gerente" },
     { email: "closer-paridad@retia.test", nombre: "Nicolás", rol: "closer", closerId: "Nicolás" },
   ]).returning();
   gerenteId = gerente.id;
   await db.insert(miembrosPrograma).values({ userId: closer.id, programId: programa.id });
-  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "P-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "P-1", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
   const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "paridad@retia.test", nombre: "Paridad", fechaPrimeraAplicacion: new Date("2026-11-01T12:00:00-05:00") }).returning();
   const [envio] = await db.insert(submissions).values({ leadId: lead.id, sourceId: fuente.id, token: "paridad", fechaEnvio: new Date("2026-11-05T10:00:00-05:00"), utmSource: "instagram", utmMedium: "paid_social" }).returning();

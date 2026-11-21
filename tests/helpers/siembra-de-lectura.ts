@@ -14,8 +14,8 @@ import { PROGRAMA_DE_PRUEBA } from "./programa-de-prueba";
 export async function sembrarLectura(db: Db) {
   const ids: Record<string, string> = {};
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "lectura-a", nombre: "Lectura A", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "lectura-b", nombre: "Lectura B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "lectura-a", nombre: "Lectura A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "lectura-b", nombre: "Lectura B" },
   ]).returning();
   const programaA = a.id;
   const programaB = b.id;
@@ -28,7 +28,7 @@ export async function sembrarLectura(db: Db) {
   const paidId = paid.id;
   const closerId = closer.id;
   await db.insert(usuariosProgramasAlcance).values({ userId: paidId, programId: programaA });
-  const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "L-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "L-1", metaCupos: 10, fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [fuente, fuenteB] = await db.insert(sources).values([
     { programId: programaA, nombre: "Formulario A" },
     { programId: programaB, nombre: "Formulario B" },
