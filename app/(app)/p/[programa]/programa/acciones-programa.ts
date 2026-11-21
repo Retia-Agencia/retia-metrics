@@ -305,15 +305,17 @@ export async function editarVentanaDeCohorteAccion(
 
 // ─────────────────────────────────────────────────────────── SKUs
 
-export async function crearSkuAccion(slug: string, input: EntradaSku): Promise<ResultadoAccion> {
+export type ResultadoCrearSku = ResultadoAccion | { ok: true; heredado: { desde: string; metricas: string[] } };
+
+export async function crearSkuAccion(slug: string, input: EntradaSku): Promise<ResultadoCrearSku> {
   try {
     const actor = await actorGerente();
     await exigirProgramaPorId(actor, input.programId);
     const [programa] = await db.select({ slug: programs.slug }).from(programs).where(eq(programs.id, input.programId));
     if (programa?.slug !== slug) throw new ErrorDeApp("El programa no coincide con la ruta.", 404);
-    await crearSku(db, actor.session.user.id, input);
+    const creado = await crearSku(db, actor.session.user.id, input);
     revalidarNav();
-    return { ok: true };
+    return creado.herencia ? { ok: true, heredado: creado.herencia } : { ok: true };
   } catch (error) {
     return aResultado(error);
   }

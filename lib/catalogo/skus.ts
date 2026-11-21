@@ -1,13 +1,14 @@
 import { and, asc, desc, eq, min } from "drizzle-orm";
 import { z } from "zod";
 import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
-import { changeLog, cohorts, programs, skus } from "@/lib/db/schema";
+import { changeLog, cohorts, programs, skus, users } from "@/lib/db/schema";
 import { esViolacionExclusion, esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
 import { normalizarProducto } from "./normalizar-producto";
 import { codigoDeSku } from "./codigo-de-sku";
+import { heredarUmbrales, type HerenciaDeUmbrales } from "./objetivos";
 export { codigoDeSku } from "./codigo-de-sku";
 
 const esquemaId = z.string().uuid("El identificador no es válido.");
@@ -129,6 +130,7 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
       const [programa] = await tx.select({ slug: programs.slug }).from(programs).where(eq(programs.id, datos.programId));
       if (!programa) throw new ErrorDeApp("No existe el programa.", 404);
       const codigoCohorte = `C${datos.cohorteN}`;
+      let herencia: HerenciaDeUmbrales | null = null;
       let [cohorte] = await tx.select().from(cohorts).where(and(
         eq(cohorts.programId, datos.programId), eq(cohorts.codigo, codigoCohorte),
       ));
@@ -155,9 +157,16 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
         };
         [cohorte] = await tx.insert(cohorts).values({ id: cohortId, ...valoresCohorte }).returning();
         await tx.insert(changeLog).values(rastroDeAlta("cohorts", cohortId, codigoCohorte, actorId, valoresCohorte));
+        const [actor] = await tx.select({ rol: users.rol }).from(users).where(eq(users.id, actorId));
+        if (!actor) throw new ErrorDeApp("No existe el usuario que crea el SKU.", 404);
+        herencia = await heredarUmbrales(tx, { id: actorId, rol: actor.rol }, {
+          programId: datos.programId,
+          cohortIdNuevo: cohortId,
+          inicioVentasNuevo: ventana.fechaInicioVentas,
+        });
       }
       const creado = await insertarSku(tx, actorId, datos, programa.slug, cohorte.id);
-      return creado;
+      return { ...creado, herencia };
     });
   });
 }
