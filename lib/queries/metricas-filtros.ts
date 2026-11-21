@@ -1,6 +1,6 @@
 import { and, asc, between, eq, gt, inArray, isNotNull, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
-import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, dealLineas, leads, skus, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -323,36 +323,63 @@ export function dealsDeLaCohorte(db: Db, programId: string, cohorteId: string) {
     .where(and(eq(deals.programId, programId), eq(deals.cohortId, cohorteId), vigente(deals)));
 }
 
+/** Deals con una línea vigente del SKU pedido; ambos filtros deben casar en esa misma línea. */
+export function dealsConSku(
+  db: Db,
+  programId: string,
+  { nombreDeSku, skuId }: { nombreDeSku?: string | null; skuId?: string | null },
+) {
+  return db.selectDistinct({ id: dealLineas.dealId }).from(dealLineas)
+    .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
+    .where(and(
+      eq(dealLineas.programId, programId),
+      isNull(dealLineas.anuladaEn),
+      nombreDeSku ? eq(skus.slug, nombreDeSku) : undefined,
+      skuId ? eq(skus.id, skuId) : undefined,
+    ));
+}
+
+function porSkuDeDeal(alcance: Pick<Alcance, "programId" | "nombreDeSku" | "skuId">, db: Db) {
+  return alcance.nombreDeSku || alcance.skuId
+    ? inArray(deals.id, dealsConSku(db, alcance.programId, alcance))
+    : undefined;
+}
+
 export function porCohorteDeDeal(cohorteId: string | null | undefined) {
   return cohorteId ? eq(deals.cohortId, cohorteId) : undefined;
 }
 
 /** Una definición del universo por métrica; la vigencia queda visible en cada lector. */
-export function filtroCaja({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
+export function filtroCaja(alcance: Alcance, db: Db) {
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return and(
     eq(abonos.programId, programId),
     between(abonos.fecha, rango.desde, rango.hasta),
     porClaveConFk(abonos.registradoPorUserId, abonos.closerId, claveCloser, db),
     cohorteId ? inArray(abonos.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    nombreDeSku || skuId ? inArray(abonos.dealId, dealsConSku(db, programId, { nombreDeSku, skuId })) : undefined,
   );
 }
 
-export function filtroLlamadas({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
+export function filtroLlamadas(alcance: Alcance, db: Db) {
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaCall(), rango.desde, rango.hasta),
     porClaveDeLlamada(claveCloser),
     cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    nombreDeSku || skuId ? inArray(calls.dealId, dealsConSku(db, programId, { nombreDeSku, skuId })) : undefined,
     llamadaSinDealAnulado(db),
   );
 }
 
 /** Quien pertenece al alcance de una venta: programa, closer y cohorte del deal. Lo comparten la cifra y la serie. */
-function deDealEnAlcance(alcance: Alcance) {
+function deDealEnAlcance(alcance: Alcance, db: Db) {
   return and(
     eq(deals.programId, alcance.programId),
     porClaveDeDeal(alcance.claveCloser),
     porCohorteDeDeal(alcance.cohorteId),
+    alcance.nombreDeSku || alcance.skuId ? porSkuDeDeal(alcance, db) : undefined,
   );
 }
 
@@ -372,7 +399,7 @@ export function dealsDelArea(db: Db, programId: string, area: string) {
 }
 
 export function filtroCierres(alcance: Alcance, db: Db) {
-  return and(deDealEnAlcance(alcance), inArray(deals.id, idsDeVentasEn(db, alcance.rango)));
+  return and(deDealEnAlcance(alcance, db), inArray(deals.id, idsDeVentasEn(db, alcance.rango)));
 }
 
 /**
@@ -387,7 +414,7 @@ export function ventasDelAlcance(alcance: Alcance, db: Db) {
     .from(ventas)
     .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(deDealEnAlcance(alcance), incluyendoAnulados(ventas)));
+    .where(and(deDealEnAlcance(alcance, db), incluyendoAnulados(ventas)));
 }
 
 export function cortesiasEn(db: Db, rango: Rango) {
@@ -406,6 +433,7 @@ export function filtroCortesias(alcance: Alcance, db: Db) {
     inArray(deals.id, cortesiasEn(db, alcance.rango)),
     porClaveDeDeal(alcance.claveCloser),
     porCohorteDeDeal(alcance.cohorteId),
+    porSkuDeDeal(alcance, db),
   );
 }
 
@@ -427,7 +455,8 @@ export function fechaDeEntradaDelLead() {
   return sql<Date>`case when ${leads.entrada} = 'formulario' then ${leads.fechaPrimeraAplicacion} else ${leads.createdAt} end`;
 }
 
-export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
+export function filtroLeads(alcance: Alcance, db: Db) {
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return and(
     eq(leads.programId, programId),
     eq(leads.entrada, "formulario"),
@@ -438,6 +467,10 @@ export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcanc
     cohorteId && db
       ? inArray(leads.id, db.select({ id: deals.leadId }).from(deals).where(and(
           eq(deals.programId, programId), eq(deals.cohortId, cohorteId), vigente(deals))))
+      : undefined,
+    nombreDeSku || skuId
+      ? inArray(leads.id, db.select({ id: deals.leadId }).from(deals).where(and(
+          eq(deals.programId, programId), porSkuDeDeal(alcance, db), vigente(deals))))
       : undefined,
   );
 }
@@ -469,21 +502,25 @@ export function fechaAnclaEnvio() {
  * Generar deals y agendas es del programa, no de un closer: un deal nace sin dueño. Como los
  * leads, con closer no se devuelve nada, jamas el programa entero. Exige el join de arriba.
  */
-export function filtroDealsCreados({ programId, rango, claveCloser, cohorteId }: Alcance) {
+export function filtroDealsCreados(alcance: Alcance, db: Db) {
+  const { programId, rango, claveCloser, cohorteId } = alcance;
   return and(
     eq(deals.programId, programId),
     between(fechaAnclaDealCreado(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
     porCohorteDeDeal(cohorteId),
+    porSkuDeDeal(alcance, db),
   );
 }
 
-export function filtroAgendasCreadas({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
+export function filtroAgendasCreadas(alcance: Alcance, db: Db) {
+  const { programId, rango, claveCloser, cohorteId, nombreDeSku, skuId } = alcance;
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
     cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    nombreDeSku || skuId ? inArray(calls.dealId, dealsConSku(db, programId, { nombreDeSku, skuId })) : undefined,
     llamadaSinDealAnulado(db),
   );
 }
@@ -495,7 +532,7 @@ export function filtroAgendasCreadas({ programId, rango, claveCloser, cohorteId 
  */
 export function filtroDealsQueAgendaron(alcance: Alcance, db: Db) {
   return and(
-    filtroDealsCreados(alcance),
+    filtroDealsCreados(alcance, db),
     inArray(
       deals.id,
       db
@@ -530,10 +567,10 @@ function leadsConFormularioCompleto(alcance: Alcance) {
   )`;
 }
 
-export function filtroDealsDesde(origen: OrigenDeDeal, alcance: Alcance) {
+export function filtroDealsDesde(origen: OrigenDeDeal, alcance: Alcance, db: Db) {
   const completos = inArray(deals.leadId, leadsConFormularioCompleto(alcance));
   return and(
-    filtroDealsCreados(alcance),
+    filtroDealsCreados(alcance, db),
     isNotNull(deals.submissionOrigenId),
     origen === "completo" ? completos : notInArray(deals.leadId, leadsConFormularioCompleto(alcance)),
   );

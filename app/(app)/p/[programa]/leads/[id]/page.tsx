@@ -11,6 +11,7 @@ import {
   AvisoOtrosProgramas,
   FichaLeadAbonos,
   FichaLeadCabecera,
+  FichaLeadCompras,
   FichaLeadContactos,
   FichaLeadDeals,
   FichaLeadEnvios,
@@ -73,6 +74,7 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
           <FichaLeadEnvios ficha={ficha} />
           <div className="space-y-4">
             <FichaLeadDeals ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} abreFicha={!basico} />
+            <FichaLeadCompras ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} />
             {abonos.length > 0 ? <FichaLeadAbonos abonos={abonos} slug={programa.slug} /> : null}
             <FichaLeadContactos ficha={ficha} />
           </div>

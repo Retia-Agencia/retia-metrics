@@ -21,6 +21,7 @@ import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import type { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { condicionDeSkuParaDeal } from "@/lib/queries/filtros-de-sku";
 
 export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "utm_source" | "utm_medium" | "categoria" | "tiene_envio" | "dueno" | "cohorte" | "etapa";
 export type MedidaAgenda = "agendas";
@@ -98,6 +99,7 @@ function consultaAgrupada<D extends DimensionAgenda>(
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(
       eq(calls.programId, opciones.programId),
+      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
       between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
       opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
@@ -115,14 +117,14 @@ export async function agrupar<D extends DimensionAgenda>(
   opciones: ConsultaAgendaAgrupada<D>,
 ): Promise<Array<Record<D, string | null> & { agendas: number }>> {
   return unaVezPorSolicitud(db, claveDe("agruparAgendas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden, opciones.pagina,
     opciones.creadaHasta), async () =>
     await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { agendas: number }>);
 }
 
 export async function contarGrupos<D extends DimensionAgenda>(db: Db, opciones: ConsultaAgendaAgrupada<D>): Promise<number> {
   return unaVezPorSolicitud(db, claveDe("contarGruposDeAgendas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.creadaHasta), () =>
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden, opciones.creadaHasta), () =>
     totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined })));
 }
 
@@ -131,7 +133,7 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
   return unaVezPorSolicitud(db, claveDe("listarAgendas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina, opciones.creadaHasta), () =>
+    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden, opciones.pagina, opciones.creadaHasta), () =>
     leerLista(db, opciones));
 }
 
@@ -144,6 +146,7 @@ async function leerLista<D extends DimensionAgenda = DimensionAgenda>(
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId)).where(and(
       eq(calls.programId, opciones.programId),
+      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
       between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
       opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,

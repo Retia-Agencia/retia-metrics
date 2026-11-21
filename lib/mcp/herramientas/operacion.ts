@@ -18,6 +18,7 @@ import { resolverCohorte, resolverDueno, type FiltroAplicado } from "@/lib/queri
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { leadsDelPrograma } from "@/lib/queries/leads";
 import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { opcionesDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 import { bandejaParaActor, fichaDeDealVisible, fichaDeLeadParaActor } from "@/lib/queries/operacion";
 import { programaVisible } from "./programa";
 import type { Herramienta } from "./tipos";
@@ -261,6 +262,7 @@ export const opcionesDeFiltrosMcp: Herramienta<typeof entradaOpciones> = {
   async ejecutar(contexto, entrada) {
     const visible = await programaVisible(contexto, entrada.programa);
     const veEquipo = veEquipoComercial(contexto.rol);
+    const opcionesSku = await opcionesDeFiltrosDeSku(contexto.db, visible.id);
     let opciones: Record<string, unknown>;
     if (entrada.de === "tablero") {
       const [tablero, activa] = await Promise.all([opcionesDeTablero(contexto.db, visible.id), cohorteActiva(visible.id, contexto.db)]);
@@ -277,6 +279,8 @@ export const opcionesDeFiltrosMcp: Herramienta<typeof entradaOpciones> = {
         }])),
         ...(veEquipo ? { duenos: tablero.owners } : {}),
         cohortes: tablero.cohortes,
+        nombres_del_sku: opcionesSku.nombres,
+        skus: opcionesSku.skus.map(({ id, codigo }) => ({ id, codigo })),
       };
     }
     return { texto: `Opciones de ${entrada.de} para ${visible.nombre}.`, estructurado: { programa: { nombre: visible.nombre, slug: visible.slug }, de: entrada.de, opciones } };

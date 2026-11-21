@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrig
 import { NIVELES_DE_CORTE, type CorteResuelto, type OpcionDeCorte } from "@/lib/pauta/corte-de-pauta";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import type { OpcionDeCloser } from "@/lib/queries/dashboard";
+import type { FiltrosDeSku, OpcionesDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 
 /**
  * La barra de filtros del Hub (377, G-1): cuatro controles, cada uno por su lado y siempre en este orden,
@@ -29,6 +30,7 @@ export interface FiltrosDelHubProps {
   filtraCloser?: boolean;
   /** La cohorte del filtro: `todas` o su id. Ausente = la pestaña no filtra por cohorte (Pauta y Origen). */
   cohorte?: { valor: string; opciones: readonly { id: string; codigo: string; activa: boolean }[] };
+  sku?: { valor: FiltrosDeSku; opciones: OpcionesDeFiltrosDeSku };
   /** La línea bajo el filtro Cohorte: cuándo se vende y cuándo fue la primera venta. */
   lineaDeCohorte?: string;
   corte?: { opciones: readonly OpcionDeCorte[]; elegido: CorteResuelto | null };
@@ -55,6 +57,7 @@ export function FiltrosDelHub({
   closers,
   filtraCloser = true,
   cohorte,
+  sku,
   lineaDeCohorte,
   corte,
 }: FiltrosDelHubProps) {
@@ -80,6 +83,31 @@ export function FiltrosDelHub({
             </Select>
           </ControlConEtiqueta>
         ) : null}
+
+        {sku ? <>
+          <ControlConEtiqueta etiqueta="Nombre del SKU">
+            <Select value={sku.valor.nombreDeSku ?? TODOS}
+              items={[{ value: TODOS, label: "Todos" }, ...sku.opciones.nombres.map((o) => ({ value: o.slug, label: o.nombre }))]}
+              onValueChange={(valor: string | null) => poner({ sku_nombre: !valor || valor === TODOS ? null : valor, pagina: null })}>
+              <SelectTrigger size="sm" aria-label="Nombre del SKU"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Todos</SelectItem>
+                {sku.opciones.nombres.map((o) => <SelectItem key={o.slug} value={o.slug}>{o.nombre}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </ControlConEtiqueta>
+          <ControlConEtiqueta etiqueta="SKU">
+            <Select value={sku.valor.skuId ?? TODOS}
+              items={[{ value: TODOS, label: "Todos" }, ...sku.opciones.skus.map((o) => ({ value: o.id, label: o.codigo }))]}
+              onValueChange={(valor: string | null) => poner({ sku: !valor || valor === TODOS ? null : valor, pagina: null })}>
+              <SelectTrigger size="sm" aria-label="SKU"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS}>Todos</SelectItem>
+                {sku.opciones.skus.map((o) => <SelectItem key={o.id} value={o.id}>{o.codigo}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </ControlConEtiqueta>
+        </> : null}
 
         <SelectorPeriodo periodo={periodo} anteriorDisponible={anteriorDisponible} partes="periodo" variante="chip" />
 

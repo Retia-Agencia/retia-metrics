@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
+import { filtrosDeSkuDeLaUrl } from "@/lib/queries/filtros-de-sku";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   // abren con la capacidad del tablero; su proyección conserva lead y etapa, pero no el contexto
   // comercial para quien no ve el equipo. Por capacidad, nunca `rol === "..."`.
   const busqueda = await searchParams;
+  const filtrosDeSku = filtrosDeSkuDeLaUrl(busqueda);
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
   const { tieneOrigen, esListaDePauta, esListaDeOrigen } = tipoDeLista(validado.data);
@@ -87,6 +89,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     codigoCloser: closer,
     moneda,
     cohorteId: cohorte,
+    ...filtrosDeSku,
     origenDeal,
     etapa,
     antiguedad,
@@ -123,6 +126,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     claveCloser,
     moneda,
     cohorteId: cohorte,
+    ...filtrosDeSku,
     origenDeal,
     subconjunto: { etapa, antiguedad },
     filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, tipo, area, canal: canalNormalizado },

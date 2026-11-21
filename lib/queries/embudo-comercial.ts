@@ -110,16 +110,16 @@ async function leerDealsDelEmbudoComercial(
   const base = () => db.select({ dealId: deals.id, area: areaDelDeal })
     .from(deals)
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(filtroDealsCreados(alcance), vigente(deals)));
+    .where(and(filtroDealsCreados(alcance, db), vigente(deals)));
 
   const [creados, completos, parciales, agendaron, shows, ventas] = await Promise.all([
     base(),
     db.select({ dealId: deals.id }).from(deals)
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(and(filtroDealsDesde("completo", alcance), vigente(deals))),
+      .where(and(filtroDealsDesde("completo", alcance, db), vigente(deals))),
     db.select({ dealId: deals.id }).from(deals)
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(and(filtroDealsDesde("parcial", alcance), vigente(deals))),
+      .where(and(filtroDealsDesde("parcial", alcance, db), vigente(deals))),
     db.select({ dealId: deals.id }).from(deals)
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
       .where(and(filtroDealsQueAgendaron(alcance, db), vigente(deals))),
@@ -153,5 +153,5 @@ function creadosIdsSubquery(db: Db, alcance: Alcance) {
   return db.select({ dealId: deals.id })
     .from(deals)
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(filtroDealsCreados(alcance), vigente(deals)));
+    .where(and(filtroDealsCreados(alcance, db), vigente(deals)));
 }

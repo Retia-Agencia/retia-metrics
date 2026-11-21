@@ -15,6 +15,7 @@ import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/que
 import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { condicionDeSkuParaDeal } from "@/lib/queries/filtros-de-sku";
 
 export type DimensionVenta = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte";
 export type MedidaVenta = "ventas";
@@ -65,6 +66,7 @@ function consultaAgrupada<D extends DimensionVenta>(
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(
       eq(deals.programId, opciones.programId),
+      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
       condicionesDeFiltros(dimensiones, opciones.filtros),
       incluyendoAnulados(dias),
     ))
@@ -79,13 +81,13 @@ export async function agrupar<D extends DimensionVenta>(
   opciones: ConsultaAgrupada<D, D | MedidaVenta>,
 ): Promise<Array<Record<D, string | null> & { ventas: number }>> {
   return unaVezPorSolicitud(db, claveDe("agruparVentas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), async () =>
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden, opciones.pagina), async () =>
     await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { ventas: number }>);
 }
 
 export async function contarGrupos<D extends DimensionVenta>(db: Db, opciones: ConsultaAgrupada<D, D | MedidaVenta>): Promise<number> {
   return unaVezPorSolicitud(db, claveDe("contarGruposDeVentas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden), () =>
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden), () =>
     totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined })));
 }
 
@@ -94,7 +96,7 @@ export async function listar<D extends DimensionVenta = DimensionVenta>(
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaVenta>> {
   return unaVezPorSolicitud(db, claveDe("listarVentas", opciones.programId, opciones.rango.desde,
-    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), () => leerLista(db, opciones));
+    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.filtrosDeSku, opciones.orden, opciones.pagina), () => leerLista(db, opciones));
 }
 
 async function leerLista<D extends DimensionVenta = DimensionVenta>(
@@ -103,7 +105,7 @@ async function leerLista<D extends DimensionVenta = DimensionVenta>(
 ): Promise<ListaPaginada<FilaVenta>> {
   const construir = () => {
     const { dias, dimensiones } = fuente(db, opciones.rango);
-    const donde = and(eq(deals.programId, opciones.programId), condicionesDeFiltros(dimensiones, opciones.filtros));
+    const donde = and(eq(deals.programId, opciones.programId), condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku), condicionesDeFiltros(dimensiones, opciones.filtros));
     return {
       dimensiones,
       consulta: db.select({ dealId: deals.id, ...dimensiones }).from(dias)

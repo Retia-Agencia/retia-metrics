@@ -12,6 +12,7 @@ import { resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp } from "./periodo";
 import { programaVisible } from "./programa";
 import type { Herramienta } from "./tipos";
+import { CAMPO_MULTIPLE_DE_FILTRO_DE_SKU, FILTROS_DE_SKU, opcionesDeFiltrosDeSku, type FiltrosDeSkuMultiples } from "@/lib/queries/filtros-de-sku";
 
 const hechos = Object.keys(HECHOS_CONSULTABLES) as [HechoConsultable, ...HechoConsultable[]];
 const dimensiones = [...new Set(Object.values(HECHOS_CONSULTABLES).flatMap((hecho) => hecho.dimensiones))] as [string, ...string[]];
@@ -55,10 +56,16 @@ async function resolverFiltros(
   pedidos: Partial<Record<string, (string | null)[]>> | undefined,
 ) {
   const filtros: Record<string, readonly (string | null)[]> = {};
+  const filtrosDeSku: FiltrosDeSkuMultiples = {};
   const aplicados: FiltroAplicado[] = [];
   for (const [dimension, valores] of Object.entries(pedidos ?? {})) {
     if (!valores) continue;
-    if (dimension === "dueno") {
+    if ((FILTROS_DE_SKU as readonly string[]).includes(dimension)) {
+      const nombre = dimension as (typeof FILTROS_DE_SKU)[number];
+      const limpios = valores.filter((valor): valor is string => valor !== null);
+      filtrosDeSku[CAMPO_MULTIPLE_DE_FILTRO_DE_SKU[nombre]] = limpios;
+      aplicados.push(...limpios.map((valor) => ({ campo: nombre, id: valor, nombre: valor, origen: "pedido" as const })));
+    } else if (dimension === "dueno") {
       const resueltos = await Promise.all(valores.filter((v): v is string => v !== null).map((valor) => resolverDueno(contexto.db, programa.id, programa.nombre, valor)));
       filtros.dueno = [...resueltos.map((filtro) => filtro.id), ...(valores.includes(null) ? [null] : [])];
       aplicados.push(...resueltos);
@@ -75,7 +82,7 @@ async function resolverFiltros(
       aplicados.push(...valores.map((valor) => ({ campo: dimension, id: valor, nombre: valor ?? "Sin valor", origen: "pedido" as const })));
     }
   }
-  return { filtros, aplicados };
+  return { filtros, filtrosDeSku, aplicados };
 }
 
 export const consultarHechosMcp: Herramienta<typeof entrada> = {
@@ -102,19 +109,60 @@ export const consultarHechosMcp: Herramienta<typeof entrada> = {
       preset: presetDePeriodoMcp(pedido),
     }, contexto.db);
     const rango = periodoPedido.periodo.a;
-    const { filtros, aplicados } = await resolverFiltros(contexto, programa, pedido.filtros);
+    const { filtros, filtrosDeSku, aplicados } = await resolverFiltros(contexto, programa, pedido.filtros);
     const agrupado = (pedido.agrupar_por?.length ?? 0) > 0;
     const ordenables = new Set<string>([...(agrupado ? definicion.dimensiones : definicion.camposDeLista), ...definicion.medidas]);
     if (pedido.orden && !ordenables.has(pedido.orden.campo)) throw new ErrorDeApp(`No puedes ordenar por "${pedido.orden.campo}". Opciones: ${[...ordenables].join(", ")}`, 422);
     const validos = new Set<string>(agrupado ? [...definicion.dimensiones, ...definicion.medidas] : definicion.camposDeLista);
     for (const campo of pedido.campos ?? []) if (!validos.has(campo)) throw new ErrorDeApp(`No existe el campo "${campo}". Opciones: ${[...validos].join(", ")}`, 422);
-    const opciones = { programId: programa.id, rango, filtros, orden: pedido.orden, pagina: { numero: pedido.pagina, tamano: pedido.tamano_de_pagina } };
+    const opciones = { programId: programa.id, rango, filtros, filtrosDeSku, orden: pedido.orden, pagina: { numero: pedido.pagina, tamano: pedido.tamano_de_pagina } };
     const modulo = definicion.modulo;
     let filasCrudas: Record<string, unknown>[];
     let total: number;
     if (agrupado) {
-      const agrupadas = { ...opciones, agruparPor: pedido.agrupar_por! };
-      [filasCrudas, total] = await Promise.all([modulo.agrupar(contexto.db, agrupadas), modulo.contarGrupos(contexto.db, agrupadas)]);
+      const dimensionesSku = pedido.agrupar_por!.filter((dimension) => (FILTROS_DE_SKU as readonly string[]).includes(dimension));
+      if (dimensionesSku.length === 0) {
+        const agrupadas = { ...opciones, agruparPor: pedido.agrupar_por! };
+        [filasCrudas, total] = await Promise.all([modulo.agrupar(contexto.db, agrupadas), modulo.contarGrupos(contexto.db, agrupadas)]);
+      } else {
+        const disponibles = await opcionesDeFiltrosDeSku(contexto.db, programa.id);
+        const pideNombre = dimensionesSku.includes("nombre_del_sku");
+        const pideSku = dimensionesSku.includes("sku");
+        const combinaciones = pideSku
+          ? disponibles.skus.map((sku) => ({ nombre_del_sku: sku.slug, sku: sku.id }))
+          : disponibles.nombres.map((nombre) => ({ nombre_del_sku: nombre.slug, sku: undefined }));
+        const permitidas = combinaciones.filter((combinacion) =>
+          (!filtrosDeSku.nombresDeSku?.length || filtrosDeSku.nombresDeSku.includes(combinacion.nombre_del_sku))
+          && (!filtrosDeSku.skuIds?.length || (combinacion.sku !== undefined && filtrosDeSku.skuIds.includes(combinacion.sku))));
+        const otras = pedido.agrupar_por!.filter((dimension) => !(FILTROS_DE_SKU as readonly string[]).includes(dimension));
+        const grupos = await Promise.all(permitidas.map(async (combinacion) => {
+          const filas = await modulo.agrupar(contexto.db, {
+            ...opciones,
+            agruparPor: otras,
+            pagina: undefined,
+            orden: pedido.orden && otras.includes(pedido.orden.campo) ? pedido.orden : undefined,
+            filtrosDeSku: {
+              nombresDeSku: [combinacion.nombre_del_sku],
+              ...(combinacion.sku ? { skuIds: [combinacion.sku] } : {}),
+            },
+          });
+          return filas.map((fila) => ({
+            ...fila,
+            ...(pideNombre ? { nombre_del_sku: combinacion.nombre_del_sku } : {}),
+            ...(pideSku ? { sku: combinacion.sku } : {}),
+          }));
+        }));
+        const todas: Record<string, unknown>[] = grupos.flat();
+        if (pedido.orden) todas.sort((a, b) => {
+          const izquierda = a[pedido.orden!.campo];
+          const derecha = b[pedido.orden!.campo];
+          const comparacion = String(izquierda ?? "").localeCompare(String(derecha ?? ""), "es", { numeric: true });
+          return pedido.orden!.sentido === "asc" ? comparacion : -comparacion;
+        });
+        total = todas.length;
+        const inicio = (pedido.pagina - 1) * pedido.tamano_de_pagina;
+        filasCrudas = todas.slice(inicio, inicio + pedido.tamano_de_pagina);
+      }
     } else {
       const resultado = await modulo.listar(contexto.db, opciones);
       filasCrudas = resultado.filas;

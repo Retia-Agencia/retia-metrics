@@ -14,7 +14,7 @@ import {
 } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
-import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
+import { dealsConSku, fechaAnclaCall } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
 import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
@@ -250,10 +250,10 @@ export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null 
  */
 export async function leerCitasDelGrupo(
   db: Db,
-  { programId, rango, cohorteId, area, corte }: { programId: string; rango: Rango; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null },
+  { programId, rango, cohorteId, nombreDeSku, skuId, area, corte }: { programId: string; rango: Rango; cohorteId?: string | null; nombreDeSku?: string | null; skuId?: string | null; area?: "paid"; corte?: CortePauta | null },
 ): Promise<CitaParaTasas[]> {
   return unaVezPorSolicitud(db, claveDe("leerCitasDelGrupo", programId, rango.desde, rango.hasta,
-    cohorteId ?? null, area ?? null, ...(corte ? [corte.nivel, corte.id] : [])), async () => {
+    cohorteId ?? null, nombreDeSku ?? null, skuId ?? null, area ?? null, ...(corte ? [corte.nivel, corte.id] : [])), async () => {
     const idsDelCorte = corte ? await idsDeDealsDelCorte(db, programId, corte) : null;
     const filas = await db
       .select({
@@ -272,6 +272,7 @@ export async function leerCitasDelGrupo(
         eq(deals.programId, calls.programId),
         eq(deals.cortesia, false),
         cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
+        nombreDeSku || skuId ? inArray(deals.id, dealsConSku(db, programId, { nombreDeSku, skuId })) : undefined,
         vigente(deals),
       ))
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
@@ -303,10 +304,10 @@ export async function leerCitasDelGrupo(
 /** Lectura y cuenta juntas, para quien solo quiere el grupo del rango. */
 export async function grupoDeCitas(
   db: Db,
-  { programId, rango, ahora, cohorteId, area, corte }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null },
+  { programId, rango, ahora, cohorteId, nombreDeSku, skuId, area, corte }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; nombreDeSku?: string | null; skuId?: string | null; area?: "paid"; corte?: CortePauta | null },
 ): Promise<GrupoDeCitas> {
   const [citas, diasParaMadurar] = await Promise.all([
-    leerCitasDelGrupo(db, { programId, rango, cohorteId, area, corte }),
+    leerCitasDelGrupo(db, { programId, rango, cohorteId, nombreDeSku, skuId, area, corte }),
     diasParaMadurarDe(db, programId),
   ]);
   return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora, diasParaMadurar });

@@ -145,6 +145,8 @@ export interface FiltrosDeMetrica {
   moneda?: string;
   /** El filtro de cohorte del Hub (377): acota por `deals.cohort_id` el universo de toda métrica con deal. */
   cohorteId?: string | null;
+  nombreDeSku?: string | null;
+  skuId?: string | null;
   /** Mitad opcional del embudo comercial; manual es el deal sin envío de origen. */
   origenDeal?: OrigenEmbudoComercial;
   /** Instante compartido con el Inbox para decidir qué cita ya pasó. */
@@ -186,7 +188,7 @@ export interface FiltrosDeMetrica {
  * `satisfies` exige los mismos campos que el tipo, ni uno más ni uno menos: un filtro nuevo obliga a decidir aquí.
  */
 const CAMPOS_DE_LA_CLAVE = {
-  programId: true, rango: true, claveCloser: true, moneda: true, cohorteId: true, origenDeal: true, ahora: true,
+  programId: true, rango: true, claveCloser: true, moneda: true, cohorteId: true, nombreDeSku: true, skuId: true, origenDeal: true, ahora: true,
   hoy: true, etapa: true, antiguedad: true, source: true, medium: true, categoria: true, tipo: true, area: true, canal: true,
   campaign: true, resultado: true, orden: true, escalon: true, grupo: true, pago: true, calidad: true, nivel: true,
   idMeta: true, paso: true, corte: true,
@@ -627,7 +629,7 @@ function consultaDe(
         .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
         .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(filtroDealsCreados(alcance), vigente(deals)));
+        .where(and(filtroDealsCreados(alcance, db), vigente(deals)));
     case "deals_que_agendaron":
       return db
         .select(campos)
@@ -642,7 +644,7 @@ function consultaDe(
     case "parciales_que_agendaron": {
       const origen: OrigenDeDeal = metrica === "deals_desde_completo" || metrica === "completos_que_agendaron" ? "completo" : "parcial";
       const filtro = metrica === "deals_desde_completo" || metrica === "deals_desde_parcial"
-        ? filtroDealsDesde(origen, alcance)
+        ? filtroDealsDesde(origen, alcance, db)
         : filtroDealsDesdeQueAgendaron(origen, alcance, db);
       return db
         .select(campos)
@@ -1021,11 +1023,14 @@ async function leerMetrica(
     rango: alcance.rango,
     claveCloser: alcance.claveCloser ?? null,
     cohorteId: alcance.cohorteId ?? null,
+    nombreDeSku: alcance.nombreDeSku ?? null,
+    skuId: alcance.skuId ?? null,
   };
   if (!dependeDelReloj(metrica)) delete filtrosDeClave.ahora;
   const filtrosNormalizados = filtrosDeLaClave(filtrosDeClave);
   return unaVezPorSolicitud(db, claveDe("leerMetrica", metrica, alcance.programId, alcance.rango.desde,
-    alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null, filtrosNormalizados, pagina), () =>
+    alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null, alcance.nombreDeSku ?? null,
+    alcance.skuId ?? null, filtrosNormalizados, pagina), () =>
     leerMetricaSinMemoria(metrica, alcance, filtros, pagina, db));
 }
 
