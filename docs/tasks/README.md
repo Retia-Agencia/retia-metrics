@@ -19,6 +19,23 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 > checkpoint verde.
 
 
+## 26 · SKU y MCP: cuatro grupos de cierre (sesión orquestadora, 21-nov)
+
+Prioridad de Mani el 21-nov: SKU y MCP. Los grupos juntan lo que falta de varios tickets en una sola lista de chequeo;
+las filas originales se quedan donde estaban, con su texto, y solo se les anota «agrupado en G<n>». No se borra nada.
+
+| ✓ | Grupo | Junta | Qué cierra | Quién | Estado |
+|---|---|---|---|---|---|
+| [ ] | G1 · Recorrido SKU en producción | 459, 464, 465 | Un closer abre un deal y ve sus líneas propuestas y su SKU predeterminado; gerencia crea un SKU y nace su ciclo; gerencia crea un ciclo y ve los umbrales heredados | Padre, con el navegador | todo |
+| [ ] | G2 · Arreglo de datos del 460 | 460 | Re-colgar las líneas `sin_clasificar` a los SKUs de Michael y el abono huérfano del deal `bf940c18…` con `scripts/recolgar-abonos.ts --aplicar` | Padre, con ok de Mani y confirmación de Michael (dados el 21-nov) | en curso |
+| [ ] | G3 · Cierre del 376 | 461, 462, 463 | `deals.comision_porcentaje` sin lectores (461), test propio de Students agrupado (462), retiro destructivo (463) | H4 prepara, H5 migra (ola 2) | en curso |
+| [ ] | G4 · MCP en vivo | 348, 383, 407 | Conectar el MCP y comparar una cifra con el Hub; `consultar_datos` y `definiciones_de_metricas` como developer; petición forjada (programa ajeno, `set_config`, varias sentencias); gerente limitado y paid trafficker | Padre, con el conector `retia-crm` | todo |
+
+386 absorbe las 8 acciones MCP pendientes de SKU y líneas (crearSku, editarSku, desactivarSku, reactivarSku, asignarSku,
+editarValorLinea, quitarLinea, anularLinea; hija H1) y la matriz rol × requerimiento × tool (hija H3,
+`docs/mcp-matriz-rol-tool.md`). 407 fase 2 la toma la hija H2. 387 sigue como idea y no se toca.
+
+
 ## 25 · Venta directa por checkout: webhook de Hotmart (ADR 0133) · 16-nov
 
 Un formulario que termina en un link de pago (LiderArte, Majo Sánchez) ya no espera a un closer: la pasarela confirma
@@ -145,13 +162,13 @@ a fase 2.
 | [x] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | done · 9-nov · cron diario + tabla `proyecciones_roas` (0130, 0131) · ADR 0126 · CI verde `e2f25f52` · recorrido local hecho, humo sin correr |
 | [ ] | 412 | [Pauta y Origen, una sola pestaña: el Excel de pauta sale del CRM](./412-pauta-y-origen-una-sola-pestana.md) | 355, 370, 371, 375, 377 | en main · 9-nov · migración 0132 aplicada; A a E integradas en main · cuadre del 12-nov (H4): Tactical 12 a 18-oct cuadra en inversión y el ROAS se explica (Excel cuenta todas las ventas en COP); ComunicArte trae 41 ventas en el Excel contra 28 en el CRM, pregunta a Paid Media · falta esa respuesta, la tabla semanal en producción fila por fila y la nota del ROAS en «Cómo se calcula» |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | en curso · 459 a 462, 464 y 465 en main (PR 59 a 65, 20/21-nov) · 0158 y 0159 aplicadas · falta 463 y los recorridos en producción |
-| [ ] | 459 | [376 › Popup "Nuevo SKU"; el ciclo nace con él; sale la pantalla de cohortes](./376-productos-y-skus.md#459--popup-nuevo-sku-y-el-ciclo-nace-con-él-urgente-antes-del-10-dic) | 376 corte 1 | en curso · en main (PR 59, 0157) · falta el recorrido en producción |
-| [ ] | 460 | [376 › Líneas en la ficha del deal y abono por línea](./376-productos-y-skus.md#460--líneas-en-la-ficha-del-deal-y-abono-por-línea-antes-corte-2-pasos-2-3-5-y-6) | 459 | en main (PR 64) · falta re-colgar `sin_clasificar` (espera los SKUs de Michael) y el abono huérfano del deal `bf940c18…`, ambos con ok de Mani |
-| [ ] | 461 | [376 › Dinero sin ticket del programa: precio de referencia y comisión por línea](./376-productos-y-skus.md#461--dinero-sin-ticket-del-programa-precio-de-referencia-y-comisión-por-línea) | 459 | en main (pasos 1, 2 y 4 PR 60; paso 3 PR 65, D9 confirmado, 0159 aplicada) · `deals.comision_porcentaje` sin lectores, sale en el 463 |
-| [ ] | 462 | [376 › Hub, ficha del lead, Students y MCP por SKU](./376-productos-y-skus.md#462--hub-ficha-del-lead-students-y-mcp-por-sku-antes-corte-3-pasos-1-2-4-5-y-6) | 460, 461 | en main (PR 61 y 65): filtros, Compras, dinero por línea, SKUs vendidos, Students por SKU · falta test propio de Students agrupado |
-| [ ] | 463 | [376 › Migración de retiro: productos, ticket y % del programa, precio de la cohorte](./376-productos-y-skus.md#463--migración-de-retiro-destructiva-al-final) | 459 a 462 | todo · migración destructiva |
-| [ ] | 464 | [376 › El ciclo del deal lo define su SKU; SKUs predeterminados; filtros de Deals por SKU](./376-productos-y-skus.md#464--el-ciclo-del-deal-lo-define-su-sku-skus-predeterminados-adr-0140) | 459, 460 | en main (PR 58 y 64, 0158 aplicada: 4 predeterminados) · falta recorrido en producción con un closer |
-| [ ] | 465 | [376 › Un ciclo nuevo hereda los umbrales del anterior](./376-productos-y-skus.md#465--un-ciclo-nuevo-hereda-los-umbrales-del-anterior-adr-0141) | 461 | en main (PR 63) · falta que gerencia cree un ciclo y vea los umbrales heredados |
+| [ ] | 459 | [376 › Popup "Nuevo SKU"; el ciclo nace con él; sale la pantalla de cohortes](./376-productos-y-skus.md#459--popup-nuevo-sku-y-el-ciclo-nace-con-él-urgente-antes-del-10-dic) | 376 corte 1 | en curso · en main (PR 59, 0157) · falta el recorrido en producción · agrupado en G1 |
+| [ ] | 460 | [376 › Líneas en la ficha del deal y abono por línea](./376-productos-y-skus.md#460--líneas-en-la-ficha-del-deal-y-abono-por-línea-antes-corte-2-pasos-2-3-5-y-6) | 459 | en main (PR 64) · falta re-colgar `sin_clasificar` (espera los SKUs de Michael) y el abono huérfano del deal `bf940c18…`, ambos con ok de Mani · agrupado en G2 |
+| [ ] | 461 | [376 › Dinero sin ticket del programa: precio de referencia y comisión por línea](./376-productos-y-skus.md#461--dinero-sin-ticket-del-programa-precio-de-referencia-y-comisión-por-línea) | 459 | en main (pasos 1, 2 y 4 PR 60; paso 3 PR 65, D9 confirmado, 0159 aplicada) · `deals.comision_porcentaje` sin lectores, sale en el 463 · agrupado en G3 |
+| [ ] | 462 | [376 › Hub, ficha del lead, Students y MCP por SKU](./376-productos-y-skus.md#462--hub-ficha-del-lead-students-y-mcp-por-sku-antes-corte-3-pasos-1-2-4-5-y-6) | 460, 461 | en main (PR 61 y 65): filtros, Compras, dinero por línea, SKUs vendidos, Students por SKU · falta test propio de Students agrupado · agrupado en G3 |
+| [ ] | 463 | [376 › Migración de retiro: productos, ticket y % del programa, precio de la cohorte](./376-productos-y-skus.md#463--migración-de-retiro-destructiva-al-final) | 459 a 462 | todo · migración destructiva · agrupado en G3 |
+| [ ] | 464 | [376 › El ciclo del deal lo define su SKU; SKUs predeterminados; filtros de Deals por SKU](./376-productos-y-skus.md#464--el-ciclo-del-deal-lo-define-su-sku-skus-predeterminados-adr-0140) | 459, 460 | en main (PR 58 y 64, 0158 aplicada: 4 predeterminados) · falta recorrido en producción con un closer · agrupado en G1 |
+| [ ] | 465 | [376 › Un ciclo nuevo hereda los umbrales del anterior](./376-productos-y-skus.md#465--un-ciclo-nuevo-hereda-los-umbrales-del-anterior-adr-0141) | 461 | en main (PR 63) · falta que gerencia cree un ciclo y vea los umbrales heredados · agrupado en G1 |
 
 ## 1 · Entrada y lead
 
@@ -553,11 +570,11 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
 | [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | en main · 28-oct (`296cf639`) · falta el caso real de Maru · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
 | [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
-| [ ] | 348 | [El MCP del CRM, fase 1: solo lectura, solo developers](./348-mcp-del-crm.md) | — | en main · 7-nov: código, build, tests y peticiones forjadas listos y en main; falta que el developer lo conecte con `claude mcp add` y compare una cifra con el Hub · migración 0117 aplicada |
-| [ ] | 383 | [El MCP del CRM, fase 2: OAuth propio y todos los roles](./383-mcp-oauth-para-todos.md) | 348 | en main · 9-nov · falta conectar en claude.ai, Claude Code y ChatGPT, y `test:humo` · ADR 0119 |
+| [ ] | 348 | [El MCP del CRM, fase 1: solo lectura, solo developers](./348-mcp-del-crm.md) | — | en main · 7-nov: código, build, tests y peticiones forjadas listos y en main; falta que el developer lo conecte con `claude mcp add` y compare una cifra con el Hub · migración 0117 aplicada · agrupado en G4 |
+| [ ] | 383 | [El MCP del CRM, fase 2: OAuth propio y todos los roles](./383-mcp-oauth-para-todos.md) | 348 | en main · 9-nov · falta conectar en claude.ai, Claude Code y ChatGPT, y `test:humo` · ADR 0119 · agrupado en G4 |
 | [-] | 384 | [El MCP del CRM: escrituras con vista previa](./384-mcp-escrituras.md) | 348 | reemplazado por el 411, su F2 (D4, Mani, 12-nov) · no se toma suelto · lleva migración (origen `mcp`) |
 | [x] | 385 | [Auditoría completa de métricas y datos del CRM: una definición por cifra, modelo justificado, consultas centralizadas y contrato](./385-mcp-integridad-de-tools-de-metricas.md) | 348 | done · 12-nov · checkpoint `cp-20261112-1` · F0 a F7 verificadas con evidencia (H4) · hijos abiertos fuera de sus casillas: 390, 401, 403 |
-| [ ] | 386 | [Integridad de las tools de operación del MCP, por rol](./386-mcp-integridad-de-tools-de-operacion.md) | 348, 384 | todo · pedido de Mani del 6-nov |
+| [ ] | 386 | [Integridad de las tools de operación del MCP, por rol](./386-mcp-integridad-de-tools-de-operacion.md) | 348, 384 | todo · pedido de Mani del 6-nov · absorbe las 8 acciones MCP de SKU y líneas (H1) y la matriz rol × tool (H3), 21-nov |
 | [ ] | 387 | [El MCP del CRM: administración visual, evaluación de descubrimiento y visualizaciones](./387-mcp-administracion-visual-y-visualizaciones.md) | 348, 385 | idea · 7-nov · pedido de Mani: ver y administrar el MCP sin código y gráficas en el chat · docs/mcp.md §7 y §8 |
 | [x] | 388 | [F2 tanda 2: paridad de lo que F2 no cubrió](./388-f2-tanda-2-paridad-de-lo-no-cubierto.md) | — | done · 9-nov · informe `f2b-paridad.md`, sin divergencias críticas · hijo del 385 (F7) |
 | [x] | 389 | [Lead bien escrito al nacer](./389-lead-bien-escrito-al-nacer.md) | 388 | done · 9-nov · M1 y M2 aplicadas; contactos de las 18 altas manuales rellenados y verificados en producción · hijo del 385 (F7) |
@@ -566,7 +583,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | done · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |
 | [x] | 405 | [Alerta: Cierre Perdido con abonos vigentes](./405-alerta-abono-en-cierre-perdido.md) | 392 | done · 8-nov · hijo del 385 (F7) · decisión de Mani · sin migración |
 | [x] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | done · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
-| [ ] | 407 | [MCP analítico para gerencia y pauta](./407-mcp-analitico-gerencia-y-pauta.md) | 383, 397, 399, 403 | en curso · fase 1 en producción (18-nov); faltan la llamada real por un cliente y la fase 2 |
+| [ ] | 407 | [MCP analítico para gerencia y pauta](./407-mcp-analitico-gerencia-y-pauta.md) | 383, 397, 399, 403 | en curso · fase 1 en producción (18-nov); faltan la llamada real por un cliente y la fase 2 · agrupado en G4 (verificación); fase 2 con la hija H2 |
 | [ ] | 408 | [Aviso de estudiante nuevo a CS](./408-aviso-de-estudiante-nuevo-a-cs.md) | 259 | todo · 9-nov · construido y en producción, falta Juanito y el checkpoint · pedido de Daniel Tovar · Juanito avisa por WhatsApp al CS del programa (ADR 0128) |
 | [x] | 409 | [Conectar la IA desde Mi espacio, con la dirección y los pasos a la vista](./409-conectar-ia-desde-mi-espacio.md) | 383 | done · 9-nov · A-175 (Michael) · sin migración |
 | [ ] | 410 | [Abonos en COP: la conversión a USD se congela al registrar](./410-abonos-en-cop-conversion-congelada.md) | 395 | idea · 9-nov · «maybe muy maybe»: todo sigue en USD · D1 a D3 respondidas, D4 y D5 abiertas · migración · hoy el closer no puede abonar en COP (zod solo USD) |
