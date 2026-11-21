@@ -200,8 +200,10 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
  * 17-nov: reasignar_deal expuesta (411, ADR 0134), 97 → 96.
  * 20-nov: 96 → 98 por capacidades nuevas del 459 (ADR 0139): crear, editar, desactivar y reactivar un SKU y editar la
  * ventana de una cohorte entran como pendientes de configuración; sale crearCohorteAccion (la cohorte nace con su SKU).
+ * 20-nov: 98 → 102 por las cuatro acciones de líneas del 460 (asignar SKU, editar valor, quitar y anular línea): pendientes de
+ * operación hasta que el MCP escriba líneas (hoy ficha_de_deal solo las lee).
  */
-export const TOPE_DE_PENDIENTES_DEL_MCP = 98;
+export const TOPE_DE_PENDIENTES_DEL_MCP = 102;
 
 type RazonSinLista =
   | `Se pide por consultar_hechos: ${string}`

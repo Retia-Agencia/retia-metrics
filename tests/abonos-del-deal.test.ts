@@ -214,15 +214,20 @@ describe("registrarAbono: el dinero mueve el deal", () => {
 });
 
 describe("abono adicional", () => {
-  it("ADR 0137 punto 14: crea su línea y mueve la etapa como cualquier abono", async () => {
+  it("ADR 0137 punto 14: un abono a una línea sin clasificar elegida mueve la etapa como cualquier abono", async () => {
     const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    // Desde el 460 el abono elige su línea: el adicional se asigna aparte (sin clasificar) y se paga por su id.
+    const adicional = await db.transaction((tx) => moduloLineas.crearLineaSinClasificar(tx as Db, {
+      deal, montoUsd: 1500, cohortId, actorId: closer, etiqueta: "adicional",
+    }));
 
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "1500", { concepto: "adicional", nota: "Mentoría" }));
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "1500", { lineaId: adicional.id }));
 
     expect(r).toMatchObject({ etapa: "ganado_completo", movioElDeal: true, saldo: 0, cohorteAsignada: null });
     expect(await etapaDe(dealId)).toBe("ganado_completo");
     expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBe("1500.00");
-    expect((await abonosDe(dealId))[0]).toMatchObject({ concepto: "adicional", monto: "1500.00" });
+    expect((await abonosDe(dealId))[0]).toMatchObject({ monto: "1500.00" });
   });
 
   it("ADR 0137 punto 14: rechaza también el adicional sobre un deal cerrado", async () => {
@@ -246,17 +251,6 @@ describe("abono adicional", () => {
 
     expect((await capturar(registrarAbono(db, actor, abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })))).status).toBe(403);
     expect(await abonosDe(dealId)).toHaveLength(0);
-  });
-
-  it("guarda la nota recortada y rechaza una nota vacía", async () => {
-    const dealId = await nuevoDeal("atendido");
-    await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "  Mentoría 1:1  " }));
-    const error = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "100", { concepto: "adicional", nota: "   " })));
-
-    expect(error).toMatchObject({ status: 422, message: "Escribe qué se vendió." });
-    expect(await abonosDe(dealId)).toEqual([
-      expect.objectContaining({ monto: "250.00", nota: "Mentoría 1:1" }),
-    ]);
   });
 
   it("ADR 0137 punto 14: anular el único adicional aplica la reversión A1", async () => {
@@ -706,14 +700,13 @@ describe("comprobante posterior", () => {
 });
 
 describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal recibe plata (063)", () => {
-  it("un deal sin cohorte queda en la activa del programa, con su rastro", async () => {
+  it("un deal sin cohorte (Sin SKU) no recibe la activa por fecha: rechaza con 409 y no escribe (ADR 0140)", async () => {
     const dealId = await nuevoDeal("atendido", { cohortId: null, valorVendidoUsd: null });
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    expect(r.cohorteAsignada).toBe(cohortId);
+    const error = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300")));
+    expect(error.status).toBe(409);
+    expect(await abonosDe(dealId)).toHaveLength(0);
     const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
-    expect(d.cohortId).toBe(cohortId);
-    const rastro = await db.select().from(changeLog).where(and(eq(changeLog.registroId, dealId), eq(changeLog.campo, "cohortId")));
-    expect(rastro).toHaveLength(1);
+    expect(d.cohortId).toBeNull();
   });
 
   it("un deal que ya tiene cohorte no se toca", async () => {

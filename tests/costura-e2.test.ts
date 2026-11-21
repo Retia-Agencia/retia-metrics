@@ -6,6 +6,7 @@ import {
   calls,
   changeLog,
   cohorts,
+  skus,
   dealEtapaHistorial,
   deals,
   miembrosPrograma,
@@ -158,7 +159,9 @@ beforeEach(async () => {
       fechaCierreVentas: "2026-10-10",
     })
     .returning();
-  await skuVirtualDePrueba(db, cohorte.id);
+  // ADR 0140: el deal que nace del webhook recibe los SKUs predeterminados; sin ellos nacería Sin SKU.
+  const virtual = await skuVirtualDePrueba(db, cohorte.id);
+  await db.update(skus).set({ predeterminado: true }).where(eq(skus.id, virtual.id));
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;

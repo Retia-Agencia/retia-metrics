@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
+import { crearLineaSinClasificar } from "@/lib/deals/lineas";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -58,7 +59,12 @@ const abono = (monto: string) => ({ dealId, fecha: "2026-09-28", monto, platafor
 describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra", () => {
   it("lo máximo que la reja acepta es exactamente el saldo del módulo; un centavo más se rechaza", async () => {
     await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono("500"));
-    await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, { ...abono("900"), concepto: "adicional", nota: "Mentoría adicional" });
+    // Desde el 460 el abono elige su línea: el adicional se asigna aparte (sin clasificar) y se paga por su id.
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    const adicional = await db.transaction((tx) => crearLineaSinClasificar(tx as Db, {
+      deal, montoUsd: 900, cohortId: deal.cohortId!, actorId: closer, etiqueta: "adicional",
+    }));
+    await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, { ...abono("900"), lineaId: adicional.id });
 
     const visto = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
     // ADR 0137 punto 14: el adicional es otra línea vendida; su precio y su abono se compensan.

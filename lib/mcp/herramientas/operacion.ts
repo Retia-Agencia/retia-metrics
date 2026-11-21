@@ -11,6 +11,7 @@ import { aSalidaDeBandeja, aSalidaDeBuscarLeads, aSalidaDeFichaDeDeal, aSalidaDe
 import { camposDeFiltrosDeLeads, filtrosDeLeads } from "@/lib/queries/filtros-de-leads";
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { camposDeFiltrosKanban, opcionesDeTablero, paginaDelTablero, parsearFiltros, vistaDelTablero } from "@/lib/queries/kanban";
+import { cohorteActiva } from "@/lib/queries/cohortes";
 import { buscarEnPrograma } from "@/lib/queries/busqueda-global";
 import { dimensionesVisibles, HECHOS_CONSULTABLES } from "@/lib/queries/hechos/registro";
 import { resolverCohorte, resolverDueno, type FiltroAplicado } from "@/lib/queries/resolver-filtros";
@@ -268,9 +269,9 @@ export const opcionesDeFiltrosMcp: Herramienta<typeof entradaOpciones> = {
     const opcionesSku = await opcionesDeFiltrosDeSku(contexto.db, visible.id);
     let opciones: Record<string, unknown>;
     if (entrada.de === "tablero") {
-      const tablero = await opcionesDeTablero(contexto.db, visible.id);
+      const [tablero, activa] = await Promise.all([opcionesDeTablero(contexto.db, visible.id), cohorteActiva(visible.id, contexto.db)]);
       const { owners, ...resto } = tablero;
-      opciones = { ...resto, ...(veEquipo ? { duenos: owners } : {}) };
+      opciones = { ...resto, ...(veEquipo ? { duenos: owners } : {}), cohorte_activa: activa ? { id: activa.id, codigo: activa.codigo } : null };
     } else if (entrada.de === "leads") {
       opciones = Object.fromEntries(Object.entries(camposDeFiltrosDeLeads).map(([nombre, esquema]) => [nombre, z.toJSONSchema(esquema, { unrepresentable: "any" })]));
     } else {

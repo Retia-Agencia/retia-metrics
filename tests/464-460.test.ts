@@ -97,9 +97,10 @@ describe("tickets 464 y 460", () => {
     });
     // Solo la línea con abono vende y suma su valor completo; la propuesta no suma.
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("100.00");
-    await expect(quitarLinea(db, { deal, lineaId: la.id, actorId: closerId, etiqueta: "A" }))
+    const actual = (await db.select().from(deals).where(eq(deals.id, deal.id)))[0];
+    await expect(quitarLinea(db, { deal: actual, lineaId: la.id, actorId: closerId, etiqueta: "A" }))
       .rejects.toMatchObject({ status: 409 });
-    await anularLinea(db, { deal, lineaId: la.id, actorId: closerId, etiqueta: "A" });
+    await anularLinea(db, { deal: actual, lineaId: la.id, actorId: closerId, etiqueta: "A" });
     expect((await db.select().from(dealLineas).where(eq(dealLineas.id, la.id)))[0].anuladaEn).not.toBeNull();
   });
 
