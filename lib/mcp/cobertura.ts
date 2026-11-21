@@ -93,6 +93,10 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#deshacerEventoAccion": { clase: "expuesta", accion: "deshacer_evento" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#editarDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Editar los datos comerciales de un deal." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#anularDealAccion": { clase: "expuesta", accion: "anular_deal" },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#asignarSkuAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Asignar un SKU a un deal." },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#editarValorLineaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Editar el valor vendido de la línea de un deal." },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#quitarLineaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Quitar de un deal una línea sin abonos." },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#anularLineaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Anular la línea de un deal que ya tiene abonos." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#confirmarCorreoDesdeDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Confirmar que dos contactos corresponden a la misma persona desde un deal." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#separarCorreoDesdeDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Separar contactos que no corresponden a la misma persona desde un deal." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#marcarLinkEnviadoAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Marcar que se envió el enlace de pago." },
@@ -196,8 +200,10 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
  * 17-nov: reasignar_deal expuesta (411, ADR 0134), 97 → 96.
  * 20-nov: 96 → 98 por capacidades nuevas del 459 (ADR 0139): crear, editar, desactivar y reactivar un SKU y editar la
  * ventana de una cohorte entran como pendientes de configuración; sale crearCohorteAccion (la cohorte nace con su SKU).
+ * 20-nov: 98 → 102 por las cuatro acciones de líneas del 460 (asignar SKU, editar valor, quitar y anular línea): pendientes de
+ * operación hasta que el MCP escriba líneas (hoy ficha_de_deal solo las lee).
  */
-export const TOPE_DE_PENDIENTES_DEL_MCP = 98;
+export const TOPE_DE_PENDIENTES_DEL_MCP = 102;
 
 type RazonSinLista =
   | `Se pide por consultar_hechos: ${string}`

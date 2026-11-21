@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { abonos, calls, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, plataformasPago, plataformasPrograma, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, dealLineas, skus, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, plataformasPago, plataformasPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -121,11 +121,34 @@ describe("abono al mover", () => {
     const r = await (await acciones()).moverConHechoAccion({
       dealId,
       a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-11-12", monto: "100", moneda: "USD", concepto: "ticket" } as never,
+      hecho: { tipo: "abono", lineaId: crypto.randomUUID(), fecha: "2026-11-12", monto: "100", moneda: "USD" } as never,
     });
 
     expect(r).toEqual({ ok: false, error: "Elige la plataforma por la que entró el pago." });
     expect(await db.select().from(abonos).where(eq(abonos.dealId, dealId))).toHaveLength(0);
+  });
+});
+
+describe("líneas del deal, forjando la peticion", () => {
+  it("un closer NO asigna, edita, quita ni anula líneas de un deal ajeno y la base no se mueve", async () => {
+    const dealId = await nuevoDeal(programaA, closerB);
+    const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "C1", metaCupos: 5, precioUsd: "100" }).returning();
+    const [sku] = await db.insert(skus).values({ programId: programaA, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "A-VIRTUAL-C1", precioListaUsd: "100", cuentaComoCupo: true }).returning();
+    const [linea] = await db.insert(dealLineas).values({ dealId, programId: programaA, skuId: sku.id, precioListaUsd: "100", valorVendidoUsd: "100" }).returning();
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+    const a = await acciones();
+
+    const rs = [
+      await a.asignarSkuAccion({ dealId, skuId: sku.id }),
+      await a.editarValorLineaAccion({ dealId, lineaId: linea.id, valorVendidoUsd: 1 }),
+      await a.quitarLineaAccion({ dealId, lineaId: linea.id }),
+      await a.anularLineaAccion({ dealId, lineaId: linea.id }),
+    ];
+
+    for (const r of rs) expect(r).toMatchObject({ ok: false });
+    const filas = await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId));
+    expect(filas).toHaveLength(1);
+    expect(filas[0]).toMatchObject({ valorVendidoUsd: "100.00", anuladaEn: null });
   });
 });
 

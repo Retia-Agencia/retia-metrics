@@ -159,11 +159,10 @@ export async function moverConHecho(
         await pegarGrain(tx, actor, { callId, linkGrain: entrada.hecho.linkGrain.trim() });
       }
     } else if (entrada.hecho?.tipo === "abono") {
-      const esAdicional = entrada.hecho.concepto === "adicional";
       // El descuento y la fecha límite del diálogo van ANTES del pago: el saldo que deja el
       // abono decide la etapa, y `registrarAbono` congela el ticket completo si no hay total.
       // Sin esto el descuento tecleado se perdía sin error y el deal quedaba con saldo de más.
-      if (!esAdicional && entrada.datos) {
+      if (entrada.datos) {
         await escribirDatosDelDeal(tx, inicial, entrada.datos, {
           tipo: "usuario",
           userId: actor.userId,
@@ -173,14 +172,13 @@ export async function moverConHecho(
       }
       await registrarAbono(tx, actor, {
         dealId: inicial.id,
+        lineaId: entrada.hecho.lineaId,
         fecha: entrada.hecho.fecha,
         monto: entrada.hecho.monto,
         moneda: entrada.hecho.moneda,
         plataformaId: entrada.hecho.plataformaId,
         comprobanteUrl: entrada.hecho.comprobanteUrl,
         archivo: entrada.hecho.archivo,
-        concepto: entrada.hecho.concepto,
-        nota: entrada.hecho.nota,
       });
     }
 

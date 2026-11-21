@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { abonos, dealLineas, deals, productos, skus } from "@/lib/db/schema";
+import { abonos, dealLineas, deals, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -149,7 +149,6 @@ export async function saldosDeLineas(db: Db, dealIds: readonly string[]): Promis
     }).from(dealLineas)
       .innerJoin(deals, and(eq(deals.id, dealLineas.dealId), vigente(deals)))
       .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
-      .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
       .where(and(inArray(dealLineas.dealId, [...dealIds]), vigente(dealLineas))),
     db.select({
       lineaId: abonos.lineaId, moneda: abonos.moneda, total: sumaDeAbonos(),

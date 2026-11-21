@@ -22,6 +22,7 @@ import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
 import { FichaCierre } from "@/components/deals/ficha/ficha-cierre";
+import { FichaSkus } from "@/components/deals/ficha/ficha-skus";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
 import { hoyEnBogota } from "@/lib/format";
@@ -59,7 +60,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
 
   const datos = await cargarDatosDeFichaDeDeal(db, { programId: programa.id, dealId: id, session, rol });
   if (!datos) notFound();
-  const { resultado: { ficha, actor }, opciones, alertas, hechosDeEscalera } = datos;
+  const { resultado: { ficha, actor }, opciones, alertas, hechosDeEscalera, lineas, skusActivos } = datos;
   // Una vista suplantada no consume la señal de la persona real. Para el dueño normal,
   // abrir esta ficha es exactamente el gesto que marca el Deal como visto.
   const real = await requireSesionReal();
@@ -122,7 +123,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
           <FichaAlertas alertas={alertas} programaSlug={programa.slug} puedeGestionar={puedeDecidirDuplicado({ id: session.user.id, rol }, ficha.owner?.id ?? null)} />
           <FichaTransicion
             ficha={ficha}
-            opciones={opciones}
+            opciones={{ ...opciones, lineas, skusActivos }}
             mapa={mapaDeTransiciones()}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
@@ -166,6 +167,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
               puedeCompletar={puedeRegistrar && ficha.etapa !== "cierre_perdido"}
             />
             <FichaActividades actividades={ficha.actividades} puedeRegistrar={puedeTrabajar} />
+            <FichaSkus dealId={ficha.dealId} lineas={lineas} skus={skusActivos} puedeTrabajar={puedeTrabajar} />
             <FichaPago
               ficha={ficha}
               opciones={opciones}
@@ -174,6 +176,8 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
               aceptaAbono={aceptaAbono(ficha.etapa)}
               hoy={hoyEnBogota()}
               nombreDeEtapa={NOMBRE_DE_ETAPA}
+              lineas={lineas}
+              skusActivos={skusActivos}
             />
           </div>
         </div>

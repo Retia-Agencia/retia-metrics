@@ -6,7 +6,6 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import type { Rol } from "@/lib/auth/roles";
 import { editarConRastro } from "@/lib/crm/rastro";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { puedeTrabajarDeal } from "./permiso";
 
@@ -53,11 +52,8 @@ export async function fechaLimiteMaxima(db: Db, deal: DealParaFecha): Promise<st
       .where(and(eq(cohorts.id, deal.cohortId), eq(cohorts.programId, deal.programId)));
     inicioDeSuCohorte = c?.inicio ?? null;
   }
-  const inicioDeLaActiva = inicioDeSuCohorte == null
-    ? (await cohorteActiva(deal.programId, db))?.fechaInicioClases ?? null
-    : null;
   // El tope no usa la fecha pactada: solo las fechas de las cohortes.
-  return fechaEfectivaDePago(null, inicioDeSuCohorte, inicioDeLaActiva);
+  return fechaEfectivaDePago(null, inicioDeSuCohorte, null);
 }
 
 /** Rechaza (422) una fecha límite posterior al inicio de clases de la cohorte del deal. */

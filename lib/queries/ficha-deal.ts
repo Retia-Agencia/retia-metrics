@@ -28,7 +28,6 @@ import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentosDeDeals, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { columnasCohorteConEstado, estadoDeCohorteSql } from "@/lib/cohortes/estado";
 import { esEtapaVendida } from "@/lib/deals/etapas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -725,8 +724,7 @@ export async function fichaDeDeal(
 
   const cohorte = cohorteDeId(deal.cohortId);
   const cohorteDestino = cohorteDeId(deal.cohorteDestinoId);
-  const activaSugerida = deal.cohortId == null ? await cohorteActiva(deal.programId, db) : null;
-  const cohorteDelTicket = cohorte ?? activaSugerida;
+  const cohorteDelTicket = cohorte;
   const valorVendidoUsd = deal.valorVendidoUsd == null ? null : Number(deal.valorVendidoUsd);
   const [precioDelTicket, descuentos] = await Promise.all([
     cohorteDelTicket ? precioDeReferenciaDelCiclo(db, cohorteDelTicket.id) : Promise.resolve(null),
@@ -777,7 +775,7 @@ export async function fichaDeDeal(
           cohorteId: cohorteDelTicket.id,
           codigo: cohorteDelTicket.codigo,
           precioUsd: precioDelTicket,
-          esActivaSugerida: cohorte == null,
+          esActivaSugerida: false,
         }
       : null,
     descuento: descuentos.get(deal.id) ?? null,

@@ -4,12 +4,13 @@ import type { Db } from "@/lib/db/tipos";
 import { alertasDelDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { cargarHechosDeEscaleraDeDeal } from "@/lib/queries/escalera";
 import { fichaDeDealVisible } from "@/lib/queries/operacion";
+import { lineasVisiblesDelDeal, skusActivosDelPrograma } from "@/lib/queries/lineas-de-deal";
 
 export async function cargarDatosDeFichaDeDeal(db: Db, entrada: { programId: string; dealId: string; session: Session; rol: Rol }) {
   const resultado = await fichaDeDealVisible(db, entrada.programId, entrada.dealId, entrada.session, entrada.rol);
   if (!resultado) return null;
   const { ficha } = resultado;
-  const [opciones, alertas, hechosDeEscalera] = await Promise.all([
+  const [opciones, alertas, hechosDeEscalera, lineas, skusActivos] = await Promise.all([
     opcionesDeFicha(
       db,
       entrada.programId,
@@ -21,6 +22,8 @@ export async function cargarDatosDeFichaDeDeal(db: Db, entrada: { programId: str
     ),
     alertasDelDeal(db, entrada.programId, ficha.dealId),
     cargarHechosDeEscaleraDeDeal(db, { programId: entrada.programId, dealId: ficha.dealId }),
+    lineasVisiblesDelDeal(db, ficha.dealId),
+    skusActivosDelPrograma(db, entrada.programId),
   ]);
-  return { resultado, opciones, alertas, hechosDeEscalera };
+  return { resultado, opciones, alertas, hechosDeEscalera, lineas, skusActivos };
 }

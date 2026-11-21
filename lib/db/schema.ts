@@ -466,6 +466,8 @@ export const skus = pgTable(
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
     /** El SKU decide si ocupa un cupo de la meta; nace apagado (ADR 0137, enmienda del 20-nov). */
     cuentaComoCupo: boolean("cuenta_como_cupo").notNull().default(false),
+    /** Todo deal nuevo recibe una propuesta de cada SKU activo marcado (ADR 0140). */
+    predeterminado: boolean("predeterminado").notNull().default(false),
     /** % de comision del SKU; 0 no paga comision (ADR 0137, enmienda del 20-nov). */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     activo: boolean("activo").notNull().default(true),
