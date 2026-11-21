@@ -3,6 +3,7 @@ import { ZodError, z } from "zod";
 import { ErrorDeApp } from "@/lib/errors";
 import { codigoDeEntradaInvalida, registrarLlamada, segundosDeEspera } from "./bitacora";
 import { herramientasPara } from "./herramientas";
+import { registrarPrompts } from "./prompts";
 import type { ContextoMcp, Herramienta } from "./herramientas/tipos";
 import { sesionDeToken } from "./sesion";
 import { esVistaValida, PREFIJO_SUPLANTACION } from "@/lib/auth/vista";
@@ -226,4 +227,5 @@ export function registrarHerramientas(server: McpServer, contexto: ContextoMcp):
   for (const herramienta of herramientas) {
     registrarUna(server, herramienta, contexto);
   }
+  registrarPrompts(server, new Set(herramientas.map((herramienta) => herramienta.nombre)));
 }
