@@ -92,7 +92,7 @@ function rastroDeAlta(tabla: "skus" | "cohorts", registroId: string, etiqueta: s
     campo,
     valorAnterior: null,
     valorNuevo: aTexto(valor),
-    origen: "app" as const,
+    origen,
     userId: actorId,
   }));
 }
