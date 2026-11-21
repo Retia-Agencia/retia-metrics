@@ -1,20 +1,14 @@
-import { createHash } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { puedeVerOperacion } from "@/lib/auth/roles";
-import { exigirDealVisible } from "@/lib/deals/alcance";
-import {
-  estadoParaAccionDeal,
-  huellaDeAccionAbonos,
-} from "@/lib/deals/estado-para-accion";
+import { estadoParaAccionDeal } from "@/lib/deals/estado-para-accion";
 import { anularLinea, asignarLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
+import {
+  dealEditableParaLineas as dealEditable,
+  estadoDeLineasParaAccion as estadoDeLineas,
+  huellaDeAccionLineas as huellaDeLineas,
+} from "@/lib/deals/lineas-para-accion";
 import type { ActorDeMovimiento } from "@/lib/deals/mover-deal";
-import { puedeTrabajarDeal } from "@/lib/deals/permiso";
-import { dealLineas, deals, leads, skus } from "@/lib/db/schema";
-import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 import type { Db } from "@/lib/db/tipos";
-import { ErrorDeApp } from "@/lib/errors";
-import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { ensayar } from "./ensayo";
 import type { AccionMcp, ObjetivoAccionMcp } from "./tipos";
 
@@ -24,52 +18,6 @@ import type { AccionMcp, ObjetivoAccionMcp } from "./tipos";
  * recalculan allá. Quién puede es la regla de la ficha: el deal visible en el alcance de la sesión y
  * `puedeTrabajarDeal` (dueño o quien administra). La línea anulada no se edita ni se quita (`lineaVigente`).
  */
-
-const MENSAJE_SIN_PERMISO = "Solo el dueño o quien administra puede editar los SKUs del deal.";
-
-/** Lo mismo que `dealEditable` de la ficha, con el mismo orden de rejas: alcance, deal vigente, dueño o administrador. */
-async function dealEditable(db: Db, actor: ActorDeMovimiento, dealId: string) {
-  await exigirDealVisible(db, actor, dealId);
-  const [deal] = await db.select().from(deals).where(and(eq(deals.id, dealId), vigente(deals)));
-  if (!deal) throw new ErrorDeApp("No existe el deal vigente.", 404);
-  if (!puedeTrabajarDeal(actor, deal)) throw new ErrorDeApp(MENSAJE_SIN_PERMISO, 403);
-  const [lead] = await db.select({ nombre: leads.nombre, email: leads.emailNormalizado }).from(leads).where(eq(leads.id, deal.leadId));
-  return { deal, etiqueta: lead?.nombre ?? lead?.email ?? deal.id };
-}
-
-async function lineasDelDeal(db: Db, dealId: string, bloquear = false) {
-  const consulta = db.select({
-    id: dealLineas.id,
-    sku: skus.codigo,
-    skuId: dealLineas.skuId,
-    valorVendidoUsd: dealLineas.valorVendidoUsd,
-    anuladaEn: dealLineas.anuladaEn,
-  }).from(dealLineas)
-    .innerJoin(skus, eq(skus.id, dealLineas.skuId))
-    .where(and(eq(dealLineas.dealId, dealId), incluyendoAnulados(dealLineas)))
-    .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
-  return bloquear ? await consulta.for("update", { of: dealLineas }) : await consulta;
-}
-
-async function estadoDeLineas(db: Db, dealId: string) {
-  const [deal] = await db.select({ etapa: deals.etapa, valorVendidoUsd: deals.valorVendidoUsd })
-    .from(deals).where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
-  if (!deal) return null;
-  const lineas = (await lineasDelDeal(db, dealId)).filter((linea) => linea.anuladaEn == null);
-  return {
-    etapa: deal.etapa,
-    valor_vendido_usd: deal.valorVendidoUsd,
-    lineas: lineas.map((linea) => ({ id: linea.id, sku: linea.sku, valor_vendido_usd: linea.valorVendidoUsd })),
-  };
-}
-
-async function huellaDeLineas(db: Db, dealId: string, opciones?: { bloquear?: true }): Promise<string | null> {
-  const base = await huellaDeAccionAbonos(db, dealId, opciones);
-  if (!base) return null;
-  const lineas = await lineasDelDeal(db, dealId, opciones?.bloquear === true);
-  const estable = textoDeBitacora({ base, lineas });
-  return createHash("sha256").update(estable ?? "null").digest("hex");
-}
 
 type Ejecucion = (db: Db, actor: ActorDeMovimiento, objetivo: ObjetivoAccionMcp) => Promise<unknown>;
 

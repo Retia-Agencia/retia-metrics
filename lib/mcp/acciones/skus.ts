@@ -1,11 +1,14 @@
-import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { esAdministrador } from "@/lib/auth/roles";
 import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { crearSku, desactivarSku, editarSku, reactivarSku, type EntradaSku } from "@/lib/catalogo/skus";
-import { cohorts, programs, skus } from "@/lib/db/schema";
-import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
+import {
+  huellaDeProgramaParaCrearSku,
+  huellaDeSku,
+  leerProgramaParaAccion,
+  leerSkuParaAccion as leerSku,
+  resumenDeSku,
+} from "@/lib/catalogo/skus-para-accion";
 import type { Db } from "@/lib/db/tipos";
 import type { ActorDeMovimiento } from "@/lib/deals/mover-deal";
 import { ErrorDeApp } from "@/lib/errors";
@@ -23,26 +26,6 @@ const MENSAJE_PROGRAMA = "No puedes administrar este programa.";
 
 type Actor = ActorDeMovimiento;
 
-async function leerSku(db: Db, id: string, bloquear = false) {
-  const consulta = db.select({ sku: skus, codigoCohorte: cohorts.codigo }).from(skus)
-    .innerJoin(cohorts, eq(cohorts.id, skus.cohortId))
-    .where(eq(skus.id, id));
-  const [fila] = bloquear ? await consulta.for("update", { of: skus }) : await consulta;
-  return fila ?? null;
-}
-
-function resumenDeSku(sku: typeof skus.$inferSelect) {
-  return {
-    codigo: sku.codigo,
-    nombre: sku.nombre,
-    precio_lista_usd: sku.precioListaUsd,
-    comision_porcentaje: sku.comisionPorcentaje,
-    cuenta_como_cupo: sku.cuentaComoCupo,
-    predeterminado: sku.predeterminado,
-    activo: sku.activo,
-  };
-}
-
 function numeroDeCohorte(codigo: string): number {
   const coincidencia = /^C(\d+)$/.exec(codigo);
   if (!coincidencia) throw new ErrorDeApp(`La cohorte ${codigo} no tiene un número válido.`, 409);
@@ -51,12 +34,6 @@ function numeroDeCohorte(codigo: string): number {
 
 async function exigirPrograma(db: Db, actor: Actor, programId: string) {
   await exigirAccesoAlPrograma(db, { id: actor.userId, rol: actor.rol }, programId, MENSAJE_PROGRAMA);
-}
-
-async function huellaDeSku(db: Db, id: string, bloquear?: true): Promise<string | null> {
-  const fila = await leerSku(db, id, bloquear === true);
-  if (!fila) return null;
-  return createHash("sha256").update(textoDeBitacora({ sku: fila.sku, cohorte: fila.codigoCohorte }) ?? "null").digest("hex");
 }
 
 async function ubicarSku(db: Db, objetivo: ObjetivoAccionMcp) {
@@ -133,7 +110,7 @@ export const crearSkuMcp: AccionMcp<typeof argumentosCrear> = {
   objetivoAusente: "No existe ese programa.",
   objetivos: (entrada) => [{ id: entrada.programa_id, datos: entrada }],
   async ubicar(db, objetivo) {
-    const [programa] = await db.select({ id: programs.id, nombre: programs.nombre }).from(programs).where(eq(programs.id, objetivo.id));
+    const programa = await leerProgramaParaAccion(db, objetivo.id);
     return programa ? { programId: programa.id, nombre: programa.nombre, antes: null } : null;
   },
   async revisar(db, actor, base) {
@@ -152,14 +129,7 @@ export const crearSkuMcp: AccionMcp<typeof argumentosCrear> = {
       },
     };
   },
-  async huella(db, objetivo, opciones) {
-    const consulta = db.select({ id: programs.id }).from(programs).where(eq(programs.id, objetivo.id));
-    const [programa] = opciones?.bloquear ? await consulta.for("update") : await consulta;
-    if (!programa) return null;
-    const existentes = await db.select({ codigo: skus.codigo }).from(skus).where(eq(skus.programId, objetivo.id));
-    const estable = textoDeBitacora(existentes.map((fila) => fila.codigo).sort());
-    return createHash("sha256").update(estable ?? "null").digest("hex");
-  },
+  huella: (db, objetivo, opciones) => huellaDeProgramaParaCrearSku(db, objetivo.id, opciones?.bloquear),
   aplicar: (db, actor, objetivo) => ejecutarCrear(db, actor, objetivo as ObjetivoCrear),
   seDeshace: false,
   efectoExterno: false,
