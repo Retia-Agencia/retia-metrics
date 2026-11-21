@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { abonos, dealLineas, deals, productos, skus } from "@/lib/db/schema";
+import { abonos, dealLineas, deals, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -28,11 +28,10 @@ export async function recolgarAbonos(db: Db, opciones: OpcionesDeRecolgado = {})
   const origenes = await db.select({
     abonoId: abonos.id, dealId: abonos.dealId, lineaId: dealLineas.id,
     skuId: dealLineas.skuId, programId: dealLineas.programId,
-    lineaAnulada: dealLineas.anuladaEn, productoSlug: productos.slug,
+    lineaAnulada: dealLineas.anuladaEn, productoSlug: skus.slug,
   }).from(abonos)
     .innerJoin(dealLineas, eq(dealLineas.id, abonos.lineaId))
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
-    .leftJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
     .where(and(vigente(abonos), incluyendoAnulados(dealLineas)))
     .orderBy(asc(dealLineas.dealId), asc(abonos.id));
 

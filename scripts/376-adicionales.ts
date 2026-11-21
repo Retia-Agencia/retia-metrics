@@ -1,7 +1,7 @@
 import "./load-env";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
-import { abonos, cohorts, dealLineas, deals, leads, productos, programs, skus } from "../lib/db/schema";
+import { abonos, cohorts, dealLineas, deals, leads, programs, skus } from "../lib/db/schema";
 import { incluyendoAnulados } from "../lib/queries/vigente";
 
 async function main(): Promise<void> {
@@ -20,12 +20,11 @@ async function main(): Promise<void> {
     .from(abonos)
     .innerJoin(dealLineas, eq(dealLineas.id, abonos.lineaId))
     .innerJoin(skus, eq(skus.id, dealLineas.skuId))
-    .innerJoin(productos, eq(productos.id, skus.productoId))
     .innerJoin(deals, eq(deals.id, abonos.dealId))
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .innerJoin(programs, eq(programs.id, abonos.programId))
     .innerJoin(cohorts, eq(cohorts.id, skus.cohortId))
-    .where(and(inArray(productos.slug, ["sin_clasificar", "1_1_con_rosario"]), incluyendoAnulados(abonos), incluyendoAnulados(deals)))
+    .where(and(inArray(skus.slug, ["sin_clasificar", "1_1_con_rosario"]), incluyendoAnulados(abonos), incluyendoAnulados(deals)))
     .orderBy(asc(programs.slug), asc(abonos.fecha), asc(deals.id), asc(abonos.id));
 
   console.log("programa\tdeal_id\tnombre\tcorreo\tcohorte\tfecha\tmoneda\tmonto\tnota");
