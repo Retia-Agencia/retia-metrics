@@ -143,10 +143,10 @@ solo él puede hacer (decidir y hablar con Paid Media y Michael) y las definicio
 - **Vocabulario:** lo escribe el carril D; el carril P solo lo importa.
 - **Migraciones:** cola **421 → 417**. Las aplica Mani (sesión principal), una a la vez, leyendo el SQL (AGENTS.md).
 
-**Reglas de la ola (las de siempre, §1 y §6):** todo en `main`; cada commit nombra sus archivos (nunca `git add -A`) y
+**Reglas de la ola (las de siempre, §1 y §6; enmienda del 20-nov: todo entra por PR, ningún test en local):** cada commit nombra sus archivos (nunca `git add -A`) y
 `git pull --rebase` antes de `git push`; cada sesión escribe su avance **en el archivo de su ticket**; el tracker
-(`docs/tasks/README.md`) y el handoff los pone al día Mani en cada checkpoint verde; en local, typecheck, lint y los tests del
-ticket (la suite la corre el CI); un cambio de pantalla corre `npm run build`, se abre con `npm run dev:local` y se compara **lado
+(`docs/tasks/README.md`) y el handoff los pone al día Mani en cada checkpoint verde; ningún test en local, los corre el CI del PR;
+un cambio de pantalla corre `npm run build`, se abre con `npm run dev:local` y se compara **lado
 a lado con el HTML del boceto** en claro, oscuro y 375 px. Nadie empuja durante un checkpoint.
 
 **Listos hoy, sin esperar a nadie:** 419 (compañero) y 403 F1 (Mani, solo decisiones). **Prueba de costura de la ola:** la tabla
@@ -1027,12 +1027,14 @@ Las reglas de `AGENTS.md` siguen todas. Estas se suman:
 
 - **Una sesión, un ticket, un worktree.** Al abrirla: `git fetch`, reclamar el ticket en **su archivo**
   (`status: en curso` y quién, en un commit que se empuja ya) y mirar que ningún archivo caliente que toque
-  tenga otro dueño en la ola (§2). Los tests corren en el worktree; `next build` y `next dev` solo en el
+  tenga otro dueño en la ola (§2). Los tests no corren en local (20-nov); `next build` y `next dev` solo en el
   checkout principal (`AGENTS.md`, Conventions).
-- **Lo que corre cada sesión antes de empujar (nivel 1):** `npm run typecheck`, `npm run lint` y los tests de
-  su ticket (`npm test -- tests/x.test.ts ...`), más el guardián del contrato que toque (vigencia, rastro,
-  identidad del closer, atribución, catálogo). La suite completa **no** se corre en local (Mani, 1-oct).
-- **Push directo a `main`, sin PR obligatorio** (Mani, 28-sep y 1-oct: velocidad). Se empuja cuando el ticket, o
+- **Nivel 1 = el CI del PR** (Mani, 20-nov; reemplaza el nivel 1 local del 1-oct). Ningún test corre en local, ni
+  archivos sueltos: la sesión escribe los tests de su ticket y el guardián del contrato que toque (vigencia, rastro,
+  identidad del closer, atribución, catálogo) y el CI del PR los corre. Typecheck y lint locales son opcionales.
+- **Todo entra por PR** (Mani, 20-nov; reemplaza el push directo a `main` del 28-sep y 1-oct). La sesión empuja su
+  rama y abre el PR sin mergear; Mani no aprueba; la sesión padre lee el diff, espera el CI verde y mergea. Lo que
+  sigue de este punto sobre pushes a `main` es historia. Se empuja cuando el ticket, o
   una tajada coherente de él, pasó el nivel 1; no en cada commit. Antes: `git pull --rebase`. Un ticket de agente
   (Codex) no se empuja sin que la sesión que orquesta haya leído el diff contra el "Done cuando".
 - **Una migración aditiva se aplica antes del push del código que la usa**, con el ok de Mani; una que quita

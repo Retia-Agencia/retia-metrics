@@ -15,24 +15,25 @@ The agent should run these to get fast signal on whether code works. Keep them c
   siembran las migraciones (~25 ms contra ~0,6 s por test de un PGlite nuevo en el CI; la suite llegó a 462 s).
   `crearBaseDePrueba()` (base nueva) queda solo para las excepciones con razón que nombra
   `tests/base-por-archivo-guardian.test.ts`: tests que cambian el esquema o prueban migraciones.
-  **Bucle local opcional: `npm run test:cambios`** (`vitest run --changed`, mismo candado): solo los tests
-  afectados por lo que no está commiteado.
+  `npm run test:cambios` (`vitest run --changed`) existe, pero desde el 20-nov no se corre en local (ver abajo).
   El lock se resincronizó otra vez el 28-sep (`649bf2c`): la primera corrida del CI lo midió roto en
   Linux (faltaban `@emnapi/core` y `@emnapi/runtime` 1.11.3), y desde ahí `npm ci` pasa en el CI. Si te
   vuelve a fallar, `npm install --package-lock-only` y commit del lock, nunca `--no-package-lock`. Si ves 46 tests caídos por `drizzle-orm/postgres-js`,
   a tu `node_modules` le falta el driver `postgres`: es entorno, no regresión.
-- 🩸 **La suite COMPLETA no se corre en local; la corre el CI** (Mani, 1-oct). Se cortó tres veces a los 480 s
-  en una Mac con 16,5 GB de swap y la espera llegó a 25 minutos. En local los tests **no son bloqueantes**: typecheck
-  y lint siempre; los archivos de tests del cambio (`npm test -- tests/x.test.ts`) solo si la máquina tiene
-  aire, y eso se mide antes de correr: carga (`uptime`, por debajo del número de núcleos) y swap
-  (`sysctl vm.swapusage`, sin varios GB usados). Si no hay aire, se empuja y decide el CI. La suite completa la valida el CI de cada
-  push (no usa la máquina de nadie). `npm test` en el CI, medido con el ticket 150: **vitest 372 s → 274 s**
+- 🩸 **Ningún test corre en local: todo cambio entra por PR y lo verifica el CI del PR** (Mani, 20-nov; reemplaza la
+  regla del 1-oct, que permitía los archivos del cambio "si había aire"). Ni la suite, ni archivos sueltos
+  (`npm test -- tests/x.test.ts`), ni `test:cambios`, ni `test:humo`, en ninguna sesión, hija o agente. Typecheck y
+  lint locales son opcionales (no son tests y el CI los repite). Cada sesión escribe el código y sus tests, empuja
+  su rama y **abre el PR; no mergea**. Mani no aprueba PRs: la sesión padre lee el diff contra el ticket, espera el
+  CI verde del PR (con main traído si otro PR tocó sus archivos) y mergea. Origen: la suite se cortó tres veces a
+  los 480 s en una Mac con 16,5 GB de swap (1-oct) y cada corrida local compite con las sesiones paralelas. La suite completa la valida el CI de cada
+  PR y de cada push a `main` (no usa la máquina de nadie). `npm test` en el CI, medido con el ticket 150: **vitest 372 s → 274 s**
   (paso de 6 min 12 s a 4 min 34 s; ~8 min la corrida entera). Un archivo suelto en local no gana: ~3,7 s
   antes y ~4,2 s después, porque la migración sigue pagándose una vez. **Desde el 1-oct la valida un
   checkpoint** (`docs/plan-reparto.md` §6): dos al día, nadie empuja mientras corre, y si sale verde se marca con
   el tag `cp-AAAAMMDD-N`; si sale rojo, el culpable está entre el último tag y la punta. **Un ticket no está
-  terminado hasta el checkpoint verde que lo incluye.** Antes de empujar, cada sesión corre su nivel 1:
-  typecheck, lint y los tests de su ticket. El CI además corre lo que en local se salta: los tests
+  terminado hasta el checkpoint verde que lo incluye.** El CI del PR es el nivel 1 de cada sesión (typecheck,
+  lint y tests, regla del 20-nov). El CI además corre lo que en local se salta: los tests
   contra Postgres real (`DATABASE_URL_PRUEBA_POSTGRES`), que el 1-oct estuvieron rojos 3 h sin que nadie mirara.
   Ojo: el CI cancela la corrida anterior al empujar otro commit (`cancel-in-progress`): entre checkpoints es
   alarma, no reja, y durante un checkpoint no se empuja. Pendiente: CI también en ramas.
@@ -42,8 +43,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
   que se abre (botones, selects, menús, plegables, y un nivel dentro de cada diálogo) y falla con cualquier error de
   consola o de página, un 5xx, una sesión perdida o un rol que la base no tiene. **Corta las escrituras en la red**
   (aborta todo lo que no sea GET); lo que una página escribe al renderizar sí ocurre, por eso solo contra `dev:local`. Escritorio y
-  celular (`--project=escritorio` / `--project=celular`); unos 6 a 12 min por proyecto. Corre antes de empujar un
-  cambio de pantalla; todavía no está en el CI. La primera vez: `npx playwright install chromium`.
+  celular (`--project=escritorio` / `--project=celular`); unos 6 a 12 min por proyecto. Desde el 20-nov no se corre
+  en local (regla de arriba) y todavía no está en el CI: hasta que entre, un cambio de pantalla se verifica abriendo
+  la pantalla con `dev:local` (un recorrido, no un test; los previews de Vercel no tienen base). La primera vez: `npx playwright install chromium`.
 - **Worktree restringido en Windows:** si PowerShell bloquea `npm.ps1`, usar `npm.cmd`. Si Vite no
   puede escribir en `node_modules/.vite-temp` porque las dependencias son compartidas, usar
   `npm.cmd test -- --configLoader runner tests/<archivo>.test.ts`; conserva el candado de `npm test`.
@@ -55,7 +57,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
   (activo), SIN Google; existe unicamente con `AUTH_LOGIN_LOCAL=1` **y** una `DATABASE_URL` local
   (`lib/db/es-local.ts`, la unica respuesta a "¿es local?"), asi que en produccion no se registra y el rol
   sigue saliendo de la base por los callbacks de siempre.
-- **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada push a `main`.
+- **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada PR y en cada push a `main`.
   Desde el 14-oct `npm test` va en 3 shards (`--shard=i/3`, un runner cada uno) y typecheck, lint y build en
   otro job: en un solo job la suite llegó a 462 s y se cortó en los 480 s. El checkpoint es verde solo si
   los 4 jobs lo son.
