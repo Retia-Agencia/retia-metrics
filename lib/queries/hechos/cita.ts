@@ -1,9 +1,7 @@
 import { and, between, eq, sql } from "drizzle-orm";
-import { calls, deals, submissions } from "@/lib/db/schema";
+import { definicionCitas as definicion } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
-import { ocurrioSql, resultadosQueOcurrieronComoLiterales } from "@/lib/deals/resultados-de-llamada";
-import { fechaAnclaCall } from "@/lib/queries/dashboard";
 import {
   aplicarPagina,
   condicionesDeFiltros,
@@ -13,30 +11,30 @@ import {
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
-import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
-import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
-import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
-import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { condicionDeSkuParaDeal } from "@/lib/queries/filtros-de-sku";
 
 export type DimensionCita = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa" | "ocurrio";
 export type MedidaCita = "citas" | "shows";
 
-const resultadosQueOcurrieron = sql.raw(resultadosQueOcurrieronComoLiterales());
-const ocurrioComoDimension = sql<string>`case when ${calls.resultado} in (${resultadosQueOcurrieron}) then 'si' else 'no' end`;
+/**
+ * LAS CITAS LEEN SU DEFINICIÓN ÚNICA (407 fase 2, migración 0160): `crm_definicion.citas` ya trae la vigencia (llamada y deal
+ * no anulados, la llamada suelta sí cuenta), el día de Bogotá de la agenda, área, canal y cuenta del envío de origen, y si la
+ * cita ocurrió. Aquí solo van el filtro de programa, el de SKU y los filtros del llamador. Las vistas del MCP leen la misma.
+ */
 const dimensiones = {
-  ...dimensionesDeDate(fechaAnclaCall()),
-  ...dimensionesDeOrigen(
-    submissions.id,
-    submissions.utmSource,
-    submissions.utmMedium,
-    calls.programId,
-  ),
-  dueno: deals.ownerUserId,
-  cohorte: deals.cohortId,
-  etapa: deals.etapa,
-  ocurrio: ocurrioComoDimension,
+  dia: definicion.dia,
+  semana: definicion.semana,
+  mes: definicion.mes,
+  area: definicion.area,
+  canal: definicion.canal,
+  cuenta: definicion.cuenta,
+  dueno: definicion.dueno,
+  cohorte: definicion.cohorteId,
+  etapa: definicion.etapa,
+  ocurrio: definicion.ocurrio,
 } as const;
+
+const medidaDeShows = sql<number>`count(*) filter (where ${eq(definicion.ocurrio, "si")})::int`;
 
 export interface FilaCita {
   callId: string;
@@ -53,6 +51,15 @@ export interface FilaCita {
   ocurrio: string;
 }
 
+function alcance(db: Db, opciones: Pick<ConsultaDeLista<DimensionCita, string>, "programId" | "rango" | "filtros" | "filtrosDeSku">) {
+  return and(
+    eq(definicion.programaId, opciones.programId),
+    condicionDeSkuParaDeal(db, opciones.programId, definicion.idDelDeal, opciones.filtrosDeSku),
+    between(definicion.dia, opciones.rango.desde, opciones.rango.hasta),
+    condicionesDeFiltros(dimensiones, opciones.filtros),
+  );
+}
+
 function consultaAgrupada<D extends DimensionCita>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaCita>,
@@ -61,23 +68,14 @@ function consultaAgrupada<D extends DimensionCita>(
   let consulta = db.select({
     ...elegidas,
     citas: sql<number>`count(*)::int`,
-    shows: sql<number>`count(*) filter (where ${ocurrioSql()})::int`,
-  }).from(calls)
-    .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
-    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(
-      eq(calls.programId, opciones.programId),
-      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
-      between(fechaAnclaCall(), opciones.rango.desde, opciones.rango.hasta),
-      condicionesDeFiltros(dimensiones, opciones.filtros),
-      vigente(calls),
-      llamadaSinDealAnulado(db),
-    ))
+    shows: medidaDeShows,
+  }).from(definicion)
+    .where(alcance(db, opciones))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({
     ...dimensiones,
     citas: sql<number>`count(*)::int`,
-    shows: sql<number>`count(*) filter (where ${ocurrioSql()})::int`,
+    shows: medidaDeShows,
   }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
   return consulta;
@@ -111,16 +109,8 @@ async function leerLista<D extends DimensionCita = DimensionCita>(
   db: Db,
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaCita>> {
-  const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones }).from(calls)
-    .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
-    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId)).where(and(
-      eq(calls.programId, opciones.programId),
-      condicionDeSkuParaDeal(db, opciones.programId, deals.id, opciones.filtrosDeSku),
-      between(fechaAnclaCall(), opciones.rango.desde, opciones.rango.hasta),
-      condicionesDeFiltros(dimensiones, opciones.filtros),
-      vigente(calls),
-      llamadaSinDealAnulado(db),
-    ));
+  const construir = () => db.select({ callId: definicion.idDeLaLlamada, dealId: definicion.idDelDeal, ...dimensiones }).from(definicion)
+    .where(alcance(db, opciones));
   let consulta = construir().$dynamic();
   const orden = expresionDeOrden(dimensiones, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);

@@ -205,7 +205,7 @@ La cobertura de consultas también parte del registro de métricas: cada concept
 
 **Cesión de deal (A-177), ADR 0134:** que un closer ceda su deal no es una acción del MCP mientras la app no la tenga. La ruta de hoy es que un administrador reasigne con `reasignar_deal` (mismo caso de uso que la app, `editarDeal`; vista previa con dueño actual → nuevo y la llamada pendiente que sigue a nombre del anterior; se deshace como cambio de dueño).
 
-**Familia analítica para gerencia y pauta (ticket 407, ADR 0135):** la fase 1 está construida (§9). Pendiente: la fase 2 (que `lib/queries/hechos` lea las vistas `mcp_lectura`, para que cada hecho tenga una sola definición), `siguientes_pasos` en `consultar_metrica` y los *prompts* MCP.
+**Familia analítica para gerencia y pauta (ticket 407, ADR 0135):** la fase 1 está construida (§9). Fase 2: `siguientes_pasos` en `consultar_metrica` y los *prompts* MCP (PR 68), y la **definición única por hecho** (21-nov, migración `0160`, PR de H6): cada hecho se define UNA vez en SQL, sin alcance, en el esquema `crm_definicion` (el rol del MCP no lo ve); las vistas de `mcp_lectura` solo la envuelven con el alcance y el enmascarado de dueño (mismas columnas que antes) y la app lee la misma definición con su filtro de programa. Hoy leen la definición `lib/queries/hechos/agenda.ts` y `cita.ts`; envíos, ventas, abonos y gasto conservan su TypeScript (lo comparten otras consultas) y `tests/mcp-definicion-unica.test.ts` comprueba, por hecho, definición = vista del MCP = lectura de la app. Pendiente: que la padre aplique la 0160 con el ok de Mani, y llevar esos cuatro módulos a la definición cuando sus consumidores dejen de montar el filtro sobre las tablas.
 
 ## 8. Visualizaciones dentro del chat
 
