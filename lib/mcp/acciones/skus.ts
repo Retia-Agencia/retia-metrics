@@ -89,7 +89,7 @@ function entradaDeCrear(datos: z.output<typeof argumentosCrear>): EntradaSku {
 
 async function ejecutarCrear(db: Db, actor: Actor, objetivo: ObjetivoCrear) {
   await exigirPrograma(db, actor, objetivo.id);
-  const creado = await crearSku(db, actor.userId, entradaDeCrear(objetivo.datos));
+  const creado = await crearSku(db, actor.userId, entradaDeCrear(objetivo.datos), "mcp");
   return { sku: creado, herencia: creado.herencia };
 }
 
@@ -166,7 +166,7 @@ async function ejecutarEditar(db: Db, actor: Actor, objetivo: ObjetivoEditar) {
     comisionPorcentaje: datos.comision_porcentaje ?? Number(actual.sku.comisionPorcentaje),
     cuentaComoCupo: datos.cuenta_como_cupo ?? actual.sku.cuentaComoCupo,
     predeterminado: datos.predeterminado ?? actual.sku.predeterminado,
-  });
+  }, "mcp");
   return (await leerSku(db, objetivo.id))!.sku;
 }
 
@@ -215,7 +215,7 @@ function accionDeActivo(
     if (actual.sku.activo === activar) {
       throw new ErrorDeApp(activar ? "Ese SKU ya está activo." : "Ese SKU ya está inactivo.", 409);
     }
-    return activar ? reactivarSku(db, actor.userId, objetivo.id) : desactivarSku(db, actor.userId, objetivo.id);
+    return activar ? reactivarSku(db, actor.userId, objetivo.id, "mcp") : desactivarSku(db, actor.userId, objetivo.id, "mcp");
   };
   return {
     clave,

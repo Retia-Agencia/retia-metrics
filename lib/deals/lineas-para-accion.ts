@@ -20,7 +20,7 @@ export const MENSAJE_SIN_PERMISO_DE_LINEAS = "Solo el dueño o quien administra 
 /**
  * Quién puede tocar las líneas de ESTE deal, con el mismo orden de rejas que `dealEditable` de la ficha
  * (`app/(app)/p/[programa]/deals/[id]/acciones.ts`): alcance, deal vigente, dueño o administrador.
- * ponytail: la ficha conserva su copia privada (es un archivo "use server"); cuando se toque, importar esta.
+ * La ficha y el MCP importan esta misma función.
  */
 export async function dealEditableParaLineas(db: Db, actor: ActorDeDeal, dealId: string) {
   await exigirDealVisible(db, actor, dealId);

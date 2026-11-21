@@ -38,6 +38,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
+import { dealEditableParaLineas } from "@/lib/deals/lineas-para-accion";
 import { asignarLinea, anularLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
 
 /**
@@ -118,21 +119,12 @@ async function correr<T extends object>(
  */
 const ROLES_ONBOARDING: readonly Rol[] = ["gerente", "closer", "customer_success"];
 
-async function dealEditable(ctx: Contexto, dealId: string) {
-  await exigirDealVisible(ctx, dealId);
-  const [deal] = await db.select().from(deals).where(and(eq(deals.id, dealId), vigente(deals)));
-  if (!deal) throw new ErrorDeApp("No existe el deal vigente.", 404);
-  if (!puedeTrabajarDeal(ctx.actor, deal)) throw new ErrorDeApp("Solo el dueño o quien administra puede editar los SKUs del deal.", 403);
-  const [lead] = await db.select({ nombre: leads.nombre, email: leads.emailNormalizado }).from(leads).where(eq(leads.id, deal.leadId));
-  return { deal, etiqueta: lead?.nombre ?? lead?.email ?? deal.id };
-}
-
 const esquemaLinea = z.object({ dealId: z.string().uuid("Deal inválido."), lineaId: z.string().uuid("Línea inválida.") });
 
 export async function asignarSkuAccion(entrada: { dealId: string; skuId: string; valorVendidoUsd?: number }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
     const datos = z.object({ dealId: z.string().uuid("Deal inválido."), skuId: z.string().uuid("SKU inválido."), valorVendidoUsd: z.number().nonnegative().optional() }).parse(entrada);
-    const { deal, etiqueta } = await dealEditable(ctx, datos.dealId);
+    const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
     await asignarLinea(db, { deal, skuId: datos.skuId, valorVendidoUsd: datos.valorVendidoUsd, actorId: ctx.actor.userId, etiqueta });
     return {};
   });
@@ -141,7 +133,7 @@ export async function asignarSkuAccion(entrada: { dealId: string; skuId: string;
 export async function editarValorLineaAccion(entrada: { dealId: string; lineaId: string; valorVendidoUsd: number }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
     const datos = esquemaLinea.extend({ valorVendidoUsd: z.number().nonnegative() }).parse(entrada);
-    const { deal, etiqueta } = await dealEditable(ctx, datos.dealId);
+    const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
     await editarValorDeLinea(db, { deal, lineaId: datos.lineaId, valorVendidoUsd: datos.valorVendidoUsd, actorId: ctx.actor.userId, etiqueta });
     return {};
   });
@@ -150,7 +142,7 @@ export async function editarValorLineaAccion(entrada: { dealId: string; lineaId:
 export async function quitarLineaAccion(entrada: { dealId: string; lineaId: string }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
     const datos = esquemaLinea.parse(entrada);
-    const { deal, etiqueta } = await dealEditable(ctx, datos.dealId);
+    const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
     await quitarLinea(db, { deal, lineaId: datos.lineaId, actorId: ctx.actor.userId, etiqueta });
     return {};
   });
@@ -159,7 +151,7 @@ export async function quitarLineaAccion(entrada: { dealId: string; lineaId: stri
 export async function anularLineaAccion(entrada: { dealId: string; lineaId: string }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
     const datos = esquemaLinea.parse(entrada);
-    const { deal, etiqueta } = await dealEditable(ctx, datos.dealId);
+    const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
     await anularLinea(db, { deal, lineaId: datos.lineaId, actorId: ctx.actor.userId, etiqueta });
     return {};
   });

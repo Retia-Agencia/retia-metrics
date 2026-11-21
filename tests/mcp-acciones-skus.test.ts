@@ -155,7 +155,9 @@ describe("acciones MCP de SKUs", () => {
     const confirmada = contenido(await confirmar(previa.id as string, tokens[rol]))!;
     expect((confirmada.filas as Fila[])[0].estado).toBe("aplicada");
     expect((await db.select().from(skus).where(eq(skus.id, skuBaseId)))[0].precioListaUsd).toBe("897.00");
-    expect((await cambiosDe("skus", skuBaseId)).map((c) => c.campo)).toEqual(expect.arrayContaining(["precioListaUsd", "comisionPorcentaje"]));
+    const rastro = await cambiosDe("skus", skuBaseId);
+    expect(rastro.map((c) => c.campo)).toEqual(expect.arrayContaining(["precioListaUsd", "comisionPorcentaje"]));
+    expect(rastro.every((c) => c.origen === "mcp")).toBe(true);
   });
 
   it.each(["closer", "paid"] as const)("%s no las descubre y una petición forjada se rechaza sin tocar la base", async (rol) => {
@@ -187,7 +189,9 @@ describe("acciones MCP de SKUs", () => {
     await aplicar("crear_sku", { programa_id: programId, nombre: "Mentoría", cohorte: 1, precio_lista_usd: "300", comision_porcentaje: 5 });
     const [creado] = await db.select().from(skus).where(and(eq(skus.programId, programId), eq(skus.nombre, "Mentoría")));
     expect(creado).toMatchObject({ cohortId: cohorteId, precioListaUsd: "300.00", cuentaComoCupo: false });
-    expect((await cambiosDe("skus", creado.id)).length).toBeGreaterThan(0);
+    const rastro = await cambiosDe("skus", creado.id);
+    expect(rastro.length).toBeGreaterThan(0);
+    expect(rastro.every((c) => c.origen === "mcp")).toBe(true);
   });
 
   it("una cohorte nueva exige su ventana y, con ella, nace con el SKU", async () => {
