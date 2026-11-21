@@ -218,7 +218,7 @@ export const tableroDeDealsMcp: Herramienta<typeof entradaTablero> = {
     const visible = await programaVisible(contexto, entrada.programa);
     const camposInvalidos = entrada.campos?.filter((campo) => !(CAMPOS_DE_TARJETA as readonly string[]).includes(campo)) ?? [];
     if (camposInvalidos.length > 0) throw new ErrorDeApp(`Campos desconocidos: ${camposInvalidos.join(", ")}. Válidos: ${CAMPOS_DE_TARJETA.join(", ")}`, 422);
-    const [alcance, activa] = await Promise.all([alcanceDeDeals(contexto.session), cohorteActiva(visible.id, contexto.db)]);
+    const alcance = await alcanceDeDeals(contexto.session);
     const filtrosAplicados: FiltroAplicado[] = [];
     const parametros = parametrosDeTablero(entrada);
     if (entrada.dueno) {
@@ -230,10 +230,8 @@ export const tableroDeDealsMcp: Herramienta<typeof entradaTablero> = {
       const filtro = await resolverCohorte(contexto.db, visible.id, visible.nombre, entrada.cohorte);
       parametros.cohorte = filtro.id ?? "todas";
       filtrosAplicados.push(filtro);
-    } else if (activa) {
-      filtrosAplicados.push({ campo: "cohorte", id: activa.id, nombre: activa.codigo, origen: "por_defecto", como_quitarlo: 'pide cohorte: "todas"' });
     }
-    const filtros = { ...parsearFiltros(parametros, undefined, activa?.id ?? null), vista: vistaDelTablero(parametros) };
+    const filtros = { ...parsearFiltros(parametros), vista: vistaDelTablero(parametros) };
     const inicio = (entrada.pagina - 1) * entrada.tamano_de_pagina;
     const resultado = await paginaDelTablero(contexto.db, visible.id, alcance, filtros, { limite: entrada.tamano_de_pagina, offset: inicio });
     const haySiguiente = inicio + entrada.tamano_de_pagina < resultado.total;

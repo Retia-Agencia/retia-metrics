@@ -224,7 +224,7 @@ export function aSalidaDeFichaDeDeal(f: FichaDeDeal, alertas: AlertasDelDeal | n
     perfil: { calidad: f.perfil.leadQuality, valor: f.perfil.leadValue, respuestas: f.perfil.respuestas },
     contactos: f.contactos.map((c) => ({ id: c.id, tipo: c.tipo, valor: c.valor, es_principal: c.esPrincipal, confirmado: c.confirmado })), dueno: f.owner, setter: f.setter,
     entregado_en: f.handoffEn?.toISOString() ?? null, enlace_de_agenda: f.linkAgenda, tiene_cita_vigente: f.tieneCitaVigente, valor_vendido: f.valorVendidoUsd === null ? null : comoDinero(f.valorVendidoUsd, "USD"),
-    ticket: f.ticket ? { id_de_la_cohorte: f.ticket.cohorteId, codigo: f.ticket.codigo, precio: comoDinero(f.ticket.precioUsd, "USD"), es_la_activa_sugerida: f.ticket.esActivaSugerida } : null,
+    ticket: f.ticket ? { id_de_la_cohorte: f.ticket.cohorteId, codigo: f.ticket.codigo, precio: f.ticket.precioUsd == null ? null : comoDinero(f.ticket.precioUsd, "USD"), es_la_activa_sugerida: f.ticket.esActivaSugerida } : null,
     descuento: f.descuento ? { valor: comoDinero(f.descuento.usd, "USD"), porcentaje: f.descuento.porcentaje } : null, vendido: f.vendido,
     cohorte: f.cohorte ? { id: f.cohorte.id, codigo: f.cohorte.codigo, inicio_de_clases: f.cohorte.inicioClases } : null, cohortes_vendiendo_hoy: f.cohortesVendiendoHoy,
     cohorte_de_destino: f.cohorteDestino ? { id: f.cohorteDestino.id, codigo: f.cohorteDestino.codigo, inicio_de_ventas: f.cohorteDestino.inicioVentas } : null, cohorte_de_destino_libre: f.cohorteDestinoTexto,

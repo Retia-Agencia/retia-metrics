@@ -28,7 +28,7 @@ import {
 import { comisionDeDeal, comisionesPorCloser } from "@/lib/queries/comision";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
 import { banderasDelPulso, type BanderasDelPulso } from "@/lib/queries/banderas-del-pulso";
-import { descuentoDeDeal } from "@/lib/queries/saldo";
+import { descuentosDeDeals } from "@/lib/queries/saldo";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
@@ -271,7 +271,11 @@ export async function armarVistaDelDashboard(
         }))
       : Promise.resolve(null),
   ]);
-  const dinero = await dineroDeVentas(db, ventasConValor.map((venta) => venta.dealId));
+  const idsDeVentas = ventasConValor.map((venta) => venta.dealId);
+  const [dinero, descuentosPorDeal] = await Promise.all([
+    dineroDeVentas(db, idsDeVentas),
+    descuentosDeDeals(db, idsDeVentas),
+  ]);
   const comisionPorClave = new Map(comisiones.map((c) => [c.userId ?? claveHistorica(c.closerId ?? ""), c]));
   const comparativo = porCloser.map((c) => ({
     ...c,
@@ -284,7 +288,7 @@ export async function armarVistaDelDashboard(
     const comision = comisionDeDeal(venta.valorComisionableUsd, venta.comisionPorcentaje);
     if (comision === null) ventasSinComision += 1;
     else totalComision += comision;
-    const descuento = descuentoDeDeal(venta.ticketUsd, venta.valorVendidoUsd);
+    const descuento = descuentosPorDeal.get(venta.dealId) ?? null;
     return descuento ? [descuento] : [];
   });
   const promedio = (valores: number[]) => valores.length === 0

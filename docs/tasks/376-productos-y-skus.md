@@ -286,6 +286,22 @@ línea). Prioridad de Mani, 20-nov: que los closers operen sin huecos lo antes p
 - [ ] `git grep cohorteActiva` solo en Hub, Juanito, semáforo, alertas y metas.
 - [ ] Recorrido en producción con un closer: crea deal, ve su SKU, lo cambia, registra abono.
 
+### 465 — Un ciclo nuevo hereda los umbrales del anterior (ADR 0141)
+
+Va **después de que el 461 esté en main**, porque los dos tocan `lib/catalogo/skus.ts`.
+
+1. En la transacción que crea el ciclo (`lib/catalogo/skus.ts`, rama `if (!cohorte)`), copia del ciclo anterior del
+   programa los objetivos `costo_por_agenda`, `costo_por_venta`, `roas` y `conversion_agenda_venta` (todas sus áreas,
+   misma moneda), por el molde y con `change_log` que diga "heredado de C<N>".
+2. La confirmación del popup dice qué umbrales heredó y de qué ciclo.
+
+**Done**
+- [ ] Test: el ciclo anterior tiene `costo_por_agenda` → el ciclo nuevo nace con la misma meta, el mismo aceptable y
+      la misma moneda, y el semáforo del día en que empieza a vender ya tiene umbral.
+- [ ] Test: el ciclo anterior no tiene objetivos → el nuevo tampoco tiene y el Hub dice "sin umbral".
+- [ ] Test: `cupos`, `agendas` e `inversion` no se copian.
+- [ ] Test: cada fila copiada tiene su `change_log` con actor.
+
 ## Fuera de este ticket
 
 - Retirar `deals.cohort_id` y `deals.valor_vendido_usd` cuando sus lecturas migren a las líneas (ticket nuevo, por

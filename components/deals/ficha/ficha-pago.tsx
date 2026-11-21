@@ -95,7 +95,7 @@ export function FichaPago({
             <dt className="text-xs text-muted-foreground">Ticket</dt>
             <dd className="cifra text-sm">
               {ficha.ticket
-                ? `${ficha.ticket.codigo}${ficha.ticket.esActivaSugerida ? " (cohorte activa)" : ""} · ${usd(ficha.ticket.precioUsd)}`
+                ? `${ficha.ticket.codigo}${ficha.ticket.esActivaSugerida ? " (cohorte activa)" : ""} · ${ficha.ticket.precioUsd == null ? "Sin precio" : usd(ficha.ticket.precioUsd)}`
                 : "Sin cohorte"}
             </dd>
           </div>

@@ -18,9 +18,8 @@ import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kan
  * completo, igual que un gerente (ADR 0048). Los ids que van a la URL son opacos (closer,
  * cohorte) o texto de canal; ningún dato personal.
  *
- * La cohorte tiene un centinela propio ("todas") distinto de la ausencia: sin `cohorte`
- * en la URL se ve la cohorte ACTIVA, no "todas". La declaración modela ambos valores
- * para contar el default y escribir el centinela al quitarlo.
+ * El tablero abre con todos los ciclos (ADR 0140). El filtro Ciclo conserva el
+ * parámetro `cohorte` y reconoce "todas" en los enlaces existentes.
  */
 
 const ANTIGUEDADES = [
@@ -34,10 +33,11 @@ export interface FiltroKanbanProps {
   total: number;
   buscador?: ReactNode;
   mostrarDueno: boolean;
-  cohorteActivaId: string | null;
   antiguedadMinima: number | null;
   owners: OpcionCatalogo[];
-  cohortes: OpcionCatalogo[];
+  ciclos: OpcionCatalogo[];
+  skus: OpcionCatalogo[];
+  nombresDeSku: { slug: string; nombre: string }[];
   canales: OpcionCanal[];
   leadQualities: string[];
   leadValues: string[];
@@ -76,10 +76,11 @@ export function FiltroKanban({
   total,
   buscador,
   mostrarDueno,
-  cohorteActivaId,
   antiguedadMinima,
   owners,
-  cohortes,
+  ciclos,
+  skus,
+  nombresDeSku,
   canales,
   leadQualities,
   leadValues,
@@ -118,17 +119,24 @@ export function FiltroKanban({
     {
       tipo: "select",
       nombre: "cohorte",
-      etiqueta: "Cohorte",
-      todos: "Todas las cohortes",
+      etiqueta: "Ciclo",
+      todos: "Todos los ciclos",
       valorTodos: "todas",
-      porDefecto: cohorteActivaId
-        ? {
-            valor: cohorteActivaId,
-            etiqueta: `${cohortes.find((c) => c.id === cohorteActivaId)?.nombre ?? "Cohorte"} (activa)`,
-            valorTodos: "todas",
-          }
-        : undefined,
-      opciones: cohortes.map((c) => ({ value: c.id, label: c.nombre })),
+      opciones: ciclos.map((c) => ({ value: c.id, label: c.nombre })),
+    },
+    {
+      tipo: "select",
+      nombre: "nombre_sku",
+      etiqueta: "Nombre del SKU",
+      todos: "Todos los nombres",
+      opciones: nombresDeSku.map((sku) => ({ value: sku.slug, label: sku.nombre })),
+    },
+    {
+      tipo: "select",
+      nombre: "sku",
+      etiqueta: "SKU",
+      todos: "Todos los SKUs",
+      opciones: [{ value: "sin", label: "Sin SKU" }, ...skus.map((sku) => ({ value: sku.id, label: sku.nombre }))],
     },
     {
       tipo: "select",

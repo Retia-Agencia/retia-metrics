@@ -22,7 +22,6 @@ export async function hechosDeConfiguracion(
     await Promise.all([
       unaVezPorSolicitud(db, claveDe("configuracionComercialParaHechos", programId), () => db
         .select({
-          comisionPorcentaje: programs.comisionPorcentaje,
           cortePagoRapidoDias: programs.cortePagoRapidoDias,
         })
         .from(programs)
@@ -42,7 +41,6 @@ export async function hechosDeConfiguracion(
     ]);
 
   return {
-    comisionCargada: programa?.comisionPorcentaje != null,
     pagoRapidoDefinido: programa?.cortePagoRapidoDias != null,
     tieneTokenCalendly: Boolean(token),
     tieneFuentePrincipal: Boolean(fuentePrincipal),

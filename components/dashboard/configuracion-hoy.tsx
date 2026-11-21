@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { editarCohorteAccion, editarProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
+import { editarProgramaAccion, editarVentanaDeCohorteAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { guardarObjetivoAccion, quitarObjetivoAccion } from "@/app/(app)/p/[programa]/programa/acciones-objetivos";
 import { abrirInfo } from "@/components/hub/info-de-pagina";
 import { Button } from "@/components/ui/button";
@@ -94,11 +94,13 @@ export function ConfiguracionHoy({ datos, enlace = false }: { datos: DatosDelPan
   const guardar = () => iniciar(async () => {
     const resultados = [];
     if (datos.cohorte) {
-      resultados.push(await editarCohorteAccion(datos.slug, datos.cohorte.id, {
-        ...datos.cohorte,
+      resultados.push(await editarVentanaDeCohorteAccion(datos.slug, datos.cohorte.id, {
         metaCupos,
         metaLeadsDia: metaLeads === "" ? null : metaLeads,
+        fechaInicioClases: datos.cohorte.fechaInicioClases,
+        fechaInicioVentas: datos.cohorte.fechaInicioVentas!,
         fechaCierreVentas: cierre,
+        notas: null,
       }));
       if (objetivo === "" && datos.objetivo) resultados.push(await quitarObjetivoAccion(datos.objetivo.id));
       if (objetivo !== "") resultados.push(await guardarObjetivoAccion({

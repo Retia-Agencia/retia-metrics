@@ -4,17 +4,20 @@ import {
   calls,
   cohorts,
   dealEtapaHistorial,
+  dealLineas,
   deals,
   leadContactos,
   leads,
   programs,
+  productos,
+  skus,
   sources,
   submissions,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { COLUMNAS_DE_VISTA, ETAPAS, ETAPAS_DE_SETTEO, type EtapaDeal } from "@/lib/deals/etapas";
-import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero } from "@/lib/queries/kanban";
+import { opcionesDeTablero, paginaDelTablero, parsearFiltros, tableroKanban, vistaDelTablero } from "@/lib/queries/kanban";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -91,6 +94,7 @@ interface OpcDeal {
   pendiente?: "reagenda" | "seguimiento" | "proxima_cohorte" | null;
   owner?: string;
   cohort?: string | null;
+  cohorteDestinoId?: string;
   utmSource?: string | null;
   utmMedium?: string | null;
   fechaLimitePago?: string | null;
@@ -136,6 +140,7 @@ async function deal(o: OpcDeal): Promise<string> {
       cohortId: o.cohort === undefined ? cohortId : o.cohort,
       etapa: o.etapa,
       pendiente: o.pendiente ?? null,
+      cohorteDestinoId: o.cohorteDestinoId,
       ownerNovedadEn: o.nuevo ? new Date("2026-10-20T12:00:00Z") : null,
       ownerUserId: o.owner ?? owner1,
       valorVendidoUsd: o.valorVendido === undefined ? "1000.00" : o.valorVendido,
@@ -382,6 +387,57 @@ describe("tableroKanban", () => {
     expect(t.total).toBe(1);
   });
 
+  it("filtra por SKU vigente, nombre y ciclo sin aplicar la cohorte activa por defecto", async () => {
+    const [otroCiclo] = await db.insert(cohorts)
+      .values({ programId, codigo: "C2", metaCupos: 5, precioUsd: "1000" })
+      .returning();
+    const [virtual, intensivo] = await db.insert(productos).values([
+      { programId, slug: "virtual", nombre: "Virtual" },
+      { programId, slug: "intensivo", nombre: "Intensivo" },
+    ]).returning();
+    const [sku1, sku2] = await db.insert(skus).values([
+      { programId, productoId: virtual.id, slug: "virtual", nombre: "Virtual", cohortId, codigo: "virtual_c1", precioListaUsd: "1000" },
+      { programId, productoId: intensivo.id, slug: "intensivo", nombre: "Intensivo", cohortId: otroCiclo.id, codigo: "intensivo_c2", precioListaUsd: "1000", activo: false },
+    ]).returning();
+    const primero = await deal({ etapa: "contactado", valorVendido: null });
+    const segundo = await deal({ etapa: "contactado", cohort: otroCiclo.id, valorVendido: null });
+    const conLineaAnulada = await deal({ etapa: "contactado", cohort: otroCiclo.id, valorVendido: null });
+    const sinLineas = await deal({ etapa: "contactado", cohort: null, valorVendido: null });
+    const linea = { programId, precioListaUsd: "1000", valorVendidoUsd: "1000" };
+    await db.insert(dealLineas).values([
+      { ...linea, dealId: primero, skuId: sku1.id },
+      { ...linea, dealId: segundo, skuId: sku2.id },
+      { ...linea, dealId: conLineaAnulada, skuId: sku1.id, anuladaEn: new Date(), anuladaPor: owner1 },
+    ]);
+
+    const alcance = { tipo: "todos" } as const;
+    const leer = (busqueda: Record<string, string>) =>
+      tableroKanban(db, programId, alcance, parsearFiltros(busqueda, HOY), HOY);
+    const ids = async (busqueda: Record<string, string>) =>
+      (await leer(busqueda)).columnas.flatMap((c) => c.tarjetas.map((t) => t.dealId)).sort();
+
+    const opciones = await opcionesDeTablero(db, programId);
+    expect(opciones.inicioDeLaCohorteActiva).toBe("2026-11-15");
+    expect(opciones.ciclos).toEqual([{ id: cohortId, nombre: "C1" }, { id: otroCiclo.id, nombre: "C2" }]);
+    expect(opciones.skus).toEqual([{ id: sku2.id, nombre: sku2.codigo }, { id: sku1.id, nombre: sku1.codigo }]);
+    expect(opciones.nombresDeSku).toEqual([{ slug: "intensivo", nombre: "Intensivo" }, { slug: "virtual", nombre: "Virtual" }]);
+    expect(await ids({})).toEqual([primero, segundo, conLineaAnulada, sinLineas].sort());
+    expect(await ids({ cohorte: otroCiclo.id })).toEqual([segundo, conLineaAnulada].sort());
+    expect(await ids({ sku: sku1.id })).toEqual([primero]);
+    expect(await ids({ nombre_sku: virtual.slug })).toEqual([primero]);
+    expect(await ids({ sku: "sin" })).toEqual([conLineaAnulada, sinLineas].sort());
+
+    const pagina = await paginaDelTablero(db, programId, alcance, parsearFiltros({ sku: sku1.id }, HOY), { limite: 1, offset: 0 }, HOY);
+    expect(pagina.ids).toEqual([primero]);
+    expect(pagina.total).toBe(1);
+
+    const futuro = await deal({ etapa: "contactado", pendiente: "proxima_cohorte", cohort: otroCiclo.id, cohorteDestinoId: otroCiclo.id, valorVendido: null });
+    await db.insert(dealLineas).values({ ...linea, dealId: futuro, skuId: sku2.id });
+    expect((await leer({ cohorte: cohortId, sku: sku2.id })).enProximaCohorte.map((t) => t.dealId)).toEqual([futuro]);
+    expect((await leer({ cohorte: cohortId, sku: sku1.id })).enProximaCohorte).toEqual([]);
+    expect((await leer({ cohorte: cohortId, nombre_sku: virtual.slug })).enProximaCohorte).toEqual([]);
+  });
+
   it("aviso: compromiso verbal con fecha limite pasada", async () => {
     await deal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-10-01" });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
@@ -582,10 +638,10 @@ describe("parsearFiltros", () => {
     expect(parsearFiltros({ orden: "nombre", sentido: "lateral" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
   });
 
-  it("usa la cohorte activa por ausencia, todas como null y conserva un id explicito", () => {
-    expect(parsearFiltros({}, HOY, "activa").cohorteId).toBe("activa");
-    expect(parsearFiltros({ cohorte: "" }, HOY, "activa").cohorteId).toBe("activa");
-    expect(parsearFiltros({ cohorte: "todas" }, HOY, "activa").cohorteId).toBeNull();
-    expect(parsearFiltros({ cohorte: "c2" }, HOY, "activa").cohorteId).toBe("c2");
+  it("deja el ciclo sin filtrar por ausencia, vacío o todas y conserva un id explícito", () => {
+    expect(parsearFiltros({}, HOY).cohorteId).toBeNull();
+    expect(parsearFiltros({ cohorte: "" }, HOY).cohorteId).toBeNull();
+    expect(parsearFiltros({ cohorte: "todas" }, HOY).cohorteId).toBeNull();
+    expect(parsearFiltros({ cohorte: "c2" }, HOY).cohorteId).toBe("c2");
   });
 });

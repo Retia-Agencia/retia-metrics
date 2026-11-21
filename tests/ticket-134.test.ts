@@ -148,7 +148,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     // ADR 0137 punto 8: el valor se congela en la línea; el deal aún no vendido queda nulo.
     expect(congelado.valorVendidoUsd).toBeNull();
     expect(linea.valorVendidoUsd).toBe("697.00");
-    expect(descuentoDeDeal(797, linea.valorVendidoUsd)).toEqual({ usd: 100, porcentaje: 100 / 797 });
+    expect(descuentoDeDeal(linea.precioListaUsd, linea.valorVendidoUsd)).toEqual({ usd: 100, porcentaje: 100 / 797 });
 
     await db.update(cohorts).set({ precioUsd: "897" }).where(eq(cohorts.id, cohortId));
     expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id)))[0].valorVendidoUsd).toBe("697.00");

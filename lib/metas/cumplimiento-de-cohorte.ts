@@ -17,6 +17,7 @@ import { leerProyeccion, type ValorDeProyeccion } from "@/lib/queries/proyeccion
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 
 import { ROTULO_DE_TONO, UMBRAL_EN_META, UMBRAL_EN_SEGUIMIENTO } from "@/lib/metricas/cifra";
+import { precioDeReferenciaDelCiclo } from "@/lib/cohortes/precio-de-referencia";
 
 // La escala de estado vive UNA vez en la Cifra (419, DM-1); aquí solo se reexporta para quien ya la importaba.
 export { UMBRAL_EN_META, UMBRAL_EN_SEGUIMIENTO };
@@ -92,7 +93,7 @@ export interface CumplimientoDeCohorteLeido {
 
 export interface EntradaDeCumplimiento {
   hoy: string;
-  cohorte: Pick<Cohorte, "id" | "codigo" | "metaCupos" | "precioUsd" | "fechaInicioVentas" | "fechaCierreVentas"> | null;
+  cohorte: (Pick<Cohorte, "id" | "codigo" | "metaCupos" | "fechaInicioVentas" | "fechaCierreVentas"> & { precioUsd: number | null }) | null;
   esActiva: boolean;
   ventasTotales: { cantidad: number; vendidoUsd: number };
   ventasPauta: { cantidad: number; vendidoUsd: number };
@@ -123,14 +124,15 @@ function esperado(meta: number, cohorte: NonNullable<EntradaDeCumplimiento["coho
 export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoDeCohorteLeido {
   const c = entrada.cohorte;
   if (!c) return { cohorte: null, agendas: null, ventasPauta: null, ventasTotales: null, inversion: null, agendasPorDia: null, requeridos: null };
-  const precioUsd = Number(c.precioUsd);
+  const precioUsd = c.precioUsd;
   const cerrada = c.fechaCierreVentas !== null && entrada.hoy > c.fechaCierreVentas;
   const barraVentas = (datos: { cantidad: number; vendidoUsd: number }, meta: number): BarraDeCumplimiento => {
     const esperadoCupos = esperado(meta, c, entrada.hoy);
-    const metaUsd = meta * precioUsd;
+    const metaUsd = precioUsd === null ? null : meta * precioUsd;
+    const esperadoUsd = esperadoCupos === null || precioUsd === null ? null : esperadoCupos * precioUsd;
     return {
       cupos: medida(datos.cantidad, meta, esperadoCupos),
-      usd: medida(datos.vendidoUsd, metaUsd, esperadoCupos === null ? null : esperadoCupos * precioUsd),
+      usd: metaUsd === null ? null : medida(datos.vendidoUsd, metaUsd, esperadoUsd),
     };
   };
   const metaAgendas = entrada.metas.agendas;
@@ -198,7 +200,7 @@ export async function leerCumplimientoDeCohorte(
   const rangoAgendas = cohorte.fechaInicioVentas ? { desde: cohorte.fechaInicioVentas, hasta: hoy } : null;
   const esActiva = activa?.id === cohorte.id;
   const cerrada = cohorte.fechaCierreVentas !== null && hoy > cohorte.fechaCierreVentas;
-  const [ventasTotales, ventasPauta, agendas, objetivos, proyeccion] = await Promise.all([
+  const [ventasTotales, ventasPauta, agendas, objetivos, proyeccion, precioUsd] = await Promise.all([
     ventasDeLaCohorte(db, cohorte.id, hoy),
     listarVentas(db, {
       programId,
@@ -210,6 +212,7 @@ export async function leerCumplimientoDeCohorte(
     rangoAgendas ? agendasDeLaCohorte(db, { programId, rango: rangoAgendas, cohorteId: cohorte.id }) : Promise.resolve(0),
     objetivosDeCohortes(db, [cohorte.id]),
     esActiva && !cerrada ? leerProyeccion({ programId, hoy }, db) : Promise.resolve(null),
+    precioDeReferenciaDelCiclo(db, cohorte.id),
   ]);
   const activos = objetivos.filter((o) => o.activo);
   const meta = (metrica: typeof activos[number]["metrica"], area: typeof activos[number]["area"]) =>
@@ -226,7 +229,7 @@ export async function leerCumplimientoDeCohorte(
   ]);
   return armarCumplimiento({
     hoy,
-    cohorte,
+    cohorte: { ...cohorte, precioUsd },
     esActiva,
     ventasTotales: { cantidad: ventasTotales.length, vendidoUsd: dineroTotal.vendido },
     ventasPauta: { cantidad: ventasPauta.filas.length, vendidoUsd: dineroPauta.vendido },
