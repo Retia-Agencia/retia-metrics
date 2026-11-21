@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
 import { normalizarProducto } from "./normalizar-producto";
 import { codigoDeSku } from "./codigo-de-sku";
+import { heredarObjetivos, type HerenciaDeUmbrales } from "./heredar-objetivos";
 export { codigoDeSku } from "./codigo-de-sku";
 
 const esquemaId = z.string().uuid("El identificador no es válido.");
@@ -129,6 +130,7 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
       const [programa] = await tx.select({ slug: programs.slug }).from(programs).where(eq(programs.id, datos.programId));
       if (!programa) throw new ErrorDeApp("No existe el programa.", 404);
       const codigoCohorte = `C${datos.cohorteN}`;
+      let herencia: HerenciaDeUmbrales | null = null;
       let [cohorte] = await tx.select().from(cohorts).where(and(
         eq(cohorts.programId, datos.programId), eq(cohorts.codigo, codigoCohorte),
       ));
@@ -155,9 +157,10 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
         };
         [cohorte] = await tx.insert(cohorts).values({ id: cohortId, ...valoresCohorte }).returning();
         await tx.insert(changeLog).values(rastroDeAlta("cohorts", cohortId, codigoCohorte, actorId, valoresCohorte));
+        herencia = await heredarObjetivos(tx, actorId, datos.programId, cohortId);
       }
       const creado = await insertarSku(tx, actorId, datos, programa.slug, cohorte.id);
-      return creado;
+      return { ...creado, herencia };
     });
   });
 }

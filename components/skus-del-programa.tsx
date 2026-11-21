@@ -129,7 +129,11 @@ export function SkusDelPrograma({
         setErrorNuevo(resultado.error);
         return;
       }
-      toast.success("SKU creado");
+      toast.success(
+        "heredado" in resultado
+          ? `SKU creado. Heredó de ${resultado.heredado.desde}: ${resultado.heredado.metricas.join(", ")}. Corrígelos en Objetivos.`
+          : "SKU creado",
+      );
       setCreando(false);
       router.refresh();
     });
