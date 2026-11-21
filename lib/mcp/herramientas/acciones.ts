@@ -10,7 +10,7 @@ import type { ActorDeMovimiento } from "@/lib/deals/mover-deal";
 import type { ContextoMcp, Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
-import type { AplicacionAccionMcp } from "@/lib/mcp/acciones/tipos";
+import type { AplicacionAccionMcp, UbicacionDeObjetivoMcp } from "@/lib/mcp/acciones/tipos";
 
 const claveAccion = z.enum(CLAVES_DE_ACCION);
 const entradaPreparar = z.object({
@@ -85,7 +85,15 @@ function etapaLegible(valor: unknown): string {
   return typeof valor === "string" ? nombreDeEtapa(valor) : "Sin etapa";
 }
 
-function textoDeFila(fila: { nombre: string; antes: Record<string, unknown> | null; despues: Record<string, unknown> | null }): string {
+async function ubicacionDeDeal(db: ContextoMcp["db"], dealId: string): Promise<UbicacionDeObjetivoMcp | null> {
+  const estado = await estadoParaAccionDeal(db, dealId);
+  return estado
+    ? { programId: estado.programId, nombre: estado.nombreLead, antes: { etapa: estado.etapa, pendiente: estado.pendiente } }
+    : null;
+}
+
+function textoDeFila(fila: { nombre: string; antes: Record<string, unknown> | null; despues: Record<string, unknown> | null; detalle?: Record<string, unknown> }): string {
+  if (typeof fila.detalle?.resumen === "string") return `${fila.nombre}: ${fila.detalle.resumen}`;
   return `${fila.nombre}: ${etapaLegible(fila.antes?.etapa)} → ${etapaLegible(fila.despues?.etapa)}`;
 }
 
@@ -118,9 +126,11 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
     const filas: z.output<typeof filaVista>[] = [];
     const huellas = [];
     for (const objetivo of objetivos) {
-      const estado = await estadoParaAccionDeal(contexto.db, objetivo.id);
+      const estado = accion.ubicar
+        ? await accion.ubicar(contexto.db, objetivo)
+        : await ubicacionDeDeal(contexto.db, objetivo.id);
       if (!estado || estado.programId !== visible.id) {
-        filas.push({ objetivo_id: objetivo.id, nombre: "Sin nombre", antes: null, despues: null, se_puede_aplicar: false, razon: "No existe ese deal", efecto_externo: accion.efectoExterno });
+        filas.push({ objetivo_id: objetivo.id, nombre: "Sin nombre", antes: null, despues: null, se_puede_aplicar: false, razon: accion.objetivoAusente ?? "No existe ese deal", efecto_externo: accion.efectoExterno });
         huellas.push({ objetivo_id: objetivo.id, huella: null });
         continue;
       }
@@ -128,7 +138,7 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
         const revision = await accion.revisar(contexto.db, actor, objetivo);
         filas.push({
           objetivo_id: objetivo.id,
-          nombre: estado.nombreLead ?? "Sin nombre",
+          nombre: estado.nombre ?? "Sin nombre",
           antes: revision.antes,
           despues: revision.despues,
           se_puede_aplicar: revision.sePuedeAplicar,
@@ -139,7 +149,7 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
         });
       } catch (error) {
         const falla = mensajeDeError(error);
-        filas.push({ objetivo_id: objetivo.id, nombre: estado.nombreLead ?? "Sin nombre", antes: { etapa: estado.etapa, pendiente: estado.pendiente }, despues: null, se_puede_aplicar: false, razon: falla.mensaje, efecto_externo: accion.efectoExterno });
+        filas.push({ objetivo_id: objetivo.id, nombre: estado.nombre ?? "Sin nombre", antes: estado.antes, despues: null, se_puede_aplicar: false, razon: falla.mensaje, efecto_externo: accion.efectoExterno });
       }
       huellas.push({ objetivo_id: objetivo.id, huella: await accion.huella(contexto.db, objetivo) });
     }
@@ -174,6 +184,7 @@ type VistaGuardada = {
   se_puede_aplicar: boolean;
   razon: string | null;
   aviso?: string;
+  detalle?: Record<string, unknown>;
 };
 
 function respuestaDeConfirmacion(
@@ -254,7 +265,8 @@ export const confirmarCambioMcp: Herramienta<typeof entradaConfirmar> = {
           if (actual == null || actual !== huellas.get(objetivo.id)) {
             throw new ErrorDeApp("El deal cambió desde la vista previa.", 409);
           }
-          const anteriores = new Set((await eventosDeshacibles(tx, actor, objetivo.id)).map((evento) => evento.id));
+          // Solo las acciones que se deshacen miran los eventos del deal; un SKU u otro objetivo que no es deal no los tiene.
+          const anteriores = new Set(accion.seDeshace ? (await eventosDeshacibles(tx, actor, objetivo.id)).map((evento) => evento.id) : []);
           const aplicacion = await accion.aplicar(tx, actor, objetivo, { origen: "mcp" });
           const nuevos = accion.seDeshace
             ? (await eventosDeshacibles(tx, actor, objetivo.id)).filter((evento) => !anteriores.has(evento.id) && evento.puedeDeshacer)
