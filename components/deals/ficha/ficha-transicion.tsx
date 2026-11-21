@@ -9,7 +9,7 @@ import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries
 import { BotonDeEtapa } from "../boton-de-etapa";
 import { gruposDeTransicion, gruposSinDueno, type ClaveDestino } from "../pregunta-de-etapa";
 import { DESCRIPCION_DE_CORREGIR, DESCRIPCION_DE_DESTINO, type DestinoConDescripcion } from "../descripcion-de-destino";
-import { useResponder, type DealQueResponde } from "../responder-pregunta";
+import { useResponder, type DealQueResponde, type OpcionesDeRespuesta } from "../responder-pregunta";
 import { DialogoAnotar } from "../dialogo-anotar";
 import type { MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
@@ -33,7 +33,7 @@ export function FichaTransicion({
   alertas,
 }: {
   ficha: FichaDeDeal;
-  opciones: OpcionesDeFicha;
+  opciones: OpcionesDeFicha & Pick<OpcionesDeRespuesta, "lineas" | "skusActivos">;
   mapa: MapaTransiciones;
   ordenDeEtapas: readonly EtapaDeal[];
   nombreDeEtapa: Record<EtapaDeal, string>;

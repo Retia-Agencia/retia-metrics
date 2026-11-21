@@ -19,7 +19,6 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Rol } from "@/lib/auth/roles";
 import { saldosDeDeals } from "@/lib/queries/saldo";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { exigirFechaLimiteValida } from "./pago";
 import { puedeTrabajarDeal } from "./permiso";
@@ -52,7 +51,7 @@ import { congelarValorVendido } from "./valor-vendido";
 import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { encolarVenta } from "@/lib/meta-capi/disparo";
 import { encolarAvisoDeEstudiante } from "@/lib/avisos-cs/encolar";
-import { asegurarLineaConCupo } from "./lineas";
+import { asignarLinea, asignarLineasPredeterminadas, asegurarLineaConCupo } from "./lineas";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -624,6 +623,8 @@ export interface AltaDeDeal {
   actor: Actor;
   fechaLimitePago?: string | null;
   cohortId?: string | null;
+  /** Una pasarela que ya resolvió el SKU no recibe además los predeterminados. */
+  skuId?: string;
   submissionOrigenId?: string | null;
   /** Solo el sistema lo pasa (host de Calendly o setter por defecto). A mano, el dueño es quien crea. */
   ownerUserId?: string | null;
@@ -651,7 +652,7 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
     if (lead.programId !== alta.programId) {
       throw new ErrorDeApp("El lead es de otro programa: el deal tiene que abrirse en el programa del lead.", 422);
     }
-    const cohortId = alta.cohortId === undefined ? (await cohorteActiva(alta.programId, tx))?.id ?? null : alta.cohortId;
+    const cohortId = alta.cohortId ?? null;
     if (alta.fechaLimitePago) {
       await exigirFechaLimiteValida(tx, { programId: alta.programId, cohortId }, alta.fechaLimitePago);
     }
@@ -710,10 +711,20 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
       userId: usuario,
       fecha: sql`clock_timestamp()`,
     });
-    if (cohortId) {
-      const [dealCreado] = await tx.select().from(deals).where(and(eq(deals.id, id), vigente(deals)));
+    const [dealCreado] = await tx.select().from(deals).where(and(eq(deals.id, id), vigente(deals)));
+    if (alta.skuId) {
+      await asignarLinea(tx, {
+        deal: dealCreado, skuId: alta.skuId, actorId: usuario,
+        etiqueta: lead.nombre ?? lead.emailNormalizado,
+      });
+    } else if (alta.cohortId !== undefined && cohortId) {
       await asegurarLineaConCupo(tx, {
         deal: dealCreado, cohortId, actorId: usuario,
+        etiqueta: lead.nombre ?? lead.emailNormalizado,
+      });
+    } else if (alta.cohortId === undefined) {
+      await asignarLineasPredeterminadas(tx, {
+        deal: dealCreado, actorId: usuario,
         etiqueta: lead.nombre ?? lead.emailNormalizado,
       });
     }

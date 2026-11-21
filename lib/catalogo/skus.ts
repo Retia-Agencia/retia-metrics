@@ -45,6 +45,7 @@ export const esquemaSku = z.object({
     .max(100, "La comisión debe estar entre 0 y 100.")
     .refine((valor) => /^\d+(\.\d{1,2})?$/.test(String(valor)), "La comisión debe tener máximo dos decimales."),
   cuentaComoCupo: z.boolean().default(false),
+  predeterminado: z.boolean().default(false),
   ventana: esquemaVentana.optional(),
 });
 
@@ -109,6 +110,7 @@ async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programa
     precioListaUsd: decimal(datos.precioListaUsd),
     comisionPorcentaje: decimal(datos.comisionPorcentaje),
     cuentaComoCupo: datos.cuentaComoCupo,
+    predeterminado: datos.predeterminado,
   };
   try {
     const [creado] = await tx.insert(skus).values({ id, ...valores }).returning();
@@ -198,6 +200,7 @@ export async function editarSku(db: Db, actorId: string, id: string, input: Entr
         precioListaUsd: decimal(datos.precioListaUsd),
         comisionPorcentaje: decimal(datos.comisionPorcentaje),
         cuentaComoCupo: datos.cuentaComoCupo,
+        predeterminado: datos.predeterminado,
       };
       const cambiados = Object.entries(valores).filter(([campo, valor]) =>
         aTexto((actual.sku as Record<string, unknown>)[campo]) !== aTexto(valor));

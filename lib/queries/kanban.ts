@@ -29,7 +29,6 @@ import {
   type VistaDelTablero,
 } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals, saldosDeLineas } from "@/lib/queries/saldo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -871,7 +870,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const [
     ownerFilas,
     cohorteFilas,
-    activa,
     cicloFilas,
     canalFilas,
     etiquetasFilas,
@@ -885,7 +883,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
       .from(deals)
       .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
       .where(and(eq(deals.programId, programId), vigente(deals))),
-    cohorteActiva(programId, db),
     // Los tres filtros y los destinos de arrastre comparten una lectura del catálogo.
     opcionesDeSkuYCiclo(db, programId, hoy),
     // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
@@ -925,7 +922,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const nombresDeSku = [...nombresPorSlug.values()].sort(porNombre);
   const owners = ownerFilas;
   const cohortes = cohorteFilas.map((c) => ({ id: c.id, nombre: c.codigo }));
-  if (activa && !cohortes.some((c) => c.id === activa.id)) cohortes.push({ id: activa.id, nombre: activa.codigo });
   cohortes.sort((a, b) => a.nombre.localeCompare(b.nombre));
   const cohortesDestino = [...destinosFuturos.values()].sort(porNombre);
   const canales = canalFilas
@@ -940,8 +936,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
       .filter((c): c is typeof c & { inicio: string } => c.inicio != null)
       .map((c) => [c.id, c.inicio] as const),
   );
-  if (activa?.fechaInicioClases) inicioDeClases[activa.id] = activa.fechaInicioClases;
-  const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
+  const inicioDeLaCohorteActiva = null;
   const plataformas = plataformasDelProg.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
   return { owners, cohortes, cohortesDestino, ciclos, skus: opcionesSku, nombresDeSku, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };

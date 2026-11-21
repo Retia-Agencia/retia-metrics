@@ -1,0 +1,1 @@
+ALTER TABLE "skus" ADD COLUMN "predeterminado" boolean DEFAULT false NOT NULL;

@@ -15,9 +15,8 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { moverEtapa } from "./mover-etapa";
 import { puedeDeshacer, puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
-import { congelarValorVendido } from "./valor-vendido";
 import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
-import { crearLineaSinClasificar, estadoDePagoPorLineas, lineaConCupoVigente, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
+import { estadoDePagoPorLineas, lineasConCupoVigentes, lineaVigente, recalcularDealPorLineas, recalcularEtapaTrasAnularAbono } from "./lineas";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -56,7 +55,12 @@ export interface ActorDeAbono {
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
 export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true });
-export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono> & { archivo?: ArchivoVerificado };
+export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono> & {
+  archivo?: ArchivoVerificado;
+  /** Compatibilidad de llamadores externos mientras 463 retira la columna; el escritor los ignora. */
+  concepto?: "ticket" | "adicional";
+  nota?: string;
+};
 
 export interface AbonoRegistrado {
   abonoId: string;
@@ -184,10 +188,6 @@ export async function registrarAbono(
     const entrada = esquemaRegistrarAbono.parse(datos);
     const archivo = datos.archivo;
 
-    if (entrada.concepto === "adicional" && !entrada.nota?.trim()) {
-      throw new ErrorDeApp("Escribe qué se vendió.", 422);
-    }
-
     // Registrar plata es trabajar el lead, igual que una llamada (ADR 0003, ADR 0025).
     if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Solo un closer registra abonos de un deal.", 403);
@@ -208,30 +208,20 @@ export async function registrarAbono(
         }
         throw new ErrorDeApp("Solo el dueño del deal puede registrar sus abonos.", 403);
       }
-      let cohorteAsignada: string | null = null;
-      // El primer abono congela el ticket completo. El helper también asigna la cohorte
-      // activa si falta; sin cohorte no se puede aceptar dinero contra un total inventado.
-      if (!entrada.lineaId && entrada.concepto === "ticket" && !await lineaConCupoVigente(tx, deal.id)) {
-        const congelado = await congelarValorVendido(tx, {
-          deal,
-          descuentoUsd: 0,
-          actorId: actor.userId,
-          etiqueta: emailLead,
-          origen: opciones.origen ?? "app",
-        });
-        if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
+      const lineas = await lineasConCupoVigentes(tx, deal.id);
+      if (lineas.length === 0) {
+        throw new ErrorDeApp("El deal no tiene SKU: asígnale uno antes de registrar el abono", 409);
+      }
+      if (!entrada.lineaId && lineas.length > 1) {
+        throw new ErrorDeApp("Elige qué SKU está pagando", 422);
       }
       const linea = entrada.lineaId
         ? await lineaVigente(tx, deal.id, entrada.lineaId)
-        : entrada.concepto === "adicional"
-          ? deal.cohortId == null
-            ? (() => { throw new ErrorDeApp("El deal necesita una cohorte para crear la línea adicional.", 409); })()
-            : await crearLineaSinClasificar(tx, {
-                deal, montoUsd: Number(entrada.monto), cohortId: deal.cohortId,
-                actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
-              })
-          : await lineaConCupoVigente(tx, deal.id);
-      if (!linea) throw new ErrorDeApp("El deal no tiene una línea vigente que cuente como cupo.", 409);
+        : lineas[0];
+      if (!lineas.some((fila) => fila.id === linea.id)) {
+        throw new ErrorDeApp("La línea elegida no es un SKU vigente que cuente como cupo.", 422);
+      }
+      const cohorteAsignada: string | null = null;
       await exigirPlataformaActiva(entrada.plataformaId, tx);
 
       // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
@@ -254,8 +244,6 @@ export async function registrarAbono(
           fecha: entrada.fecha,
           monto: entrada.monto,
           moneda: entrada.moneda,
-          concepto: entrada.concepto,
-          nota: entrada.nota ?? null,
           plataformaId: entrada.plataformaId,
           enlacePagoId: null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,

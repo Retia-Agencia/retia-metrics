@@ -3,7 +3,6 @@ import { cohorts, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { fechaEfectivaDePago } from "@/lib/deals/pago";
 import { hoyEnBogota } from "@/lib/format";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -54,8 +53,7 @@ function diasEntre(a: string, b: string): number {
 
 export async function carteraVencida(db: Db, programId: string, hoy: string = hoyEnBogota(), cohorteId?: string | null): Promise<CarteraVencida> {
   // La cohorte activa no depende de los deals: se pide a la vez (una ida a la base menos).
-  const [filas, activa] = await Promise.all([
-    db
+  const filas = await db
     .select({
       dealId: deals.id,
       leadId: deals.leadId,
@@ -69,12 +67,9 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
-    .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
-    cohorteActiva(programId, db, hoy),
-  ]);
+    .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals)));
   if (filas.length === 0) return { vencidos: [], sinFechaDeReferencia: 0 };
 
-  const inicioDeLaActiva = activa?.fechaInicioClases ?? null;
   const saldos = await saldosDeDeals(db, filas.map((f) => f.dealId));
 
   const vencidos: DealEnCartera[] = [];
@@ -85,7 +80,7 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
     // saldo en cero es un deal pagado. En los dos casos no es cartera.
     if (!saldo || saldo.saldo === null || saldo.saldo <= 0) continue;
 
-    const fechaLimite = fechaEfectivaDePago(f.fechaLimitePago, f.inicioDeSuCohorte, inicioDeLaActiva);
+    const fechaLimite = fechaEfectivaDePago(f.fechaLimitePago, f.inicioDeSuCohorte, null);
     if (fechaLimite === null) {
       sinFechaDeReferencia++;
       continue;

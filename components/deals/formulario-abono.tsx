@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { hoyEnBogota } from "@/lib/format";
-import { crearPlataformaParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { Campo, claseInput, claseTextarea } from "./ficha/campos";
+import { asignarSkuAccion, crearPlataformaParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { Campo, claseInput } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
-  concepto: "ticket" | "adicional" | null;
-  nota: string;
+  lineaId: string | null;
   fecha: string;
   monto: string;
   moneda: "USD";
@@ -21,77 +22,52 @@ export interface DatosFormularioAbono {
 }
 
 export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAbono {
-  return { concepto: null, nota: "", fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null };
+  return { lineaId: null, fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null };
 }
 
 type Plataforma = { id: string; nombre: string };
 
-export function FormularioAbono({ dealId, moneda, plataformas, datos, onChange, ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
+export function FormularioAbono({ dealId, moneda, plataformas, datos, onChange, lineas = [], skusActivos = [], ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
   dealId: string;
   moneda: string;
   plataformas: Plataforma[];
   datos: DatosFormularioAbono;
   onChange: (datos: DatosFormularioAbono) => void;
+  lineas?: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: string }>;
+  skusActivos?: Array<{ id: string; nombre: string; codigo: string }>;
   ticketDeshabilitado?: boolean;
   motivoTicketDeshabilitado?: string;
 }) {
+  const router = useRouter();
+  const [skuNuevo, setSkuNuevo] = useState(skusActivos[0]?.id ?? "");
+  const [asignando, iniciarAsignacion] = useTransition();
+  const vigentes = lineas.filter((linea) => linea.estado !== "anulada");
+  if (datos.lineaId == null && vigentes.length === 1) datos = { ...datos, lineaId: vigentes[0].id };
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
   return <>
     <fieldset className="space-y-2">
-      <legend className="text-sm font-medium">¿Qué está pagando?</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className={`rounded-lg border p-4 ${ticketDeshabilitado ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${datos.concepto === "ticket" ? "border-ring bg-muted/50 ring-2 ring-ring/30" : "border-border"}`}>
-          <span className="flex items-start gap-3">
-            <input
-              type="radio"
-              name={`concepto-abono-${dealId}`}
-              value="ticket"
-              checked={datos.concepto === "ticket"}
-              disabled={ticketDeshabilitado}
-              required
-              onChange={() => cambiar({ concepto: "ticket", nota: "" })}
-              className="mt-1"
-            />
-            <span>
-              <span className="block text-sm font-medium">Programa (ticket)</span>
-              <span className="mt-1 block text-sm text-muted-foreground">Cuenta contra el saldo del programa y mueve la etapa del deal.</span>
-              {ticketDeshabilitado ? <span className="mt-2 block text-xs text-tono-alerta">{motivoTicketDeshabilitado}</span> : null}
-            </span>
-          </span>
-        </label>
-        <label className={`cursor-pointer rounded-lg border p-4 ${datos.concepto === "adicional" ? "border-ring bg-muted/50 ring-2 ring-ring/30" : "border-border"}`}>
-          <span className="flex items-start gap-3">
-            <input
-              type="radio"
-              name={`concepto-abono-${dealId}`}
-              value="adicional"
-              checked={datos.concepto === "adicional"}
-              required
-              onChange={() => cambiar({ concepto: "adicional" })}
-              className="mt-1"
-            />
-            <span>
-              <span className="block text-sm font-medium">Servicio adicional</span>
-              <span className="mt-1 block text-sm text-muted-foreground">Es aparte del programa (por ejemplo, un one-to-one). Cuenta en caja, no cambia el saldo ni la etapa.</span>
-            </span>
-          </span>
-        </label>
-      </div>
+      <legend className="text-sm font-medium">¿Qué SKU está pagando?</legend>
+      {vigentes.length === 0 ? <p className="text-sm text-tono-alerta">Asigna un SKU primero. <a className="underline" href="#skus">Ir a SKUs</a></p> : <select
+        className={claseInput}
+        value={datos.lineaId ?? ""}
+        disabled={ticketDeshabilitado}
+        required
+        onChange={(e) => cambiar({ lineaId: e.target.value })}
+      >
+        <option value="">Elige un SKU</option>
+        {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.skuCodigo} · {linea.cohorte}</option>)}
+      </select>}
+      {ticketDeshabilitado ? <p className="text-xs text-tono-alerta">{motivoTicketDeshabilitado}</p> : null}
+      {skusActivos.length > 0 ? <div className="flex gap-2">
+        <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{skusActivos.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
+        <Button type="button" size="sm" disabled={!skuNuevo || asignando} onClick={() => iniciarAsignacion(async () => {
+          const resultado = await asignarSkuAccion({ dealId, skuId: skuNuevo });
+          if (!resultado.ok) { toast.error(resultado.error); return; }
+          toast.success("SKU asignado");
+          router.refresh();
+        })}>Asignar otro SKU</Button>
+      </div> : null}
     </fieldset>
-    {datos.concepto ? <>
-    {datos.concepto === "adicional" ? (
-      <Campo etiqueta="¿Qué se vendió?" ayuda="Obligatorio. Máximo 500 caracteres.">
-        <textarea
-          className={claseTextarea}
-          value={datos.nota}
-          required
-          maxLength={500}
-          rows={3}
-          onChange={(e) => cambiar({ nota: e.target.value })}
-          placeholder="Por ejemplo, mentoría one-to-one"
-        />
-      </Campo>
-    ) : null}
     <div className="grid grid-cols-2 gap-3">
       <Campo etiqueta="Fecha del pago">
         <input type="date" className={claseInput} value={datos.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
@@ -123,7 +99,6 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos, onChange, 
         </div> : <SubirArchivo pedirSubida={(meta) => pedirSubidaParaAbonoAccion({ dealId, ...meta })} alSubir={(archivoId) => cambiar({ archivoId })} />}
       </div>
     </Campo>
-    </> : null}
   </>;
 }
 

@@ -12,7 +12,6 @@ import { camposDeFiltrosDeLeads, filtrosDeLeads } from "@/lib/queries/filtros-de
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { camposDeFiltrosKanban, opcionesDeTablero, paginaDelTablero, parsearFiltros, vistaDelTablero } from "@/lib/queries/kanban";
 import { buscarEnPrograma } from "@/lib/queries/busqueda-global";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { dimensionesVisibles, HECHOS_CONSULTABLES } from "@/lib/queries/hechos/registro";
 import { resolverCohorte, resolverDueno, type FiltroAplicado } from "@/lib/queries/resolver-filtros";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
@@ -20,6 +19,7 @@ import { leadsDelPrograma } from "@/lib/queries/leads";
 import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { opcionesDeFiltrosDeSku } from "@/lib/queries/filtros-de-sku";
 import { bandejaParaActor, fichaDeDealVisible, fichaDeLeadParaActor } from "@/lib/queries/operacion";
+import { lineasVisiblesDelDeal } from "@/lib/queries/lineas-de-deal";
 import { programaVisible } from "./programa";
 import type { Herramienta } from "./tipos";
 
@@ -174,8 +174,11 @@ export const fichaDeDealMcp: Herramienta<typeof entradaFichaDeDeal> = {
     const visible = await programaVisible(contexto, entrada.programa);
     const resultado = await fichaDeDealVisible(contexto.db, visible.id, entrada.id_del_deal!, contexto.session, contexto.rol);
     if (!resultado) throw new ErrorDeApp("No existe ese deal", 404);
-    const alertas = await alertasDelDeal(contexto.db, visible.id, resultado.ficha.dealId);
-    const estructurado = aSalidaDeFichaDeDeal(resultado.ficha, alertas, { nombre: visible.nombre, slug: visible.slug }, { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) });
+    const [alertas, lineas] = await Promise.all([
+      alertasDelDeal(contexto.db, visible.id, resultado.ficha.dealId),
+      lineasVisiblesDelDeal(contexto.db, resultado.ficha.dealId),
+    ]);
+    const estructurado = aSalidaDeFichaDeDeal(resultado.ficha, alertas, { nombre: visible.nombre, slug: visible.slug }, { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) }, lineas);
     const vendido = resultado.ficha.valorVendidoUsd === null ? "—" : monto(resultado.ficha.valorVendidoUsd, "USD");
     return {
       texto: `${resultado.ficha.lead.nombre ?? resultado.ficha.lead.email} · ${resultado.ficha.etapa}\nVendido: ${vendido}\nAlertas: ${num((alertas?.urgentes.length ?? 0) + (alertas?.alertas.length ?? 0))}\n${estructurado.ficha.enlace}`,
@@ -265,9 +268,9 @@ export const opcionesDeFiltrosMcp: Herramienta<typeof entradaOpciones> = {
     const opcionesSku = await opcionesDeFiltrosDeSku(contexto.db, visible.id);
     let opciones: Record<string, unknown>;
     if (entrada.de === "tablero") {
-      const [tablero, activa] = await Promise.all([opcionesDeTablero(contexto.db, visible.id), cohorteActiva(visible.id, contexto.db)]);
+      const tablero = await opcionesDeTablero(contexto.db, visible.id);
       const { owners, ...resto } = tablero;
-      opciones = { ...resto, ...(veEquipo ? { duenos: owners } : {}), cohorte_activa: activa ? { id: activa.id, codigo: activa.codigo } : null };
+      opciones = { ...resto, ...(veEquipo ? { duenos: owners } : {}) };
     } else if (entrada.de === "leads") {
       opciones = Object.fromEntries(Object.entries(camposDeFiltrosDeLeads).map(([nombre, esquema]) => [nombre, z.toJSONSchema(esquema, { unrepresentable: "any" })]));
     } else {

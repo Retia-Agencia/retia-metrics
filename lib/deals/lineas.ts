@@ -52,13 +52,17 @@ export async function lineaVigente(tx: Db, dealId: string, lineaId: string) {
 }
 
 export async function lineaConCupoVigente(tx: Db, dealId: string) {
+  const filas = await lineasConCupoVigentes(tx, dealId);
+  return filas.length === 1 ? filas[0] : null;
+}
+
+export async function lineasConCupoVigentes(tx: Db, dealId: string) {
   const filas = await tx.select({ linea: dealLineas })
     .from(dealLineas)
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
     .where(and(eq(dealLineas.dealId, dealId), vigente(dealLineas), eq(skus.activo, true), eq(skus.cuentaComoCupo, true)))
     .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
-  if (filas.length > 1) throw new ErrorDeApp("El deal tiene más de una línea vigente que cuenta como cupo.", 409);
-  return filas[0]?.linea ?? null;
+  return filas.map((fila) => fila.linea);
 }
 
 async function escribirDerivados(tx: Db, dealId: string, actor: Actor): Promise<void> {
@@ -68,13 +72,16 @@ async function escribirDerivados(tx: Db, dealId: string, actor: Actor): Promise<
   const filas = await tx.select({
     linea: dealLineas,
     cohortId: skus.cohortId,
+    codigoSku: skus.codigo,
+    codigoCohorte: cohorts.codigo,
     cuentaComoCupo: skus.cuentaComoCupo,
     abonosVigentes: sql<number>`count(${abonos.id})::int`,
   }).from(dealLineas)
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
+    .innerJoin(cohorts, and(eq(cohorts.id, skus.cohortId), eq(cohorts.programId, skus.programId)))
     .leftJoin(abonos, and(eq(abonos.lineaId, dealLineas.id), vigente(abonos)))
     .where(and(eq(dealLineas.dealId, dealId), vigente(dealLineas)))
-    .groupBy(dealLineas.id, skus.cohortId, skus.cuentaComoCupo)
+    .groupBy(dealLineas.id, skus.cohortId, skus.cuentaComoCupo, skus.codigo, cohorts.codigo)
     .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
 
   const abonosVigentesDelDeal = filas.reduce((total, fila) => total + Number(fila.abonosVigentes), 0);
@@ -85,7 +92,15 @@ async function escribirDerivados(tx: Db, dealId: string, actor: Actor): Promise<
     abonosVigentes: Number(fila.abonosVigentes),
     abonosVigentesDelDeal,
   }));
-  const cupos = filas.filter((f) => f.cuentaComoCupo);
+  const porDesempate = (a: typeof filas[number], b: typeof filas[number]) => {
+    const porFecha = a.linea.asignadaEn.getTime() - b.linea.asignadaEn.getTime();
+    if (porFecha !== 0) return porFecha;
+    const numero = (codigo: string) => Number(/^C(\d+)$/.exec(codigo)?.[1] ?? Number.MAX_SAFE_INTEGER);
+    const porCohorte = numero(a.codigoCohorte) - numero(b.codigoCohorte);
+    return porCohorte !== 0 ? porCohorte : a.codigoSku.localeCompare(b.codigoSku);
+  };
+  const cupos = filas.filter((f) => f.cuentaComoCupo).sort(porDesempate);
+  vendidas.sort(porDesempate);
   const cohorte = vendidas.find((f) => f.cuentaComoCupo) ?? cupos[0];
   const cambios: Record<string, unknown> = {};
   if (!deal.cortesia) {
@@ -129,11 +144,33 @@ export async function asignarLinea(tx: Db, entrada: {
   return (await lineaVigente(tx, entrada.deal.id, id));
 }
 
+/** Asigna, en orden estable, todas las propuestas predeterminadas activas del programa. */
+export async function asignarLineasPredeterminadas(tx: Db, entrada: { deal: FilaDeal } & Actor) {
+  const filas = await tx.select({ sku: skus, codigoCohorte: cohorts.codigo })
+    .from(skus)
+    .innerJoin(cohorts, and(eq(cohorts.id, skus.cohortId), eq(cohorts.programId, skus.programId)))
+    .where(and(eq(skus.programId, entrada.deal.programId), eq(skus.activo, true), eq(skus.predeterminado, true)))
+    .orderBy(asc(skus.codigo));
+  filas.sort((a, b) => {
+    const numero = (codigo: string) => Number(/^C(\d+)$/.exec(codigo)?.[1] ?? Number.MAX_SAFE_INTEGER);
+    return numero(a.codigoCohorte) - numero(b.codigoCohorte) || a.sku.codigo.localeCompare(b.sku.codigo);
+  });
+  const asignadas = [];
+  for (const fila of filas) asignadas.push(await asignarLinea(tx, { ...entrada, skuId: fila.sku.id }));
+  return asignadas;
+}
+
 export async function asegurarLineaConCupo(tx: Db, entrada: {
   deal: FilaDeal; cohortId: string; valorVendidoUsd?: number; asignadaEn?: Date;
 } & Actor) {
-  const existente = await lineaConCupoVigente(tx, entrada.deal.id);
-  if (existente) return existente;
+  const [existente] = await tx.select({ linea: dealLineas }).from(dealLineas)
+    .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
+    .where(and(
+      eq(dealLineas.dealId, entrada.deal.id), vigente(dealLineas), eq(skus.activo, true),
+      eq(skus.cuentaComoCupo, true), eq(skus.cohortId, entrada.cohortId),
+    ))
+    .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
+  if (existente) return existente.linea;
   const sku = await skuConCupoDeCohorte(tx, entrada.deal.programId, entrada.cohortId);
   return asignarLinea(tx, { ...entrada, skuId: sku.id });
 }

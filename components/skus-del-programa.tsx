@@ -33,6 +33,7 @@ interface SkuVista {
     precioListaUsd: string;
     comisionPorcentaje: string | null;
     cuentaComoCupo: boolean;
+    predeterminado: boolean;
     activo: boolean;
   };
   codigoCohorte: string;
@@ -44,6 +45,7 @@ interface BorradorSku {
   precioListaUsd: string;
   comisionPorcentaje: string;
   cuentaComoCupo: boolean;
+  predeterminado: boolean;
   fechaInicioVentas: string;
   fechaCierreVentas: string;
   metaCupos: string;
@@ -56,6 +58,7 @@ const NUEVO: BorradorSku = {
   precioListaUsd: "",
   comisionPorcentaje: "",
   cuentaComoCupo: false,
+  predeterminado: false,
   fechaInicioVentas: "",
   fechaCierreVentas: "",
   metaCupos: "",
@@ -77,6 +80,7 @@ function aEntrada(programId: string, borrador: BorradorSku, cohorteNueva: boolea
     precioListaUsd: borrador.precioListaUsd,
     comisionPorcentaje: borrador.comisionPorcentaje,
     cuentaComoCupo: borrador.cuentaComoCupo,
+    predeterminado: borrador.predeterminado,
     ventana: cohorteNueva
       ? {
           fechaInicioVentas: borrador.fechaInicioVentas,
@@ -182,7 +186,7 @@ export function SkusDelPrograma({
         <table className="w-full text-left text-sm">
           <thead className="border-b text-xs text-muted-foreground">
             <tr>
-              {['Nombre', 'Cohorte', 'Código', 'Precio USD', '% comisión', 'Cuenta como cupo', 'Activo'].map((titulo) => (
+              {['Nombre', 'Cohorte', 'Código', 'Precio USD', '% comisión', 'Cuenta como cupo', 'Predeterminado', 'Activo'].map((titulo) => (
                 <th key={titulo} className="px-3 py-2 font-medium">{titulo}</th>
               ))}
               <th className="px-3 py-2 text-right font-medium">Acciones</th>
@@ -190,7 +194,7 @@ export function SkusDelPrograma({
           </thead>
           <tbody className="divide-y">
             {skus.length === 0 ? (
-              <tr><td colSpan={8} className="px-3 py-4 text-muted-foreground">Este programa todavía no tiene SKUs.</td></tr>
+              <tr><td colSpan={9} className="px-3 py-4 text-muted-foreground">Este programa todavía no tiene SKUs.</td></tr>
             ) : skus.map((fila) => (
               <tr key={fila.sku.id} className={!fila.sku.activo ? "opacity-50" : undefined}>
                 <td className="px-3 py-3 font-medium">{fila.sku.nombre}</td>
@@ -199,6 +203,7 @@ export function SkusDelPrograma({
                 <td className="px-3 py-3 whitespace-nowrap">{usd(Number(fila.sku.precioListaUsd))}</td>
                 <td className="px-3 py-3">{fila.sku.comisionPorcentaje === null ? "—" : `${Number(fila.sku.comisionPorcentaje)}%`}</td>
                 <td className="px-3 py-3">{fila.sku.cuentaComoCupo ? "Sí" : "No"}</td>
+                <td className="px-3 py-3">{fila.sku.predeterminado ? "Sí" : "No"}</td>
                 <td className="px-3 py-3"><Badge variant={fila.sku.activo ? "secondary" : "outline"}>{fila.sku.activo ? "Sí" : "No"}</Badge></td>
                 <td className="px-3 py-3">
                   <div className="flex justify-end gap-1">
@@ -252,6 +257,7 @@ function EditarSku({ fila, slug, programId, pendiente, startTransition, alCerrar
     precioListaUsd: fila.sku.precioListaUsd,
     comisionPorcentaje: fila.sku.comisionPorcentaje ?? "",
     cuentaComoCupo: fila.sku.cuentaComoCupo,
+    predeterminado: fila.sku.predeterminado,
   });
 
   return <FormularioSku
@@ -301,6 +307,7 @@ function FormularioSku({ borrador, setBorrador, nombres, cohorteBloqueada, cohor
       <label className="space-y-1 text-sm"><span className="text-muted-foreground">Precio de lista USD</span><input inputMode="decimal" value={borrador.precioListaUsd} onChange={(e) => campo("precioListaUsd", e.target.value)} required className={claseInput} /></label>
       <label className="space-y-1 text-sm"><span className="text-muted-foreground">% de comisión</span><input inputMode="decimal" value={borrador.comisionPorcentaje} onChange={(e) => campo("comisionPorcentaje", e.target.value)} required className={claseInput} /></label>
       <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={borrador.cuentaComoCupo} onChange={(e) => campo("cuentaComoCupo", e.target.checked)} /> Cuenta como cupo</label>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={borrador.predeterminado} onChange={(e) => campo("predeterminado", e.target.checked)} /> Predeterminado</label>
       {codigo ? <p className="text-sm text-muted-foreground sm:col-span-2">Código: <span className="font-mono">{codigo}</span></p> : null}
       {cohorteNueva ? <>
         <p className="text-sm font-medium sm:col-span-2">La cohorte C{borrador.cohorteN} es nueva: nace con este SKU.</p>
