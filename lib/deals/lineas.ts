@@ -179,7 +179,7 @@ export async function asegurarLineaConCupo(tx: Db, entrada: {
 export async function crearLineaSinClasificar(tx: Db, entrada: {
   deal: FilaDeal; montoUsd: number; cohortId: string;
 } & Actor) {
-  if (!entrada.actorId) throw new Error("Crear el catálogo sin clasificar exige un actor.");
+  // actorId nulo = el sistema (cobro de pasarela sin SKU, ver venta-de-la-pasarela.ts); el rastro lo guarda sin persona.
   let [producto] = await tx.select().from(productos).where(and(
     eq(productos.programId, entrada.deal.programId), eq(productos.slug, "sin_clasificar"),
   ));

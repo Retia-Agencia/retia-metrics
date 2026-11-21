@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, cohorts } from "@/lib/db/schema";
+import { abonos, cohorts, type deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -15,7 +15,10 @@ import {
   exigirSaldoParaAbono,
 } from "./abonos";
 import { congelarValorVendido } from "./valor-vendido";
-import { lineaConCupoVigente, recalcularDealPorLineas } from "./lineas";
+import { asegurarLineaConCupo, crearLineaSinClasificar, lineasConCupoVigentes, recalcularDealPorLineas } from "./lineas";
+import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
+import { dejarNotaDelSistema } from "./nota-del-sistema";
+import { hoyEnBogota } from "@/lib/format";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, transicionDeVentaDirecta, type EtapaDeal } from "./etapas";
 
 export type OrigenDePasarela = "hotmart";
@@ -48,6 +51,63 @@ type CohorteParaVentaDirecta = Pick<typeof cohorts.$inferSelect, "fechaCierreVen
 /** ADR 0133 D2: un pago parcial confirmado vence al cierre comercial de su cohorte. */
 export function fechaLimiteDeVentaDirecta(cohorte: CohorteParaVentaDirecta): string | null {
   return cohorte.fechaCierreVentas;
+}
+
+type FilaDeal = typeof deals.$inferSelect;
+
+/**
+ * La línea que recibe un cobro de pasarela. Un cobro real nunca se rechaza (restricción de datos), así que
+ * esta función siempre devuelve una línea, en este orden:
+ * 1. el deal tiene exactamente una línea con cupo vigente: esa;
+ * 2. no tiene líneas: el SKU con cupo de su cohorte, o del único ciclo que vende hoy (como hacía producción);
+ * 3. 0 o 2+ ciclos vendiendo, o 2+ líneas con cupo: una línea `sin_clasificar` (caja recaudada, sin elegir SKU)
+ *    y una nota del sistema para que gerencia la reclasifique.
+ * ponytail: este fallback vive hasta el 449 (oferta de Hotmart → SKU); entonces la pasarela trae su SKU y se retira.
+ */
+async function lineaParaElCobro(
+  tx: Db,
+  deal: FilaDeal,
+  entrada: { monto: number; origen: OrigenDePasarela },
+  etiqueta: string,
+) {
+  const conCupo = await lineasConCupoVigentes(tx, deal.id);
+  let linea = conCupo.length === 1 ? conCupo[0] : null;
+  if (!linea && conCupo.length === 0) {
+    const vendiendo = deal.cohortId ? [] : await cohortesVendiendo(tx, deal.programId, hoyEnBogota());
+    const cohortId = deal.cohortId ?? (vendiendo.length === 1 ? vendiendo[0].id : null);
+    if (cohortId) {
+      try {
+        linea = await asegurarLineaConCupo(tx, { deal, cohortId, actorId: null, etiqueta, origen: entrada.origen });
+      } catch (error) {
+        // El ciclo no tiene exactamente un SKU con cupo: cae a sin clasificar, no se rechaza el cobro.
+        if (!(error instanceof ErrorDeApp) || error.status !== 409) throw error;
+      }
+    }
+  }
+  if (linea) {
+    if (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0) {
+      const congelado = await congelarValorVendido(tx, {
+        deal, descuentoUsd: 0, actorId: null, etiqueta, lineaId: linea.id, origen: entrada.origen,
+      });
+      return { linea, cohortId: congelado.cohortId as string | null };
+    }
+    return { linea, cohortId: deal.cohortId };
+  }
+
+  const [reciente] = await tx.select({ id: cohorts.id }).from(cohorts)
+    .where(eq(cohorts.programId, deal.programId))
+    .orderBy(desc(cohorts.fechaInicioVentas), desc(cohorts.codigo)).limit(1);
+  const cohortId = deal.cohortId ?? reciente?.id;
+  if (!cohortId) throw new ErrorDeApp("El programa no tiene ningún ciclo: crea un SKU antes de recibir cobros.", 409);
+  const sinClasificar = await crearLineaSinClasificar(tx, {
+    deal, montoUsd: entrada.monto, cohortId, actorId: null, etiqueta, origen: entrada.origen,
+  });
+  await dejarNotaDelSistema(
+    tx, deal.id,
+    "Cobro de pasarela registrado en «Sin clasificar»: el deal no tenía un único SKU con cupo ni un único ciclo vendiendo. Gerencia debe reclasificarlo al SKU correcto.",
+    entrada.origen,
+  );
+  return { linea: sinClasificar, cohortId: deal.cohortId };
 }
 
 export async function registrarVentaDeLaPasarela(
@@ -89,19 +149,7 @@ export async function registrarVentaDeLaPasarela(
         throw new ErrorDeApp("El deal está cerrado: no recibe abonos nuevos.", 409);
       }
 
-      let cohortId = deal.cohortId;
-      if (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0) {
-        const congelado = await congelarValorVendido(tx, {
-          deal,
-          descuentoUsd: 0,
-          actorId: null,
-          etiqueta: emailLead,
-          origen: entrada.origen,
-        });
-        cohortId = congelado.cohortId;
-      }
-      const linea = await lineaConCupoVigente(tx, deal.id);
-      if (!linea) throw new ErrorDeApp("El deal no tiene una línea vigente que cuente como cupo.", 409);
+      const { linea, cohortId } = await lineaParaElCobro(tx, deal, entrada, emailLead);
 
       await exigirPlataformaActiva(entrada.plataformaId, tx);
       await exigirSaldoParaAbono(tx, {
