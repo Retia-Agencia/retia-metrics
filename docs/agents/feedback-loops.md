@@ -23,7 +23,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - 🩸 **Ningún test corre en local: todo cambio entra por PR y lo verifica el CI del PR** (Mani, 20-nov; reemplaza la
   regla del 1-oct, que permitía los archivos del cambio "si había aire"). Ni la suite, ni archivos sueltos
   (`npm test -- tests/x.test.ts`), ni `test:cambios`, ni `test:humo`, en ninguna sesión, hija o agente. Typecheck y
-  lint locales son opcionales (no son tests y el CI los repite). Cada sesión escribe el código y sus tests, empuja
+  lint locales son opcionales (no son tests y el CI los repite). **Excepción (Mani, 20-nov noche):** después de que el CI marque archivos
+  en rojo, la sesión que los arregla puede correr en local solo esos archivos, uno por uno (`npm test -- tests/x.test.ts`),
+  nunca la suite; cada vuelta de CI cuesta ~8 min. Cada sesión escribe el código y sus tests, empuja
   su rama y **abre el PR; no mergea**. Mani no aprueba PRs: la sesión padre lee el diff contra el ticket, espera el
   CI verde del PR (con main traído si otro PR tocó sus archivos) y mergea. Origen: la suite se cortó tres veces a
   los 480 s en una Mac con 16,5 GB de swap (1-oct) y cada corrida local compite con las sesiones paralelas. La suite completa la valida el CI de cada
