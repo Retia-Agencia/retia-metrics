@@ -6,6 +6,7 @@ import { esViolacionExclusion, esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { normalizarProducto } from "./normalizar-producto";
 import { codigoDeSku } from "./codigo-de-sku";
 import { heredarUmbrales, type HerenciaDeUmbrales } from "./objetivos";
@@ -83,7 +84,7 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-function rastroDeAlta(tabla: "skus" | "cohorts", registroId: string, etiqueta: string, actorId: string, valores: Record<string, unknown>) {
+function rastroDeAlta(tabla: "skus" | "cohorts", registroId: string, etiqueta: string, actorId: string, valores: Record<string, unknown>, origen: OrigenOperativo = "app") {
   return Object.entries(valores).map(([campo, valor]) => ({
     tabla,
     registroId,
@@ -91,12 +92,12 @@ function rastroDeAlta(tabla: "skus" | "cohorts", registroId: string, etiqueta: s
     campo,
     valorAnterior: null,
     valorNuevo: aTexto(valor),
-    origen: "app" as const,
+    origen,
     userId: actorId,
   }));
 }
 
-async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programaSlug: string, cohortId: string) {
+async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programaSlug: string, cohortId: string, origen: OrigenOperativo) {
   const id = crypto.randomUUID();
   const slug = normalizarProducto(datos.nombre);
   const codigo = codigoDeSku(programaSlug, datos.nombre, datos.cohorteN);
@@ -113,7 +114,7 @@ async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programa
   };
   try {
     const [creado] = await tx.insert(skus).values({ id, ...valores }).returning();
-    await tx.insert(changeLog).values(rastroDeAlta("skus", id, codigo, actorId, valores));
+    await tx.insert(changeLog).values(rastroDeAlta("skus", id, codigo, actorId, valores, origen));
     return creado;
   } catch (error) {
     if (esViolacionUnica(error)) {
@@ -123,7 +124,7 @@ async function insertarSku(tx: Db, actorId: string, datos: SkuValidado, programa
   }
 }
 
-export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
+export async function crearSku(db: Db, actorId: string, input: EntradaSku, origen: OrigenOperativo = "app") {
   return normalizando(async () => {
     const datos = esquemaSku.parse(input);
     return db.transaction(async (txBase) => {
@@ -157,7 +158,7 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
           fechaCierreVentas: ventana.fechaCierreVentas,
         };
         [cohorte] = await tx.insert(cohorts).values({ id: cohortId, ...valoresCohorte }).returning();
-        await tx.insert(changeLog).values(rastroDeAlta("cohorts", cohortId, codigoCohorte, actorId, valoresCohorte));
+        await tx.insert(changeLog).values(rastroDeAlta("cohorts", cohortId, codigoCohorte, actorId, valoresCohorte, origen));
         const [actor] = await tx.select({ rol: users.rol }).from(users).where(eq(users.id, actorId));
         if (!actor) throw new ErrorDeApp("No existe el usuario que crea el SKU.", 404);
         herencia = await heredarUmbrales(tx, { id: actorId, rol: actor.rol }, {
@@ -166,7 +167,7 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku) {
           inicioVentasNuevo: ventana.fechaInicioVentas,
         });
       }
-      const creado = await insertarSku(tx, actorId, datos, programa.slug, cohorte.id);
+      const creado = await insertarSku(tx, actorId, datos, programa.slug, cohorte.id, origen);
       return { ...creado, herencia };
     });
   });
@@ -181,7 +182,7 @@ async function leerSkuConContexto(db: Db, id: string) {
   return fila;
 }
 
-export async function editarSku(db: Db, actorId: string, id: string, input: EntradaSku) {
+export async function editarSku(db: Db, actorId: string, id: string, input: EntradaSku, origen: OrigenOperativo = "app") {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const datos = esquemaSku.parse(input);
@@ -219,7 +220,7 @@ export async function editarSku(db: Db, actorId: string, id: string, input: Entr
           campo,
           valorAnterior: aTexto((actual.sku as Record<string, unknown>)[campo]),
           valorNuevo: aTexto(valor),
-          origen: "app" as const,
+          origen,
           userId: actorId,
         })));
       }
@@ -228,7 +229,7 @@ export async function editarSku(db: Db, actorId: string, id: string, input: Entr
   });
 }
 
-async function cambiarActivo(db: Db, actorId: string, id: string, activo: boolean) {
+async function cambiarActivo(db: Db, actorId: string, id: string, activo: boolean, origen: OrigenOperativo) {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     return db.transaction(async (txBase) => {
@@ -244,7 +245,7 @@ async function cambiarActivo(db: Db, actorId: string, id: string, activo: boolea
           campo: "activo",
           valorAnterior: String(actual.sku.activo),
           valorNuevo: String(activo),
-          origen: "app",
+          origen,
           userId: actorId,
         });
       }
@@ -253,12 +254,12 @@ async function cambiarActivo(db: Db, actorId: string, id: string, activo: boolea
   });
 }
 
-export function desactivarSku(db: Db, actorId: string, id: string) {
-  return cambiarActivo(db, actorId, id, false);
+export function desactivarSku(db: Db, actorId: string, id: string, origen: OrigenOperativo = "app") {
+  return cambiarActivo(db, actorId, id, false, origen);
 }
 
-export function reactivarSku(db: Db, actorId: string, id: string) {
-  return cambiarActivo(db, actorId, id, true);
+export function reactivarSku(db: Db, actorId: string, id: string, origen: OrigenOperativo = "app") {
+  return cambiarActivo(db, actorId, id, true, origen);
 }
 
 export async function listarSkus(db: Db, programId: string) {
