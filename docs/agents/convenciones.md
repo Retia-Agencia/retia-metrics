@@ -57,8 +57,8 @@
   Lo vigila `tests/frontera-cliente-guardian.test.ts` (nombre que no empieza con mayúscula+minúscula, o tipo, importado de un
   archivo cliente por un archivo de servidor). Y sigue valiendo la regla de arriba: tras tocar un componente cliente, `npm run
   build` y **abrir la pantalla** con la base local, mirando la consola.
-- **Worktree para delegar: los tests sí, Turbopack no** (1-oct). Un worktree con `node_modules` enlazado
-  (junction a la del checkout principal) corre `npm test`, typecheck y lint, pero `next build` y `next dev`
+- **Worktree para delegar: Turbopack no** (1-oct). Un worktree con `node_modules` enlazado
+  (junction a la del checkout principal) corre typecheck y lint (los tests ya no corren en local, 20-nov), pero `next build` y `next dev`
   fallan ("Symlink ... points out of the filesystem root"). La build y el recorrido visual se hacen en el
   checkout principal tras commit en la rama. Para quitar el worktree, primero `rmdir node_modules` (borra el
   enlace, no la carpeta real) y después `git worktree remove`. Y **Next 16 deja UN solo `next dev` por
@@ -117,9 +117,8 @@
   (`npm run dev`, los scripts, `db:migrate`) escribe en la base real. **Los previews de Vercel no tienen
   `DATABASE_URL` a proposito** y se trabaja todo en `main`. La regla de Mani: **asegurar la integridad
   antes de publicar.** En la practica: (1) una migracion se prueba primero en PGlite, que aplica TODAS
-  las migraciones en cada `npm test`, y su SQL se lee antes de aplicarla; (2) nada se empuja a `main`
-  sin typecheck, lint y los tests del cambio limpios, y la suite completa la valida el checkpoint (Feedback
-  loops); (3) toda escritura de
+  las migraciones en cada `npm test` del CI, y su SQL se lee antes de aplicarla; (2) nada entra a `main`
+  sin un PR con el CI verde (desde el 20-nov ningún test corre en local, Feedback loops); (3) toda escritura de
   datos a mano o por script pide el ok de Mani; (4) antes de escribir, **mirar el ref dentro de la
   connection string** (`postgres.<ref>@...`), no el nombre de la variable. Lo que PGlite no ve y solo
   aparece en la base real: el pooler (`prepare: false`). 🩸 **La Data API de Supabase va APAGADA**:
@@ -166,7 +165,8 @@
 - **Un fallo de `npm test` por timeout no es una regresion.** Los tests con PGlite aplican todas
   las migraciones; con varias sesiones compitiendo por la maquina el suite se cae en cascada por
   el reloj. Re-corre el archivo solo antes de investigar (`testTimeout` y `hookTimeout` en 20s).
-- 🩸 **UNA suite por maquina, y siempre por `npm test`** (28-sep). Una corrida de 66 s se colgo
+- 🩸 **Desde el 20-nov ningún test corre en local** (Feedback loops): lo que sigue es historia del candado y vale
+  solo si Mani pide una corrida local explícita. **UNA suite por maquina, y siempre por `npm test`** (28-sep). Una corrida de 66 s se colgo
   mas de 55 minutos varias veces: tres suites a la vez (sesion, agente y un subagente que se
   relanzaba) mas workers de vitest que sobrevivian a su padre muerto. `npm test` es
   `scripts/test.mjs`: un candado por maquina (si ya hay una suite viva, sale de inmediato y dice

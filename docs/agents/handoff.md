@@ -10,8 +10,8 @@
 
 ```
 Seguimos con el CRM de Retia (sesión de Mani, orquestadora; sesiones hijas en Sonnet medium, una por frente, la padre revisa e integra).
-Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Las hijas no empujan: commit local, la padre revisa el diff,
-rebasa sobre origin/main, empuja, abre el PR y mergea con CI verde. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
+Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Todo es un PR (20-nov): la hija rebasa sobre origin/main,
+empuja su rama y abre el PR, sin mergear y sin correr tests en local; la padre lee el diff, espera el CI verde del PR y mergea. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
 Estado: main en el commit de este handoff (CI verde), con #37 a #42 dentro. La 0152 (mcp_lectura) está aplicada en producción.
 Lo que sigue, cada punto se puede abrir como una sesión aparte:
 0. PRIORIDAD (20-nov, noche): SKUs por deal. Lee la entrada "20-nov (noche)" en Memory. En main: 459, 461 pasos 1-2-4, 462 parcial y
@@ -50,8 +50,10 @@ esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pul
   (`cambiar-cohorte.ts:48`); un abono adicional cae en `sin_clasificar` (`abonos.ts:229`). El closer ve cohorte, no SKU.
   `skus.predeterminado` todavía no existe.
 - **Pendiente, en orden de prioridad:**
-  1. Correr en producción `select count(*) from deal_lineas where anulada_en is not null;` (lo pidió el PR 58): si da más de 0, los saldos
-     por línea cambiaron con el despliegue. No se ha corrido.
+  1. ~~Conteo de líneas anuladas en producción~~ (corrido el 20-nov, solo lectura): **2 de 4.790**, las dos del mismo deal
+     `bf940c18-9749-49aa-9a8f-ede730e690c8` (mismo SKU `1755d542…`, 1.431 USD, anuladas el 11-nov y el 19-nov), que conserva 2 líneas
+     vigentes. **Cada anulada tiene un abono colgado (`abonos.linea_id`)**: desde el PR 58 esos 2 abonos ya no suman al saldo de ninguna
+     línea vigente. Lo resuelve el 460 (re-colgar abonos de líneas anuladas a la vigente del mismo SKU, con el ok de Mani).
   2. Resto del 464 (Alejo): migración `skus.predeterminado`, interruptor en la tabla de SKUs, `abrirDeal` con líneas propuestas por
      predeterminado o "Sin SKU", flujos del closer leyendo líneas en vez de `cohorteActiva`, MCP. Es lo que le quita la duda al closer.
   3. 460 (espera al resto del 464, comparte `lineas.ts`): líneas en la ficha del deal (ver, asignar, cambiar SKU), abono por línea, sale
