@@ -26,9 +26,83 @@ import { leerProyeccion, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { leerCumplimientoDeCohorte } from "@/lib/metas/cumplimiento-de-cohorte";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { calcularProyeccionDeRoas } from "@/lib/queries/proyeccion-roas";
+import { sumarDias } from "@/lib/dias-habiles";
+import type { HechoConsultable } from "@/lib/queries/hechos/registro";
+import { consultarHechosMcp } from "./hechos";
+import type { CLAVES_DE_SIGUIENTE_PASO } from "@/lib/mcp/salidas/metrica";
 
 function tasaLegible(nombre: string, razon: RazonConCobertura, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${textoDeRazon(razon, pct)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
+}
+
+type ArgumentoDePaso = string | number | string[];
+interface SiguientePaso {
+  clave: (typeof CLAVES_DE_SIGUIENTE_PASO)[number];
+  texto: string;
+  herramienta: string | null;
+  argumentos: Record<string, ArgumentoDePaso>;
+  enlace: string | null;
+}
+
+/**
+ * El hecho (y su dimension de origen) que abre una metrica por canal o campana. Solo las metricas que son
+ * el conteo de un hecho: una lista con otro universo (p. ej. citas_debidas) no se abre por aqui.
+ */
+const DESGLOSE_DE_ORIGEN: Partial<Record<(typeof METRICAS_DE_LISTA)[number], { hecho: HechoConsultable; dimension: string; texto: string }>> = {
+  cierres: { hecho: "venta", dimension: "canal", texto: "Abrir las ventas por canal" },
+  agendas: { hecho: "agenda", dimension: "canal", texto: "Abrir las agendas por canal" },
+  shows: { hecho: "cita", dimension: "canal", texto: "Abrir los shows por canal" },
+  caja: { hecho: "abono", dimension: "plataforma", texto: "Abrir lo que entró a caja por plataforma de pago" },
+  registros: { hecho: "envio", dimension: "campana", texto: "Abrir los registros por campaña" },
+};
+
+/** El periodo inmediatamente anterior, de la misma duracion, en dias de Bogota (AAAA-MM-DD). */
+export function periodoAnteriorDe(desde: string, hasta: string): { desde: string; hasta: string } {
+  const dias = Math.round((Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`)) / 86_400_000) + 1;
+  return { desde: sumarDias(desde, -dias), hasta: sumarDias(desde, -1) };
+}
+
+/** Los pasos proactivos de una consulta (407, ADR 0135): solo los que la herramienta destino permite a este rol. */
+export function siguientesPasosDeMetrica(
+  contexto: Parameters<typeof consultarMetricaMcp.ejecutar>[0],
+  entrada: z.infer<typeof entradaMetrica>,
+  vista: { desde: string; hasta: string; haySiguiente: boolean; enlace: string },
+): SiguientePaso[] {
+  const pasos: SiguientePaso[] = [];
+  const filtros: Record<string, ArgumentoDePaso> = {};
+  for (const [clave, valor] of Object.entries(entrada) as Array<[string, unknown]>) {
+    if (["periodo", "desde", "hasta", "pagina"].includes(clave)) continue;
+    if (typeof valor === "string" || typeof valor === "number") filtros[clave] = valor;
+  }
+  const anterior = periodoAnteriorDe(vista.desde, vista.hasta);
+  pasos.push({
+    clave: "comparar_periodo_anterior",
+    texto: `Comparar con el periodo anterior (${anterior.desde} a ${anterior.hasta}, misma duración)`,
+    herramienta: "consultar_metrica",
+    argumentos: { ...filtros, periodo: "custom", desde: anterior.desde, hasta: anterior.hasta, pagina: 1 },
+    enlace: null,
+  });
+  const desglose = DESGLOSE_DE_ORIGEN[entrada.metrica];
+  if (desglose && consultarHechosMcp.puede(contexto)) {
+    pasos.push({
+      clave: "desglosar_por_origen",
+      texto: desglose.texto,
+      herramienta: "consultar_hechos",
+      argumentos: { programa: entrada.programa, hecho: desglose.hecho, periodo: "custom", desde: vista.desde, hasta: vista.hasta, agrupar_por: [desglose.dimension] },
+      enlace: null,
+    });
+  }
+  if (vista.haySiguiente) {
+    pasos.push({
+      clave: "ver_mas_filas",
+      texto: `Ver la página ${entrada.pagina + 1} de filas`,
+      herramienta: "consultar_metrica",
+      argumentos: { ...filtros, periodo: "custom", desde: vista.desde, hasta: vista.hasta, pagina: entrada.pagina + 1 },
+      enlace: null,
+    });
+  }
+  pasos.push({ clave: "abrir_en_el_hub", texto: "Abrir el Hub del programa para verificar la cifra", herramienta: null, argumentos: {}, enlace: vista.enlace });
+  return pasos;
 }
 
 const entradaResumen = z.object({ programa: z.string().min(1).max(100), ...camposDePeriodoMcp }).strict();
@@ -248,6 +322,12 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
         },
         paginacion: { pagina: entrada.pagina, filas_en_esta_pagina: filas.length, hay_siguiente: haySiguiente },
         filas,
+        siguientes_pasos: siguientesPasosDeMetrica(contexto, entrada, {
+          desde: vista.periodo.a.desde,
+          hasta: vista.periodo.a.hasta,
+          haySiguiente,
+          enlace: enlaceDeSeccionHub(programa.slug, "comercial"),
+        }),
         enlace: enlaceDeSeccionHub(programa.slug, "comercial"),
       },
     };

@@ -47,6 +47,17 @@ const fila = z.object({
   enlace: z.string().url().nullable().describe("Enlace al deal o a la persona para verificar la fila."),
 }).strict().describe("Fila de negocio de la métrica, proyectada según el rol actual.");
 
+export const CLAVES_DE_SIGUIENTE_PASO = ["comparar_periodo_anterior", "desglosar_por_origen", "ver_mas_filas", "abrir_en_el_hub"] as const;
+
+const siguientePaso = z.object({
+  clave: z.enum(CLAVES_DE_SIGUIENTE_PASO).describe("Tipo de análisis que sigue: comparar con el periodo anterior, abrir por canal o campaña, ver la siguiente página de filas o abrir el Hub."),
+  texto: z.string().describe("Qué haría este paso, en palabras de negocio."),
+  herramienta: z.string().nullable().describe("Herramienta que ejecuta el paso, o null cuando el paso es un enlace."),
+  argumentos: z.record(z.string(), z.union([z.string(), z.number(), z.array(z.string())]))
+    .describe("Argumentos listos para pasar a la herramienta; vacío cuando el paso es un enlace."),
+  enlace: z.string().url().nullable().describe("Enlace al CRM cuando el paso es abrir el Hub; null en los demás."),
+}).strict();
+
 export const salidaDeConsultaDeMetrica = z.object({
   programa,
   metrica: z.enum(METRICAS_DE_LISTA).describe("Clave canónica o identificador de la métrica aceptado por la consulta."),
@@ -77,5 +88,6 @@ export const salidaDeConsultaDeMetrica = z.object({
     hay_siguiente: z.boolean().describe("Indica si se puede pedir la página siguiente."),
   }).strict().describe("Estado de la paginación de las filas."),
   filas: z.array(fila).describe("Filas de esta página."),
+  siguientes_pasos: z.array(siguientePaso).describe("Análisis que conviene ofrecer después de esta cifra, con los argumentos listos."),
   enlace: z.string().url().describe("Enlace al Hub del programa para verificar la consulta."),
 }).strict();
