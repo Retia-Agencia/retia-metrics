@@ -123,7 +123,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
           <FichaAlertas alertas={alertas} programaSlug={programa.slug} puedeGestionar={puedeDecidirDuplicado({ id: session.user.id, rol }, ficha.owner?.id ?? null)} />
           <FichaTransicion
             ficha={ficha}
-            opciones={{ ...opciones, lineas, skusActivos }}
+            opciones={opciones}
             mapa={mapaDeTransiciones()}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
@@ -176,8 +176,6 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
               aceptaAbono={aceptaAbono(ficha.etapa)}
               hoy={hoyEnBogota()}
               nombreDeEtapa={NOMBRE_DE_ETAPA}
-              lineas={lineas}
-              skusActivos={skusActivos}
             />
           </div>
         </div>

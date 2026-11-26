@@ -152,6 +152,18 @@ describe("líneas del deal, forjando la peticion", () => {
   });
 });
 
+describe("opciones de SKU del deal, forjando la peticion", () => {
+  it("un closer no obtiene las opciones de un deal fuera de su programa", async () => {
+    const dealId = await nuevoDeal(programaB, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).opcionesDeSkuDelDealAccion({ dealId });
+
+    expect(r).toMatchObject({ ok: false });
+    expect(r).not.toHaveProperty("lineas");
+  });
+});
+
 describe("anular el deal, forjando la peticion", () => {
   it("un closer NO anula el deal de otro: el mensaje lo dice y la base no se mueve", async () => {
     const dealId = await nuevoDeal(programaA, closerB);

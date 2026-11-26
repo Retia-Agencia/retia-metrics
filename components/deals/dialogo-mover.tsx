@@ -90,8 +90,6 @@ export interface DialogoMoverProps {
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: { id: string; nombre: string }[];
-  lineas?: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: string }>;
-  skusActivos?: Array<{ id: string; nombre: string; codigo: string }>;
   saldo: number | null;
   moneda: string | null;
   llamada: {
@@ -166,8 +164,6 @@ export function DialogoMover({
   cohortes,
   motivos,
   plataformas,
-  lineas,
-  skusActivos,
   saldo,
   moneda,
   llamada,
@@ -375,7 +371,7 @@ export function DialogoMover({
                   ? <>{saldo != null ? `Saldo actual: ${monto(saldo, moneda ?? "USD")}. ` : ""}La etapa la decide lo que quede por pagar.</>
                   : "Elige qué SKU está pagando para continuar."}
               </p>
-              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} lineas={lineas} skusActivos={skusActivos} />
+              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
             </section>
           ) : null}
 

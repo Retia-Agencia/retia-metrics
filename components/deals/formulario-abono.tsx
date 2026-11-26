@@ -4,11 +4,12 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { hoyEnBogota } from "@/lib/format";
-import { asignarSkuAccion, crearPlataformaParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { asignarSkuAccion, crearPlataformaParaAbonoAccion, opcionesDeSkuDelDealAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
@@ -26,21 +27,48 @@ export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAb
 }
 
 type Plataforma = { id: string; nombre: string };
+type OpcionesDeSku = Extract<Awaited<ReturnType<typeof opcionesDeSkuDelDealAccion>>, { ok: true }>;
 
-export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPadre, onChange, lineas = [], skusActivos = [], ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
+export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPadre, onChange, ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
   dealId: string;
   moneda: string;
   plataformas: Plataforma[];
   datos: DatosFormularioAbono;
   onChange: (datos: DatosFormularioAbono) => void;
-  lineas?: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: string }>;
-  skusActivos?: Array<{ id: string; nombre: string; codigo: string }>;
   ticketDeshabilitado?: boolean;
   motivoTicketDeshabilitado?: string;
 }) {
   const router = useRouter();
-  const [skuNuevo, setSkuNuevo] = useState(skusActivos[0]?.id ?? "");
+  const [opcionesSku, setOpcionesSku] = useState<OpcionesDeSku | null>(null);
+  const [errorSku, setErrorSku] = useState<string | null>(null);
+  const [cargandoSku, setCargandoSku] = useState(true);
+  const [skuNuevo, setSkuNuevo] = useState("");
   const [asignando, iniciarAsignacion] = useTransition();
+  // Sube para volver a pedir los SKUs (tras asignar uno); el efecto solo escribe estado tras la respuesta.
+  const [versionSku, setVersionSku] = useState(0);
+  useEffect(() => {
+    let vigente = true;
+    opcionesDeSkuDelDealAccion({ dealId }).then((resultado) => {
+      if (!vigente) return;
+      if (!resultado.ok) {
+        setOpcionesSku(null);
+        setErrorSku(resultado.error);
+      } else {
+        setErrorSku(null);
+        setOpcionesSku(resultado);
+        setSkuNuevo((actual) => resultado.skusActivos.some((sku) => sku.id === actual) ? actual : (resultado.skusActivos[0]?.id ?? ""));
+      }
+      setCargandoSku(false);
+    }, () => {
+      if (!vigente) return;
+      setOpcionesSku(null);
+      setErrorSku("No se pudieron cargar los SKUs.");
+      setCargandoSku(false);
+    });
+    return () => { vigente = false; };
+  }, [dealId, versionSku]);
+  const lineas = opcionesSku?.lineas ?? [];
+  const skusActivos = opcionesSku?.skusActivos ?? [];
   const vigentes = lineas.filter((linea) => linea.estado !== "anulada");
   // Con una sola línea vigente se preselecciona sin mutar lo que llega del padre.
   const datos = datosDelPadre.lineaId == null && vigentes.length === 1 ? { ...datosDelPadre, lineaId: vigentes[0].id } : datosDelPadre;
@@ -54,7 +82,9 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   return <>
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">¿Qué SKU está pagando?</legend>
-      {vigentes.length === 0 ? <p className="text-sm text-tono-alerta">Asigna un SKU primero. <a className="underline" href="#skus">Ir a SKUs</a></p> : <select
+      {cargandoSku ? <p className="text-sm text-muted-foreground">Cargando SKUs…</p> : null}
+      {!cargandoSku && errorSku ? <p className="text-sm text-tono-peligro">{errorSku}</p> : null}
+      {!cargandoSku && !errorSku && vigentes.length > 0 ? <select
         className={claseInput}
         value={datos.lineaId ?? ""}
         disabled={ticketDeshabilitado}
@@ -63,17 +93,23 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
       >
         <option value="">Elige un SKU</option>
         {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.skuCodigo} · {linea.cohorte}</option>)}
-      </select>}
+      </select> : null}
+      {!cargandoSku && !errorSku && vigentes.length === 0 && skusActivos.length > 0 ? <p className="text-sm">Este deal no tiene SKU. Asígnale el que está pagando.</p> : null}
+      {!cargandoSku && !errorSku && skusActivos.length === 0 ? <p className="text-sm text-tono-alerta">Este programa no tiene SKUs activos.</p> : null}
       {ticketDeshabilitado ? <p className="text-xs text-tono-alerta">{motivoTicketDeshabilitado}</p> : null}
-      {skusActivos.length > 0 ? <div className="flex gap-2">
+      {!cargandoSku && !errorSku && skusActivos.length > 0 ? <div className="flex gap-2">
         <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{skusActivos.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
         <Button type="button" size="sm" disabled={!skuNuevo || asignando} onClick={() => iniciarAsignacion(async () => {
           const resultado = await asignarSkuAccion({ dealId, skuId: skuNuevo });
           if (!resultado.ok) { toast.error(resultado.error); return; }
           toast.success("SKU asignado");
           router.refresh();
-        })}>Asignar otro SKU</Button>
+          setVersionSku((v) => v + 1);
+        })}>{vigentes.length > 0 ? "Asignar otro SKU" : "Asignar SKU"}</Button>
       </div> : null}
+      {!cargandoSku && !errorSku && opcionesSku ? (opcionesSku.rutaCatalogoSkus
+        ? <Enlace precarga="nunca" href={opcionesSku.rutaCatalogoSkus} className="inline-block text-xs text-marca-texto underline-offset-2 hover:underline">¿Falta el SKU? Créalo en el catálogo</Enlace>
+        : <p className="text-xs text-muted-foreground">¿Falta el SKU? Pídele a gerencia que lo cree.</p>) : null}
     </fieldset>
     <div className="grid grid-cols-2 gap-3">
       <Campo etiqueta="Fecha del pago">

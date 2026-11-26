@@ -7,12 +7,12 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
 import type { Session } from "next-auth";
-import { requireRole } from "@/lib/auth/guards";
-import { esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
+import { configuraPrograma, esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDealEnum } from "@/lib/db/schema";
+import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDealEnum, programs } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
@@ -40,6 +40,7 @@ import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 import { dealEditableParaLineas } from "@/lib/deals/lineas-para-accion";
 import { asignarLinea, anularLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
+import { lineasVisiblesDelDeal, skusActivosDelPrograma } from "@/lib/queries/lineas-de-deal";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -120,6 +121,43 @@ async function correr<T extends object>(
 const ROLES_ONBOARDING: readonly Rol[] = ["gerente", "closer", "customer_success"];
 
 const esquemaLinea = z.object({ dealId: z.string().uuid("Deal inválido."), lineaId: z.string().uuid("Línea inválida.") });
+
+export async function opcionesDeSkuDelDealAccion(entrada: { dealId: string }): Promise<
+  | {
+    ok: true;
+    lineas: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: "propuesta" | "vendida" | "anulada" }>;
+    skusActivos: Array<{ id: string; nombre: string; codigo: string }>;
+    rutaCatalogoSkus: string | null;
+  }
+  | { ok: false; error: string }
+> {
+  try {
+    const session = await requireRoleDeLectura("gerente", "closer");
+    const { dealId } = await normalizando(async () => z.object({ dealId: z.string().uuid("Deal inválido.") }).parse(entrada));
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    const ctx = { session, actor: { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser } };
+    await exigirDealVisible(ctx, dealId);
+    const [deal] = await db.select({ programId: deals.programId, programaSlug: programs.slug })
+      .from(deals)
+      .innerJoin(programs, eq(programs.id, deals.programId))
+      .where(and(eq(deals.id, dealId), vigente(deals)))
+      .limit(1);
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    const [lineas, skusActivos] = await Promise.all([
+      lineasVisiblesDelDeal(db, dealId),
+      skusActivosDelPrograma(db, deal.programId),
+    ]);
+    return {
+      ok: true,
+      lineas: lineas.map(({ id, skuNombre, skuCodigo, cohorte, estado }) => ({ id, skuNombre, skuCodigo, cohorte, estado })),
+      skusActivos: skusActivos.map(({ id, nombre, codigo }) => ({ id, nombre, codigo })),
+      rutaCatalogoSkus: configuraPrograma(rol) ? `/p/${encodeURIComponent(deal.programaSlug)}/programa?seccion=ventas#cohortes` : null,
+    };
+  } catch (error) {
+    return aError(error);
+  }
+}
 
 export async function asignarSkuAccion(entrada: { dealId: string; skuId: string; valorVendidoUsd?: number }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
