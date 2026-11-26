@@ -199,6 +199,15 @@ describe("la tarjeta se lee como una cadena", () => {
   });
 });
 
+// Antes: "sin cohorte dice dónde configurarla" (solo afirmaba el copy). Ahora se afirma el comportamiento: sin cohorte
+// abierta nada se proyecta ni se reparte, y cada raya trae su razón en vez de un 0.
+it("sin cohorte abierta no proyecta ni reparte, y cada raya dice por qué", () => {
+  const resultado = calcularProyeccion({ ...cohorte, cohorte: null });
+  expect([resultado.ritmo, resultado.proyeccion, resultado.ventasRequeridasDia, resultado.leadsRequeridosDia].map((r) => r.valor)).toEqual([null, null, null, null]);
+  expect(resultado.ritmo.razon).toBeTruthy();
+  expect(resultado.repartoSemanal).toEqual([]);
+});
+
 describe("la ventana del ritmo en la URL", () => {
   it("acepta solo las opciones y vuelve a 10 con cualquier otra cosa", () => {
     expect(ventanaRitmoDeUrl("20")).toBe(20);
