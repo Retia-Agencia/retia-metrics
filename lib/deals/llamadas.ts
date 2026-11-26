@@ -682,7 +682,7 @@ export async function reagendarLlamada(
       }
 
       if (motivoId) {
-        await exigirTextoDelMotivo(db, motivoId, comentarioDelMotivo ?? notas);
+        await exigirTextoDelMotivo(db, motivoId, "reagenda", comentarioDelMotivo ?? notas);
       }
 
       // La vieja queda `reagendada`: deja de contar como "cita sin resultado" y sale del

@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { abonos, calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
+import { resolverMotivoLibre } from "@/lib/deals/resolver-motivo-libre";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
@@ -74,6 +75,72 @@ async function etapaDe(dealId: string) {
 }
 
 describe("moverConHecho", () => {
+  it("resuelve motivo libre reutilizando, reactivando, creando y guardando Otro con nota", async () => {
+    const deal = await nuevoDeal("compromiso_verbal");
+    const activo = (await db.insert(motivos).values({ nombre: "Sin presupuesto", tipo: "a_futuro" }).returning())[0];
+    const inactivo = (await db.insert(motivos).values({ nombre: "Viaje próximo", tipo: "a_futuro", activo: false }).returning())[0];
+
+    const reutilizado = await resolverMotivoLibre(db, {
+      motivoLibre: { texto: "sin PRESUPUESTO", guardarComoOpcion: true },
+      tipo: "a_futuro",
+      actorUserId: closerId,
+      dealId: deal.id,
+      etiqueta: "lead@retia.co",
+    });
+    expect(reutilizado).toBe(activo.id);
+
+    const reactivado = await resolverMotivoLibre(db, {
+      motivoLibre: { texto: "VIAJE PRÓXIMO", guardarComoOpcion: true },
+      tipo: "a_futuro",
+      actorUserId: closerId,
+      dealId: deal.id,
+      etiqueta: "lead@retia.co",
+    });
+    expect(reactivado).toBe(inactivo.id);
+    expect((await db.select({ activo: motivos.activo }).from(motivos).where(eq(motivos.id, inactivo.id)))[0].activo).toBe(true);
+
+    const creado = await resolverMotivoLibre(db, {
+      motivoLibre: { texto: "Espera un ascenso", guardarComoOpcion: true },
+      tipo: "a_futuro",
+      actorUserId: closerId,
+      dealId: deal.id,
+      etiqueta: "lead@retia.co",
+    });
+    expect((await db.select().from(motivos).where(eq(motivos.id, creado)))[0]).toMatchObject({
+      nombre: "Espera un ascenso",
+      tipo: "a_futuro",
+      pideTexto: false,
+    });
+
+    const otro = await resolverMotivoLibre(db, {
+      motivoLibre: { texto: "Debe resolver una mudanza", guardarComoOpcion: false },
+      tipo: "retroceso",
+      actorUserId: closerId,
+      dealId: deal.id,
+      etiqueta: "lead@retia.co",
+    });
+    expect((await db.select().from(motivos).where(eq(motivos.id, otro)))[0]).toMatchObject({
+      nombre: "Otro",
+      tipo: "retroceso",
+      pideTexto: true,
+    });
+    expect(await db.select().from(dealActividades).where(and(
+      eq(dealActividades.dealId, deal.id),
+      eq(dealActividades.nota, "Debe resolver una mudanza"),
+    ))).toHaveLength(1);
+  });
+
+  it("una corrección no puede crear motivos libres aunque coincida con RETRO", async () => {
+    const deal = await nuevoDeal("compromiso_verbal");
+    await expect(moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "atendido",
+      correccion: true,
+      motivoLibre: { texto: "No debe entrar al catálogo", guardarComoOpcion: true },
+    })).rejects.toThrow("Una corrección no acepta motivos libres");
+    expect(await db.select().from(motivos).where(eq(motivos.nombre, "No debe entrar al catálogo"))).toHaveLength(0);
+  });
+
   it("Agendado → Atendido marca Show y pega Grain en una sola llamada", async () => {
     const deal = await nuevoDeal("agendado");
     const callId = (await db.insert(calls).values({

@@ -160,6 +160,12 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
       { id: "recuperar", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
     ],
   },
+  a_futuro: {
+    pregunta: "¿Se retoma?",
+    respuestas: [
+      { id: "retomar", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
+    ],
+  },
 };
 
 /** Las respuestas que el deal puede tomar hoy, según tenga o no un pendiente. */

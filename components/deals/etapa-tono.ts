@@ -26,6 +26,7 @@ export const TONO_DE_ETAPA: Readonly<Record<EtapaDeal, TonoEtapa>> = {
   ganado_parcial: "exito",
   ganado_completo: "exito",
   cierre_perdido: "peligro",
+  a_futuro: "neutro",
 };
 
 export const TONO_DE_PENDIENTE: Readonly<Record<PendienteDeal, TonoEtapa>> = {

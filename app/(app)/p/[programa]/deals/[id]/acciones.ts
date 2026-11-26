@@ -232,11 +232,19 @@ const esquemaMoverConHechoAccion = z.object({
   a: z.enum(etapaDealEnum.enumValues),
   pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: id("Motivo inválido.").nullable().optional(),
+  motivoLibre: z.object({
+    texto: z.string().trim().min(1, "Escribe el motivo.").max(80, "El motivo no puede superar 80 caracteres."),
+    guardarComoOpcion: z.boolean(),
+  }).optional(),
   comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
   // El comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota antes de mover.
   comentario: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
   datos: esquemaDatosMovimiento,
   hecho: esquemaHecho.optional(),
+}).superRefine((datos, ctx) => {
+  if (datos.motivoId && datos.motivoLibre) {
+    ctx.addIssue({ code: "custom", path: ["motivoLibre"], message: "Elige un motivo o escribe uno, no ambos." });
+  }
 });
 
 export type EntradaMoverConHecho = z.input<typeof esquemaMoverConHechoAccion>;
