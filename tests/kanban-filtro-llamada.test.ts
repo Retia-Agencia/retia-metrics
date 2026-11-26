@@ -149,6 +149,26 @@ function idsDe(tablero: Awaited<ReturnType<typeof tableroKanban>>): Set<string> 
 const AYER = "2026-10-19";
 
 describe("filtro por fecha de llamada", () => {
+  it("incluye una cita de Calendly de hoy que solo tiene fechaAgenda", async () => {
+    const calendly = await deal({ etapa: "agendado" });
+    await db.insert(calls).values({
+      dealId: calendly,
+      programId,
+      fechaAgenda: new Date(`${HOY}T09:00:00-05:00`),
+      resultado: "agendada",
+      origen: "calendly",
+    });
+
+    const tablero = await tableroKanban(
+      db,
+      programId,
+      { tipo: "todos" },
+      { fecha: filtro("llamada", HOY, HOY) },
+      HOY,
+    );
+    expect(idsDe(tablero)).toEqual(new Set([calendly]));
+  });
+
   it('"Llamada · ayer" trae los deals con llamada ayer, incluido un no-show, y no las anuladas', async () => {
     const conCita = await deal();
     await llamada(conCita, AYER, "agendada");

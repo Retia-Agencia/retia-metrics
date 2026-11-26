@@ -1,6 +1,7 @@
 # 0103: El Kanban tiene una columna Re-agenda y tres vistas, sin etapas nuevas
 
 - **Estado:** aceptado, 22-oct-2026 (Mani). Se construye con el ticket 296.
+- **Parcialmente reemplazado por ADR 0142 (ticket 498):** Re-agenda vuelve a ser un tag; las tres vistas se conservan.
 - **Enmendado el 22-oct (Mani):** Setteo suma Compromiso Verbal, Ganado Pago Parcial, Ganado Pagado Completo y
   Cierre perdido, para que el setter cierre por chat (flechas E5 y E6) sin cambiar a la vista Llamada. Llamada no
   cambia: el closer no ve las columnas de setteo.
