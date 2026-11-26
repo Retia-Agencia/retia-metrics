@@ -13,7 +13,7 @@ export { abrirDealHistorico, abrirDealesHistoricos, type AltaHistorica, type Dea
 /**
  * El escritor de lo HISTORICO: lo que paso en las pestañas de gestion antes del CRM
  * (ADR 0059, ticket 078). Lo usa solo la migracion, y un guardian lo fija
- * (`tests/migracion-escritor-guardian.test.ts`).
+ * (la regla de lint en `eslint.config.mjs`).
  *
  * Las mutaciones de siempre no pueden expresar el pasado: `registrarAbono` exige que el
  * actor sea el dueño y mueve el deal, y `agregarLlamada` crea una `agendada` y tambien lo

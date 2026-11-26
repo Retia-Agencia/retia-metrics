@@ -44,7 +44,7 @@ import {
  * El ESCRITOR de las llamadas de Calendly (ticket 096, ADR 0049): lee la base, le pregunta
  * al emparejador (`emparejar-llamada.ts`, puro) y escribe lo que este decidio. Es el unico
  * lugar que cuelga una llamada de Calendly de un deal o la deja suelta; el guardian
- * `tests/calendly-colgar-guardian.test.ts` lo vigila.
+ * la regla de lint en `eslint.config.mjs` lo vigila.
  *
  * Quien lo llama no importa aqui: el webhook o la consulta periodica de Calendly (A5)
  * cuando exista, y a mano el closer que asigna una suelta. La primera cita de un envio

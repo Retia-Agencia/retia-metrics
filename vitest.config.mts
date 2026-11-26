@@ -1,22 +1,10 @@
-import { configDefaults, defineConfig } from "vitest/config";
+import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
-import { readdirSync, readFileSync } from "node:fs";
-
-// Auditoría de mutación (stryker.config.mjs, con MUTAR definido): los tests que leen el código
-// fuente (guardianes) ven el archivo instrumentado por Stryker y fallan en la corrida inicial, y
-// no pueden matar un mutante porque no ejecutan el código. Solo ahí se excluyen.
-const LEE_FUENTE = /readFileSync|readdirSync|readFile\(|codigo-fuente/;
-const excluirEnMutacion = process.env.MUTAR
-  ? readdirSync("tests")
-      .filter((f) => f.endsWith(".test.ts") && LEE_FUENTE.test(readFileSync(`tests/${f}`, "utf8")))
-      .map((f) => `tests/${f}`)
-  : [];
 
 export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    exclude: [...configDefaults.exclude, ...excluirEnMutacion],
     // ~92 archivos pagaban cada uno PGlite (~700 ms) y migraciones (~150 ms).
     globalSetup: ["./tests/helpers/volcado-global.ts"],
     // Los tests de base levantan un PGlite en memoria y le aplican TODAS las
