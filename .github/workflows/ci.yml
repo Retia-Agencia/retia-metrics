@@ -17,9 +17,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 26-nov: typecheck + lint (~65 s) y build (~70 s) corrian seguidos en un job de ~150 s, el mas
+  # lento del CI. En dos runners paralelos la espera la marca el shard de tests mas lento.
   chequeos:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - parte: estatico
+            comando: npm run typecheck && npm run lint
+          - parte: build
+            comando: npm run build
+    name: chequeos (${{ matrix.parte }})
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -34,9 +45,7 @@ jobs:
           key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
       - if: steps.modulos.outputs.cache-hit != 'true'
         run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run build
+      - run: ${{ matrix.comando }}
 
   # 14-oct: la suite en un solo job llego a 462 s y una corrida se corto en los 480 s de
   # scripts/test.mjs sin un test rojo. Partida en 3, cada parte corre en su propio runner.
