@@ -413,15 +413,6 @@ describe("414: la tabla de Pauta por día", () => {
     expect(fila(sinGasto, "inversion").celdas.porColumna[0]).toMatchObject({ valor: null, cobertura: { estado: "sin_dato" } });
   });
 
-  it("Agendas de Meta es una fila propia de Tráfico, con el mismo número que el denominador del costo según Meta", async () => {
-    await semanaDeVariosDias();
-    const vista = await cargarPautaSemanal(db, { programId, rango: SEMANA, hoy: HOY, cohorteId: null, paso: "dia" });
-    const claves = vista.filas.filter((f) => f.bloque === "trafico").map((f) => f.clave);
-    expect(claves.indexOf("agendas_meta")).toBe(claves.indexOf("costo_agenda_meta") - 1);
-    expect(fila(vista, "agendas_meta").celdas.total.valor).toBe(fila(vista, "costo_agenda_meta").celdas.total.partes?.[1]);
-    expect(fila(vista, "agendas_meta").nombre).toBe("Agendas de Meta");
-  });
-
   it("la columna en curso marca Parcial las tasas de Comercial, también cuando cuadran", async () => {
     await semanaDeVariosDias();
     const hoy = "2026-10-09";

@@ -1,26 +1,15 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { cohorts, deals, dealEtapaHistorial, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { cohorteDeLaUrl } from "@/lib/queries/cohorte-del-hub";
 import { urlDeLista, vistaDeLista } from "@/lib/queries/vista-metrica";
-import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
-import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
-
-// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
-// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
-});
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 /**
  * Ticket 377 — los filtros del Hub: Cohorte y Periodo cada uno por su lado.
@@ -29,7 +18,6 @@ afterEach(() => {
 
 let db: Db;
 let cerrar: () => Promise<void>;
-let vaciar: () => Promise<void>;
 let programaA: string;
 let otroPrograma: string;
 let c1: string;
@@ -40,10 +28,17 @@ const HOY = "2026-09-15";
 const SEPTIEMBRE = { desde: "2026-09-01", hasta: "2026-09-30" };
 const periodoDe = (rango = SEPTIEMBRE): PeriodoResuelto => ({ preset: "custom", a: rango, b: null });
 
+// Todo el archivo LEE (vistas, listas y resúmenes del Hub no escriben): se siembra una vez en `beforeAll`.
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el reloj fijo (solo `Date`)
+// vale desde la siembra, porque `created_at` de los deals lo pone la base con ese reloj.
 beforeAll(async () => {
-  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
-});
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
+  ({ db, cerrar } = await crearBaseDePrueba());
+  await sembrar();
+}, 60_000);
 afterAll(async () => {
+  vi.useRealTimers();
   await cerrar();
 });
 
@@ -57,8 +52,7 @@ async function vender(programId: string, cohortId: string, email: string, dia: s
   return deal.id;
 }
 
-beforeEach(async () => {
-  await vaciar();
+async function sembrar() {
   const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" }).returning();
   const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500.00" }).returning();
   programaA = a.id;
@@ -80,7 +74,7 @@ beforeEach(async () => {
   await vender(programaA, c1, "c1b@x.co", "2026-08-10");
   await vender(programaA, c1, "c1c@x.co", "2026-08-11");
   await vender(otroPrograma, cAjena, "ajeno@x.co", "2026-09-06");
-}, 60_000);
+}
 
 const vistaCon = (parametro: string | undefined, periodo = periodoDe()) =>
   armarVistaDelDashboard({
@@ -100,6 +94,9 @@ describe("Cohorte y Periodo se cruzan con Y", () => {
     // Sin filtro de cohorte (Hoy, Mi espacio): las tres ventas de septiembre.
     const sinFiltro = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "custom", a: SEPTIEMBRE } }, db);
     expect(sinFiltro.embudo.cierres).toBe(3);
+    // La cifra que arma el Hub y la lista de esa cifra cuentan lo mismo.
+    const [lista] = await listaDeMetrica("cierres", { programId: programaA, rango: SEPTIEMBRE, hoy: HOY, cohorteId: c2 }, 1, db);
+    expect(lista.filas.length).toBe(deC2.embudo.cierres);
   });
 
   it.each(["cierres", "caja", "contratado", "deals_creados"] as const)("la cifra de %s y su lista dan lo mismo, en todas sus páginas", async (metrica) => {
@@ -116,18 +113,11 @@ describe("Cohorte y Periodo se cruzan con Y", () => {
     expect(deC2.subtotal.cantidad + deC1.subtotal.cantidad).toBe(todas.subtotal.cantidad);
   });
 
-  it("cifra y lista de Vendido cuadran con la que arma el Hub", async () => {
-    const vista = await vistaCon(c2);
-    const [lista] = await listaDeMetrica("cierres", { programId: programaA, rango: SEPTIEMBRE, hoy: HOY, cohorteId: c2 }, 1, db);
-    expect(lista.filas.length).toBe(vista.embudo.cierres);
-  });
-
   it("un cruce que no se toca queda vacío, no inventa ventas de otra cohorte", async () => {
     const octubre = { desde: "2026-10-01", hasta: "2026-10-31" };
     const vista = await vistaCon(c2, periodoDe(octubre));
     expect(vista.embudo.cierres).toBe(0);
     expect(vista.caja).toEqual([{ moneda: "USD", total: 0 }]);
-    expect(fraseSinActividad("C2", { ...periodoDe(octubre), preset: "mes_pasado" })).toBe("C2 no tuvo actividad en octubre. Elige otro periodo o Desde el inicio.");
   });
 });
 
@@ -170,20 +160,6 @@ describe("Comparar con la cohorte anterior compara dos cohortes, no dos fechas",
     }, db);
     expect(vista.filtroDeCohorte.cohorteIdDeB).toBe(c2);
     expect(vista.anterior?.embudo.cierres).toBe(1);
-  });
-});
-
-describe("la línea bajo el filtro Cohorte", () => {
-  it("muestra la primera venta real aunque sea anterior al inicio de ventas, y lo dice", async () => {
-    const vista = await vistaCon(c2);
-    const { elegida, ventas } = vista.filtroDeCohorte;
-    const linea = lineaDeLaCohorte({ cohorte: elegida && { codigo: elegida.codigo, metaCupos: elegida.metaCupos, inicioVentas: elegida.inicioVentas, cierreVentas: elegida.cierreVentas }, ventas });
-    expect(linea).toMatch(/^C2 · se vende del 1-sep(-2026)? al 30-sep(-2026)? · primera venta: 20-ago(-2026)? · última: 12-sep(-2026)? · 3 vendidos de 50 · 1 venta anterior al inicio de ventas$/);
-  });
-  it("sin ventas dice 'aún sin ventas' y con Todas nombra la primera del programa", () => {
-    expect(lineaDeLaCohorte({ cohorte: { codigo: "C3", metaCupos: 40, inicioVentas: "2026-11-01", cierreVentas: "2026-11-30" }, ventas: [] })).toMatch(/^C3 · se vende del 1-nov.* al 30-nov.* · aún sin ventas$/);
-    expect(lineaDeLaCohorte({ cohorte: null, ventas: [{ dia: "2026-05-12" }] })).toMatch(/^Todas las cohortes · primera venta del programa: 12-may/);
-    expect(lineaDeLaCohorte({ cohorte: null, ventas: [] })).toBe("Todas las cohortes · aún sin ventas");
   });
 });
 

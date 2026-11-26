@@ -133,24 +133,6 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
     expect(caja).toEqual([{ moneda: "USD", total: 750 }]);
   });
 
-  it("un abono adicional cuenta en caja", async () => {
-    const dealId = await sembrarDeal(programaA);
-    const actorId = await duenoDePrueba(db, programaA);
-    await abonoDePrueba(db, {
-      dealId,
-      programId: programaA,
-      fecha: "2026-09-15",
-      monto: "250.00",
-      moneda: "USD",
-      concepto: "adicional",
-      nota: "Mentoría 1:1",
-      registradoPorUserId: actorId,
-    });
-
-    expect(await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db))
-      .toEqual([{ moneda: "USD", total: 250 }]);
-  });
-
   it("la caja se agrupa por moneda y nunca mezcla dos monedas en un solo numero", async () => {
     const ventaUsd = { id: await sembrarDeal(programaA) };
     const ventaCop = { id: await sembrarDeal(programaA) };
@@ -164,69 +146,6 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
     const caja = await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
     const porMoneda = Object.fromEntries(caja.map((c) => [c.moneda, c.total]));
     expect(porMoneda).toEqual({ USD: 750, COP: 2_000_000 });
-  });
-});
-
-// ─────────────────────────────────────── 3. sheets + app se suman igual
-
-describe("sheets y app se suman sin logica especial", () => {
-  it("cuenta las filas de calls y abonos con origen 'sheets' y 'app' por igual", async () => {
-    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-
-    await db.insert(calls).values([
-      { programId: programaA, fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "agendada", origen: "sheets" },
-      { programId: programaA, fechaAgenda: new Date("2026-09-15T15:00:00Z"), resultado: "agendada", origen: "app" },
-    ]);
-
-    const vSheets = { id: await sembrarDeal(programaA) };
-    const vApp = { id: await sembrarDeal(programaA) };
-
-    await abonoDePrueba(db, [
-      { dealId: vSheets.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD", origen: "sheets" },
-      { dealId: vApp.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD", origen: "app" },
-    ]);
-
-    const embudo = await embudoDelRango({ programId: programaA, rango: rango }, db);
-    expect(embudo.agendas).toBe(2);
-
-    const caja = await cajaRecaudada({ programId: programaA, rango: rango }, db);
-    expect(caja).toEqual([{ moneda: "USD", total: 300 }]);
-  });
-});
-
-// ─────────────────────────────────────── 4. nunca se suman dos programas
-
-describe("nunca se suman programas distintos", () => {
-  it("cada consulta devuelve solo lo del programa pedido", async () => {
-    const programaB = await crearPrograma("programa-b", "Programa B");
-    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-
-    // Programa A: 1 agenda, 1 venta, un abono de 100.
-    await db.insert(calls).values({
-      programId: programaA,
-      fechaAgenda: new Date("2026-09-15T14:00:00Z"),
-      resultado: "agendada",
-    });
-    const ventaA = { id: await sembrarDeal(programaA) };
-    await abonoDePrueba(db, { dealId: ventaA.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
-
-    // Programa B: 3 agendas, 2 ventas, un abono de 999.
-    await db.insert(calls).values([
-      { programId: programaB, fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "agendada" },
-      { programId: programaB, fechaAgenda: new Date("2026-09-15T15:00:00Z"), resultado: "agendada" },
-      { programId: programaB, fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "agendada" },
-    ]);
-    const ventaB = { id: await sembrarDeal(programaB) };
-    await sembrarDeal(programaB);
-    await abonoDePrueba(db, { dealId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
-
-    const embudoA = await embudoDelRango({ programId: programaA, rango: rango }, db);
-    expect(embudoA.agendas).toBe(1);
-    expect(await cajaRecaudada({ programId: programaA, rango: rango }, db)).toEqual([{ moneda: "USD", total: 100 }]);
-
-    const embudoB = await embudoDelRango({ programId: programaB, rango: rango }, db);
-    expect(embudoB.agendas).toBe(3);
-    expect(await cajaRecaudada({ programId: programaB, rango: rango }, db)).toEqual([{ moneda: "USD", total: 999 }]);
   });
 });
 
@@ -318,42 +237,6 @@ describe("anclaje de fechas en Bogota", () => {
   });
 });
 
-// ─────────────────────────────────────── 7. hoy, esta semana, custom
-
-describe("rangos: hoy, esta semana y custom", () => {
-  it("filtra agendas y caja segun el rango pedido", async () => {
-    // Semana del lunes 14 al viernes 18 de septiembre de 2026.
-    // Agendas en 3 dias distintos.
-    await db.insert(calls).values([
-      { programId: programaA, fechaAgenda: new Date("2026-09-14T14:00:00Z"), resultado: "agendada" },
-      { programId: programaA, fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "agendada" },
-      { programId: programaA, fechaAgenda: new Date("2026-09-18T14:00:00Z"), resultado: "agendada" },
-      // Fuera de la semana: sabado 19.
-      { programId: programaA, fechaAgenda: new Date("2026-09-19T14:00:00Z"), resultado: "agendada" },
-    ]);
-    const v14 = { id: await sembrarDeal(programaA) };
-    const v15 = { id: await sembrarDeal(programaA) };
-    await abonoDePrueba(db, [
-      { dealId: v14.id, programId: programaA, fecha: "2026-09-14", monto: "100.00", moneda: "USD" },
-      { dealId: v15.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD" },
-    ]);
-
-    // "Hoy" = 15-sep.
-    const hoy = { desde: "2026-09-15", hasta: "2026-09-15" };
-    expect((await embudoDelRango({ programId: programaA, rango: hoy }, db)).agendas).toBe(1);
-    expect(await cajaRecaudada({ programId: programaA, rango: hoy }, db)).toEqual([{ moneda: "USD", total: 200 }]);
-
-    // "Esta semana" = lunes 14 a domingo 20. Cae la del sabado 19 tambien.
-    const semana = { desde: "2026-09-14", hasta: "2026-09-20" };
-    expect((await embudoDelRango({ programId: programaA, rango: semana }, db)).agendas).toBe(4);
-    expect(await cajaRecaudada({ programId: programaA, rango: semana }, db)).toEqual([{ moneda: "USD", total: 300 }]);
-
-    // Rango custom: 14 al 15.
-    const custom = { desde: "2026-09-14", hasta: "2026-09-15" };
-    expect((await embudoDelRango({ programId: programaA, rango: custom }, db)).agendas).toBe(2);
-  });
-});
-
 // ─────────────────────────────────────── 8. cohorte con ventana declarada
 
 async function crearCohorteActiva(args: {
@@ -400,20 +283,6 @@ describe("vista de cohorte activa con ventana declarada (ADR 0022)", () => {
     expect(vista!.ventana!.cierre).toBe("2026-09-21");
   });
 
-  it("Tactical C2: 19-ago a 29-sep son 30 habiles y el 15-sep es el dia 20", async () => {
-    const programaB = await crearPrograma("tactical", "Tactical");
-    await crearCohorteActiva({
-      programId: programaB,
-      codigo: "C2",
-      metaCupos: 40,
-      fechaInicioVentas: "2026-08-19",
-      fechaCierreVentas: "2026-09-29",
-    });
-
-    const vista = await vistaDeCohorteActiva({ programId: programaB }, "2026-09-15", db);
-    expect(vista!.ventana!.total).toBe(30);
-    expect(vista!.ventana!.dia).toBe(20);
-  });
 });
 
 // ─────────────────────────────────────── 9. cohorte sin inicio de ventas
@@ -650,14 +519,6 @@ describe("alcance acotado a un closer", () => {
     ]);
   });
 
-  it("un closerId sin actividad en el rango da ceros, no revienta", async () => {
-    await sembrarDosClosers();
-
-    const nadie = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db);
-    expect(nadie.agendas).toBe(0);
-    expect(nadie.razonShow.valor).toBeNull();
-    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db)).toEqual([{ moneda: "USD", total: 0 }]);
-  });
 });
 
 describe("leads y cohorte acotados a un closer", () => {

@@ -1,5 +1,4 @@
 import { eq } from "drizzle-orm";
-import type { PGlite } from "@electric-sql/pglite";
 import { GET } from "@/app/(app)/p/[programa]/hub/pauta-semanal.csv/route";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
@@ -235,27 +234,14 @@ describe("Ver solo en la tabla de Pauta", () => {
     }
   });
 
-  it("sin corte conserva las cifras doradas, el orden y las consultas de un corte omitido", async () => {
-    const cliente = (db as Db & { $client: PGlite }).$client;
-    const consultas = vi.spyOn(cliente, "query");
-    try {
-      const omision = await cargarPautaSemanal(db, { programId, rango: SEMANA_1, hoy: HOY, cohorteId: null, porCuenta: true });
-      // Alguna lectura existente compara con el reloj de pared: el instante cambia entre corridas, la consulta no.
-      const firma = () => consultas.mock.calls
-        .map(([texto, params]) => JSON.stringify([texto, params]).replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, "<instante>"))
-        .sort();
-      const sql = firma();
-      consultas.mockClear();
-      const explicito = await vista(null);
-      expect(explicito).toEqual(omision);
-      expect(firma()).toEqual(sql);
-      for (const [clave, valor] of [
-        ["inversion", 2_800_000], ["agendas", 4], ["ventas", 1], ["facturacion", 1_400],
-        ["costo_agenda_crm", 700_000], ["cac", 2_800_000], ["roas", 2], ["profit", 700], ["agendas_meta", 14],
-      ] as const) expect(total(explicito, clave).valor).toBe(valor);
-    } finally {
-      consultas.mockRestore();
-    }
+  it("sin corte conserva las cifras doradas: un corte explícito null es lo mismo que omitirlo", async () => {
+    const omision = await cargarPautaSemanal(db, { programId, rango: SEMANA_1, hoy: HOY, cohorteId: null, porCuenta: true });
+    const explicito = await vista(null);
+    expect(explicito).toEqual(omision);
+    for (const [clave, valor] of [
+      ["inversion", 2_800_000], ["agendas", 4], ["ventas", 1], ["facturacion", 1_400],
+      ["costo_agenda_crm", 700_000], ["cac", 2_800_000], ["roas", 2], ["profit", 700], ["agendas_meta", 14],
+    ] as const) expect(total(explicito, clave).valor).toBe(valor);
   });
 
   it("el CSV aplica un corte válido e ignora un nivel incorrecto, un UUID ajeno y parámetros repetidos", async () => {

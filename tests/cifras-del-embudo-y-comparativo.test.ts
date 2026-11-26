@@ -140,7 +140,7 @@ async function todasLasPaginas(detalle: DetalleDeCifra, programId = programaA) {
 }
 
 describe("ticket 188: el embudo por etapas abre su lista", () => {
-  it("cada cifra es su resumen y todas las páginas de su lista, sin anulados ni otro programa", async () => {
+  it("cada cifra es su resumen y todas las páginas de su lista, sin anulados ni otro programa; la celda de abiertos de un dueño trae solo sus deals", async () => {
     const embudo = await embudoPorEtapas(db, { programId: programaA, rango }, ahora);
     const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, db, ahora);
 
@@ -173,17 +173,12 @@ describe("ticket 188: el embudo por etapas abre su lista", () => {
     for (const s of embudo.sinDuenoPorAntiguedad.filter((s) => s.deals > 0)) {
       expect(detalles.sinDueno[s.bucket].desgloses.porAntiguedad.map((l) => l.etiqueta)).toEqual([s.bucket]);
     }
-  });
-
-  it("la celda de abiertos por owner trae solo los deals de ese dueño", async () => {
-    const embudo = await embudoPorEtapas(db, { programId: programaA, rango }, ahora);
-    const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, db, ahora);
+    // La celda de abiertos de un dueño trae exactamente sus deals, con una sola etiqueta de closer (punto 4).
     const deLucia = embudo.abiertos.find((a) => a.ownerUserId === lucia)!;
-    const filas = await todasLasPaginas(detalles.abiertos[claveDeAbiertos(deLucia.etapa, lucia)]);
-    expect(filas!.map((f) => f.dealId).sort()).toEqual([...deLucia.dealIds].sort());
-    // Una sola etiqueta de closer (punto 4): la tabla y la lista dicen "Lucía", no "Sin closer".
+    const filasDeLucia = await todasLasPaginas(detalles.abiertos[claveDeAbiertos(deLucia.etapa, lucia)]);
+    expect(filasDeLucia!.map((f) => f.dealId).sort()).toEqual([...deLucia.dealIds].sort());
     expect(deLucia.ownerNombre).toBe("Lucía");
-    expect(new Set(filas!.map((f) => f.closer))).toEqual(new Set(["Lucía"]));
+    expect(new Set(filasDeLucia!.map((f) => f.closer))).toEqual(new Set(["Lucía"]));
   });
 
   it("una lista del embudo con un paso inventado no trae el embudo entero", async () => {

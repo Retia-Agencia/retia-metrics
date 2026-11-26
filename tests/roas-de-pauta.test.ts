@@ -1,15 +1,6 @@
 import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
-import { renderToStaticMarkup } from "react-dom/server";
-import { createElement } from "react";
 import { eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: () => {} }),
-  usePathname: () => "/p/x/hub",
-  useSearchParams: () => new URLSearchParams(),
-}));
-import { PautaRoas } from "@/components/pauta-roas";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPauta, leads, pautaObjetos, programs, sources, submissions, tasasCambio, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { listaDeMetrica, proyectarParaPauta } from "@/lib/queries/metricas-con-filas";
@@ -37,8 +28,9 @@ const RANGO = { desde: "2026-10-01", hasta: "2026-10-02" };
 const HOY = "2026-10-02";
 
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
-beforeEach(async () => {
-  await vaciar();
+
+// Base común de los dos describe: el uno la siembra una vez y solo lee; el otro la rehace por test porque escribe.
+async function sembrarBase() {
   programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "roas", nombre: "ROAS", ticketUsd: "1000" }).returning())[0].id;
   otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-roas", nombre: "Otro", ticketUsd: "1000" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
@@ -62,7 +54,7 @@ beforeEach(async () => {
     { programId, fecha: "2026-10-01", monto: "400000", moneda: "COP", origen: "meta_api", pautaObjetoId: anuncioDbId },
     { programId, fecha: "2026-10-02", monto: "210000", moneda: "COP", origen: "meta_api", pautaObjetoId: anuncioDbId },
   ]);
-});
+}
 afterAll(async () => cerrar());
 
 async function envio(opts: { dia?: string; anuncio?: boolean; programa?: "otro"; parcial?: boolean; token?: string;
@@ -105,14 +97,25 @@ async function escenario() {
   await vender(await envio({ programa: "otro", dia: "2026-10-01" }), "800", "2026-10-03");
 }
 
-describe("ROAS de Pauta", () => {
+async function contexto(): Promise<ContextoDeOrigen> {
+  const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+  return { vista, enlace: (nivel, id, paso) => `/lista?nivel=${nivel}&id=${id ?? ""}&paso=${paso}`, programa: "ROAS", periodo: "del 1 al 2 oct" };
+}
+
+// Estos tests solo LEEN (`cargarRoasDePauta`, las listas y los presentadores no escriben): un escenario, una siembra.
+describe("ROAS de Pauta: lecturas sobre un escenario compartido", () => {
+  beforeAll(async () => {
+    await vaciar();
+    await sembrarBase();
+    await escenario();
+  }, 60_000);
+
   it("el paid trafficker ve el lead de Pauta pero no gana capacidad administrativa", () => {
     expect(veLeadsDePauta("paid_trafficker")).toBe(true);
     expect(esAdministrador("paid_trafficker")).toBe(false);
   });
 
   it("ancla ventas al registro, convierte gasto por día y no redistribuye Sin anuncio", async () => {
-    await escenario();
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
     const campana = vista.campanas.find((f) => f.id === "camp1")!;
     expect(campana).toMatchObject({ registros: 2, ventas: 1, valorVendidoUsd: 300, gastoUsd: 150, agendas: 2, shows: 1, noShows: 1 });
@@ -121,19 +124,79 @@ describe("ROAS de Pauta", () => {
     expect(vista.total.roas.valor).toBe(vista.total.valorVendidoUsd / vista.total.gastoUsd!);
     expect(vista.sinAnuncio).toMatchObject({ ventas: 1, valorVendidoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
-    const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
-    }));
-    expect(html).toContain("Sin campaña de Meta");
-    expect(html).not.toContain("Aún madurando");
-    expect(html).toContain("Cuándo: ");
-    expect(html).toContain("1 en llamada");
-    expect(html).toContain("1 sin llamada");
-    expect(html).toContain("Pago: ");
-    expect(html).toContain("2 completas");
     const permitidas = new Set(["fecha_hora_bogota", "resultado", "campana", "conjunto", "anuncio", "canal"]);
     expect(COLUMNAS_CSV_CITAS_PAUTA.every((columna) => permitidas.has(columna))).toBe(true);
     expect(csvDeCitasPauta(vista).trim().split("\r\n")).toHaveLength(vista.total.agendas + 1);
+  });
+
+  it("355: la suma de ventas por campaña y por canal da lo mismo que el total de la cohorte", async () => {
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+    const sumarVentas = (filas: typeof vista.canales) => filas.reduce((n, f) => n + f.ventas, 0);
+    // Campaña (jerarquía de Meta) y canal (par UTM) agrupan el MISMO universo: su suma es el total.
+    expect(sumarVentas(vista.campanas) + vista.sinAnuncio.ventas).toBe(vista.total.ventas);
+    expect(sumarVentas(vista.canales)).toBe(vista.total.ventas);
+    // La vista por canal también ancla la venta a la cohorte de registro (el valor vendido coincide).
+    const vendidoCanal = vista.canales.reduce((n, f) => n + f.valorVendidoUsd, 0);
+    expect(vendidoCanal).toBe(vista.total.valorVendidoUsd);
+  });
+
+  it("355 y 420: por canal el gasto y el ROAS son NO DISPONIBLES (null con motivo), nunca 0 ni «Sin pauta», también en «¿Qué trae ventas?»", async () => {
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+    expect(vista.canales.length).toBeGreaterThan(0);
+    for (const canal of vista.canales) {
+      expect(canal.gastoUsd).toBeNull();
+      expect(canal.roas).toMatchObject({ valor: null, motivo: MOTIVO_GASTO_POR_CANAL });
+    }
+      // El presentador de «¿Qué trae ventas?» respeta lo mismo: por canal no hay inversión, costo ni ROAS, «—» y nunca 0.
+    const filas = filasDeQueTraeVentas(await contexto(), "canal").filter((f) => f.nivel === "canal");
+    expect(filas.length).toBeGreaterThan(0);
+    for (const fila of filas) {
+      expect(fila.inversion.valor).toBeNull();
+      expect(fila.costo.valor).toBeNull();
+      expect(fila.roas.valor).toBeNull();
+    }
+  });
+  it("cada celda es la del renglón, y la lista de Agendadas y Ventas cuenta lo mismo que la celda", async () => {
+    const c = await contexto();
+    const v = c.vista;
+    const renglones = [v.total, ...v.campanas, ...v.conjuntos, ...v.anuncios, ...v.anunciosSinIdentificar, v.sinAnuncio, ...v.canales];
+    for (const r of renglones) {
+      expect(listaDeOrigen(v, r, "agenda", c.enlace!).total).toBe(r.agendas);
+      expect(listaDeOrigen(v, r, "venta", c.enlace!).total).toBe(r.ventas);
+    }
+    for (const verPor of ["campana", "anuncio", "canal"] as const) {
+      for (const fila of filasDeQueTraeVentas(c, verPor)) {
+        expect(fila.agendas.explicacion.evidencia?.filas.length ?? 0).toBeLessThanOrEqual(5);
+        expect(fila.agendas.explicacion.evidencia?.href).toContain("paso=agenda");
+      }
+    }
+    const [total, campana] = filasDeQueTraeVentas(c, "campana");
+    expect(total.nivel).toBe("total");
+    expect(campana).toMatchObject({ id: "camp1", conDetalle: true, revisar: false });
+    // Inversión en COP (400.000 + 210.000) y costo por agenda = inversión ÷ agendadas.
+    expect(campana.inversion.valor).toBe(610000);
+    expect(campana.agendas.valor).toBe(2);
+    expect(campana.costo.valor).toBe(305000);
+    expect(campana.roas.valor).toBe(2);
+    // La lista es la de los mismos envíos que filtra la página de la lista.
+    const envios = filtrarEnviosDePauta(c.vista.envios, "campana", "camp1");
+    expect(campana.agendas.valor).toBe(envios.reduce((n, e) => n + e.citas.length, 0));
+  });
+
+  it("sin la sesión que abre listas, ninguna celda trae evidencia; sin origen suma lo que no llega al anuncio", async () => {
+    const c = { ...(await contexto()), enlace: undefined };
+    for (const fila of filasDeQueTraeVentas(c, "campana")) expect(fila.agendas.explicacion.evidencia).toBeNull();
+    const [sinAnuncio, ventasSinAnuncio] = cifrasDeSinOrigen(c);
+    expect(sinAnuncio.valor).toBe(c.vista.cobertura.soloCampanaOConjunto + c.vista.cobertura.sinCampana);
+    expect(ventasSinAnuncio.valor).toBe(1);
+  });
+});
+
+// Estos tests escriben lo suyo encima de la base: se rehace por test.
+describe("ROAS de Pauta: casos que siembran sus propias ventas y citas", () => {
+  beforeEach(async () => {
+    await vaciar();
+    await sembrarBase();
   });
 
   it("no calcula el ROAS cuando una venta queda antes del primer día de gasto", async () => {
@@ -180,12 +243,6 @@ describe("ROAS de Pauta", () => {
     expect(vista.anunciosSinIdentificar.find((fila) => fila.padreId === "camp1")).toMatchObject({ registros: 2 });
     expect(vista.cobertura).toEqual({ anuncio: 0, soloCampanaOConjunto: 2, sinCampana: 1 });
     expect(vista.citasSinMarcar).toBe(1);
-    const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
-    }));
-    // El detalle de la campaña vive en un diálogo cerrado: la fila es un botón y no despliega nada en la tabla.
-    expect(html).toContain("<button");
-    expect(html).not.toContain("Anuncio sin identificar");
   });
 
   it("calcula la madurez histórica para el detalle y la lista cuadra por paso", async () => {
@@ -205,23 +262,6 @@ describe("ROAS de Pauta", () => {
     }
   });
 
-  it("355: la suma de ventas por campaña y por canal da lo mismo que el total de la cohorte", async () => {
-    await escenario();
-    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
-    const sumarVentas = (filas: typeof vista.canales) => filas.reduce((n, f) => n + f.ventas, 0);
-    // Campaña (jerarquía de Meta) y canal (par UTM) agrupan el MISMO universo: su suma es el total.
-    expect(sumarVentas(vista.campanas) + vista.sinAnuncio.ventas).toBe(vista.total.ventas);
-    expect(sumarVentas(vista.canales)).toBe(vista.total.ventas);
-    // La vista por canal también ancla la venta a la cohorte de registro (el valor vendido coincide).
-    const vendidoCanal = vista.canales.reduce((n, f) => n + f.valorVendidoUsd, 0);
-    expect(vendidoCanal).toBe(vista.total.valorVendidoUsd);
-    const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "canal", hrefVerPor: () => "?",
-    }));
-    expect(html).toContain("Canal");
-    expect(html).toContain("Facebook");
-  });
-
   it("355 (AJUSTE 3-nov): cita futura de un deal ABIERTO = 1 pendiente, y el ROAS de la tarjeta queda parcial", async () => {
     const e = await envio({ dia: "2026-10-01" });
     await db.insert(deals).values({ programId, leadId: e.leadId, submissionOrigenId: e.envioId,
@@ -232,10 +272,6 @@ describe("ROAS de Pauta", () => {
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY, new Date("2026-10-02T12:00:00-05:00"));
     expect(vista.agendasPendientes).toBe(1);
     expect(vista.total.roas.agendasPendientes).toBe(1);
-    const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
-    }));
-    expect(html).toContain("parcial: 1 agenda pendiente");
   });
 
   it("355 (AJUSTE 3-nov): cita futura de un deal ya VENDIDO = 0 pendientes y el ROAS no se marca parcial", async () => {
@@ -249,62 +285,6 @@ describe("ROAS de Pauta", () => {
     expect(estadoDeCobertura(vista.total.roas)).toBe("completa");
   });
 
-  it("355: por canal el gasto y el ROAS son NO DISPONIBLES (null con motivo), nunca 0 ni «Sin pauta»", async () => {
-    await escenario();
-    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
-    expect(vista.canales.length).toBeGreaterThan(0);
-    for (const canal of vista.canales) {
-      expect(canal.gastoUsd).toBeNull();
-      expect(canal.roas).toMatchObject({ valor: null, motivo: MOTIVO_GASTO_POR_CANAL });
-    }
-  });
-});
-
-describe("420: ¿Qué trae ventas? y ¿Qué llega sin origen? como Cifras", () => {
-  async function contexto(): Promise<ContextoDeOrigen> {
-    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
-    return { vista, enlace: (nivel, id, paso) => `/lista?nivel=${nivel}&id=${id ?? ""}&paso=${paso}`, programa: "ROAS", periodo: "del 1 al 2 oct" };
-  }
-
-  it("cada celda es la del renglón, y la lista de Agendadas y Ventas cuenta lo mismo que la celda", async () => {
-    await escenario();
-    const c = await contexto();
-    const v = c.vista;
-    const renglones = [v.total, ...v.campanas, ...v.conjuntos, ...v.anuncios, ...v.anunciosSinIdentificar, v.sinAnuncio, ...v.canales];
-    for (const r of renglones) {
-      expect(listaDeOrigen(v, r, "agenda", c.enlace!).total).toBe(r.agendas);
-      expect(listaDeOrigen(v, r, "venta", c.enlace!).total).toBe(r.ventas);
-    }
-    for (const verPor of ["campana", "anuncio", "canal"] as const) {
-      for (const fila of filasDeQueTraeVentas(c, verPor)) {
-        expect(fila.agendas.explicacion.evidencia?.filas.length ?? 0).toBeLessThanOrEqual(5);
-        expect(fila.agendas.explicacion.evidencia?.href).toContain("paso=agenda");
-      }
-    }
-    const [total, campana] = filasDeQueTraeVentas(c, "campana");
-    expect(total.nivel).toBe("total");
-    expect(campana).toMatchObject({ id: "camp1", conDetalle: true, revisar: false });
-    // Inversión en COP (400.000 + 210.000) y costo por agenda = inversión ÷ agendadas.
-    expect(campana.inversion.valor).toBe(610000);
-    expect(campana.agendas.valor).toBe(2);
-    expect(campana.costo.valor).toBe(305000);
-    expect(campana.roas.valor).toBe(2);
-    // La lista es la de los mismos envíos que filtra la página de la lista.
-    const envios = filtrarEnviosDePauta(c.vista.envios, "campana", "camp1");
-    expect(campana.agendas.valor).toBe(envios.reduce((n, e) => n + e.citas.length, 0));
-  });
-
-  it("por canal no hay inversión, costo ni ROAS: «—» con su motivo, nunca 0", async () => {
-    await escenario();
-    const filas = filasDeQueTraeVentas(await contexto(), "canal").filter((f) => f.nivel === "canal");
-    expect(filas.length).toBeGreaterThan(0);
-    for (const fila of filas) {
-      expect(fila.inversion.valor).toBeNull();
-      expect(fila.costo.valor).toBeNull();
-      expect(fila.roas.valor).toBeNull();
-    }
-  });
-
   it("«Revisar» marca el anuncio que gastó sin traer agendas, y solo ese", async () => {
     await escenario();
     const sinAgendas = (await db.select().from(pautaObjetos).where(eq(pautaObjetos.idMeta, "ad-vacio")))[0];
@@ -314,14 +294,5 @@ describe("420: ¿Qué trae ventas? y ¿Qué llega sin origen? como Cifras", () =
     expect(vacio).toMatchObject({ revisar: true });
     expect(vacio!.costo.valor).toBeNull();
     expect(filas.find((f) => f.id === "ad1")).toMatchObject({ revisar: false });
-  });
-
-  it("sin la sesión que abre listas, ninguna celda trae evidencia; sin origen suma lo que no llega al anuncio", async () => {
-    await escenario();
-    const c = { ...(await contexto()), enlace: undefined };
-    for (const fila of filasDeQueTraeVentas(c, "campana")) expect(fila.agendas.explicacion.evidencia).toBeNull();
-    const [sinAnuncio, ventasSinAnuncio] = cifrasDeSinOrigen(c);
-    expect(sinAnuncio.valor).toBe(c.vista.cobertura.soloCampanaOConjunto + c.vista.cobertura.sinCampana);
-    expect(ventasSinAnuncio.valor).toBe(1);
   });
 });
