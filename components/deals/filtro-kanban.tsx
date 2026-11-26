@@ -152,6 +152,17 @@ export function FiltroKanban({
       todos: "Cualquier antigüedad",
       opciones: ANTIGUEDADES,
     },
+    {
+      tipo: "select",
+      nombre: "tag",
+      etiqueta: "Tag",
+      todos: "Todos los tags",
+      opciones: [
+        { value: "por_reagendar", label: "Por reagendar" },
+        { value: "seguimiento", label: "Seguimiento" },
+        { value: "sin", label: "Sin tag" },
+      ],
+    },
   ];
 
   void antiguedadMinima;

@@ -34,8 +34,6 @@ export const TONO_DE_PENDIENTE: Readonly<Record<PendienteDeal, TonoEtapa>> = {
   proxima_cohorte: "neutro",
 };
 
-/** La columna Re-agenda del Kanban (ADR 0103) se pinta con el tono de su pendiente. */
 export const TONO_DE_COLUMNA: Readonly<Record<ColumnaDelTablero, TonoEtapa>> = {
   ...TONO_DE_ETAPA,
-  reagenda: TONO_DE_PENDIENTE.reagenda,
 };

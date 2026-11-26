@@ -22,7 +22,7 @@ describe("etapas 30X", () => {
     ]);
     expect(ETAPAS_DE_SETTEO).toEqual(["potencial", "registrado", "en_gestion", "contactado", "calificado"]);
     expect(NOMBRE_DE_ETAPA.ganado_completo).toBe("Ganado Pagado Completo");
-    expect(NOMBRE_DE_PENDIENTE).toEqual({ reagenda: "Re-agenda", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte" });
+    expect(NOMBRE_DE_PENDIENTE).toEqual({ reagenda: "Por reagendar", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte" });
   });
 
   it("contiene exactamente las flechas de etapa decididas", () => {
