@@ -10,8 +10,8 @@ export type { SeccionId as TabMiEspacio };
  *
  * Las secciones ya no son una lista fija: las dirige el registro `lib/mi-espacio/secciones.ts`
  * según el rol de vista (ticket 179). La página pasa las que el rol cumple y cuál está
- * activa. El selector de programa solo lo conservan las secciones que lo usan; para las que
- * no, el enlace va a `?tab=` a secas.
+ * activa. El programa del sidebar se conserva también al entrar a una sección global, para
+ * que volver a una sección por programa mantenga el mismo contexto.
  */
 export function TabsDeMiEspacio({
   secciones,
@@ -20,7 +20,7 @@ export function TabsDeMiEspacio({
 }: {
   secciones: readonly SeccionMiEspacio[];
   actual: SeccionId;
-  /** El slug del programa seleccionado, o null si la sección actual no usa selector. */
+  /** El slug del programa seleccionado en el sidebar, si existe. */
   slug: string | null;
 }) {
   // Con una sola sección no hace falta la barra: no hay a dónde navegar.
@@ -28,7 +28,7 @@ export function TabsDeMiEspacio({
   return (
     <nav className="flex flex-wrap gap-1 border-b" aria-label="Secciones de Mi espacio">
       {secciones.map((seccion) => {
-        const href = seccion.usaSelectorDePrograma && slug
+        const href = slug
           ? `/mi-espacio?programa=${slug}&tab=${seccion.id}`
           : `/mi-espacio?tab=${seccion.id}`;
         return (

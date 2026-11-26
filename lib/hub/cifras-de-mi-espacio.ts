@@ -1,7 +1,7 @@
 /**
  * Mi espacio › Métricas como Cifras (ticket 419, fase E-5).
  *
- * Recibe lo que la página YA consultó (`VistaDeMisMetricas`, `VistaDeMisMetricasTodos`) y lo vuelve `CifraDeMetrica`.
+ * Recibe lo que la página YA consultó (`VistaDeMisMetricas`) y lo vuelve `CifraDeMetrica`.
  * No consulta ni recalcula. Todas llevan el universo «tuyas» (DC-4): solo los deals y las llamadas del closer que mira.
  * El closer no entra al Hub (ADR 0082): esto no le abre nada nuevo, solo cambia la forma de lo que ya veía.
  *
@@ -13,7 +13,7 @@ import {
 } from "@/lib/hub/contexto-de-cifras";
 import { entradaDesdeRazon } from "@/lib/metricas/razon-a-cifra";
 import { armarCifra, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
-import type { VistaDeMisMetricas, VistaDeMisMetricasTodos } from "@/lib/queries/mi-espacio-metricas";
+import type { VistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 
 export const CONCEPTOS_DE_MI_ESPACIO = [
   "citas", "shows", "no_asistio", "ventas", "cierre_de_ventas", "citas_pendientes", "comision", "entro_a_caja",
@@ -83,30 +83,6 @@ export function cifrasDeMiPrograma(e: {
       concepto: "comision", explicacion: x.comision, valor: v.a.comisionUsd,
       comparacion: comparacionCon(ref, v.b?.comisionUsd),
       lista: listaDeDetalle(v.detalles.cierres, undefined, { nombre: "ventas que generan comisión", articulo: "las" }), ...comun,
-    }),
-  };
-}
-
-/** Los totales entre programas de Mi espacio: solo lo sumable (conteos y caja por moneda); la comisión va por programa. */
-export function cifrasDeMisTotales(e: {
-  todos: Pick<VistaDeMisMetricasTodos, "a" | "b" | "periodo">; referencia?: string; explicaciones: ExplicacionesDeMiEspacio; hoy: string;
-}): { conteos: CifraDeMetrica[]; entroACaja: CifraDeMetrica[] } {
-  const { todos: t, explicaciones: x } = e;
-  const c = contextoDeMiEspacio({ programa: "Todos mis programas", periodo: t.periodo, hoy: e.hoy });
-  const ref = t.b ? e.referencia : undefined;
-  const conteos = ([
-    ["citas", "agendas"], ["shows", "shows"], ["no_asistio", "noShows"], ["ventas", "cierres"],
-  ] as const).map(([concepto, campo]) => armarCifra({
-    concepto, explicacion: x[concepto], valor: t.a[campo].valor,
-    comparacion: comparacionCon(ref, t.b?.[campo].valor),
-    filtros: filtrosDelHub(c), periodo: periodoEnPalabras(c), enCurso: enCurso(c),
-    notas: [["Suma de programas", "Es la suma de tus programas, cada uno con su propio cálculo."]],
-  }));
-  const caja = (d: { caja: ReadonlyArray<{ moneda: string; valor: number }> }) => d.caja.map((f) => ({ moneda: f.moneda, total: f.valor }));
-  return {
-    conteos,
-    entroACaja: cifrasDeEntroACaja({
-      caja: caja(t.a), anterior: t.b ? caja(t.b) : undefined, referencia: ref, explicacion: x.entro_a_caja, contexto: c,
     }),
   };
 }

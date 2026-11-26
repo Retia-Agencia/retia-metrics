@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { cifrasDeMiPrograma, cifrasDeMisTotales } from "@/lib/hub/cifras-de-mi-espacio";
+import { cifrasDeMiPrograma } from "@/lib/hub/cifras-de-mi-espacio";
 import { explicacionesDeMiEspacio } from "@/lib/hub/explicaciones-de-mi-espacio";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
-import type { VistaDeMisMetricas, VistaDeMisMetricasTodos } from "@/lib/queries/mi-espacio-metricas";
+import type { VistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 
 /** 419 E-5: Mi espacio › Métricas como Cifras, todas del universo «tuyas» (DC-4). */
 
@@ -48,16 +48,4 @@ describe("419 E-5: Mi espacio como Cifras", () => {
     expect(ninguna.entroACaja.map((x) => x.textoDelValor)).toEqual(["USD 0,00"]);
   });
 
-  it("los totales suman conteos y caja por moneda, sin comisión ni tasas", () => {
-    const todos = {
-      periodo,
-      a: { agendas: { valor: 10 }, shows: { valor: 7 }, noShows: { valor: 3 }, cierres: { valor: 4 }, caja: [{ moneda: "USD", valor: 900 }] },
-      b: null,
-    } as unknown as VistaDeMisMetricasTodos;
-    const t = cifrasDeMisTotales({ todos, explicaciones: explicacionesDeMiEspacio(), hoy: "2026-11-13" });
-    expect(t.conteos.map((x) => x.textoDelValor)).toEqual(["10", "7", "3", "4"]);
-    expect(t.conteos.map((x) => x.concepto)).not.toContain("comision");
-    expect(t.entroACaja[0].textoDelValor).toBe("USD 900,00");
-    expect(t.conteos[0].explicacion.lectura.map(([n]) => n)).toContain("Suma de programas");
-  });
 });

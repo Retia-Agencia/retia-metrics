@@ -13,6 +13,8 @@ import { cargarDatosDeCanales } from "@/lib/mi-espacio/datos-canales";
 import { cargarDatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
 import { cargarDatosDeNotificaciones } from "@/lib/mi-espacio/datos-notificaciones";
 import { cargarDatosDePorDecidir } from "@/lib/mi-espacio/datos-por-decidir";
+import { llamadasDelCloser, type RangoMiDia } from "@/lib/mi-espacio/llamadas-del-dia";
+import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
@@ -38,8 +40,43 @@ interface EntradaDeMiEspacio {
 type ProgramaElegido = { id: string; slug: string; nombre: string };
 
 /** Los datos de la tab elegida; los mismos argumentos que cada tab usaba al leer por su cuenta. */
-async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, programa: ProgramaElegido | null, visibles: ProgramaElegido[]) {
+async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, programa: ProgramaElegido | null) {
   switch (entrada.seccion?.id) {
+    case "mi-dia": {
+      if (!programa) return null;
+      const rangoPedido = uno(entrada.busqueda.rango);
+      const rango: RangoMiDia = rangoPedido === "manana" || rangoPedido === "semana" ? rangoPedido : "hoy";
+      const ordenPedido = uno(entrada.busqueda.orden);
+      const orden: "hora" | "lead" | "estado" = ordenPedido === "lead" || ordenPedido === "estado" ? ordenPedido : "hora";
+      const dir = uno(entrada.busqueda.dir) === "desc" ? "desc" as const : "asc" as const;
+      const soloSinConfirmar = uno(entrada.busqueda.conf) === "sin";
+      const ahora = new Date();
+      const [filas, opciones] = await Promise.all([
+        llamadasDelCloser(db, {
+          programId: programa.id,
+          userId: entrada.userId,
+          rango,
+          hoy: entrada.hoy,
+          soloSinConfirmar,
+        }),
+        opcionesDeFicha(db, programa.id, null, null),
+      ]);
+      const valorEstado = (fila: (typeof filas)[number]) => {
+        if (fila.confirmacion === "confirmada") return "Confirmó";
+        if (fila.resultado !== "agendada" || fila.hora < ahora) return "Ya pasó";
+        return "Sin confirmar";
+      };
+      const signo = dir === "asc" ? 1 : -1;
+      filas.sort((a, b) => signo * (orden === "hora"
+        ? a.hora.getTime() - b.hora.getTime()
+        : orden === "lead"
+          ? (a.leadNombre ?? a.leadEmail).localeCompare(b.leadNombre ?? b.leadEmail, "es")
+          : valorEstado(a).localeCompare(valorEstado(b), "es")));
+      return {
+        id: "mi-dia" as const,
+        datos: { filas, rango, soloSinConfirmar, orden, dir, ahora, motivosReagenda: opciones.motivos },
+      };
+    }
     case "notificaciones":
       return programa
         ? {
@@ -54,10 +91,10 @@ async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, program
           }
         : null;
     case "metricas":
+      if (!programa) return null;
       return {
         id: "metricas" as const,
         datos: await cargarDatosDeMetricas(db, {
-          programas: visibles,
           programa,
           closerUserId: entrada.userId,
           hoy: entrada.hoy,
@@ -106,17 +143,15 @@ export async function cargarDatosDeMiEspacio(db: Db, entrada: EntradaDeMiEspacio
     ? await programasVisibles(entrada.userId, entrada.rol, db)
     : [];
   let programa: Awaited<ReturnType<typeof programaVisiblePorSlug>> = null;
-  if (entrada.seccion?.usaSelectorDePrograma) {
+  if (entrada.seccion?.porPrograma) {
     if (!entrada.cargarProgramasVisibles) visibles = await programasVisibles(entrada.userId, entrada.rol, db);
-    programa = entrada.seccion.id === "metricas" && entrada.programaPedido === "todos"
-      ? null
-      : entrada.programaPedido
+    programa = entrada.programaPedido
       ? await programaVisiblePorSlug(entrada.userId, entrada.rol, entrada.programaPedido, db)
       : elegirPrograma(visibles, entrada.programaPreferido ?? null);
   }
 
-  const deSeccion = programa || entrada.seccion?.id === "metricas" || entrada.seccion?.id === "canales"
-    ? await cargarDatosDeSeccion(db, entrada, programa, visibles)
+  const deSeccion = programa || entrada.seccion?.id === "canales"
+    ? await cargarDatosDeSeccion(db, entrada, programa)
     : null;
 
   return { conexionesIa, membresias, calendly, enlaces, visibles, programa, deSeccion };

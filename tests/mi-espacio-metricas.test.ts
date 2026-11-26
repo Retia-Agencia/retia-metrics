@@ -4,12 +4,8 @@ import { calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { comisionesPorCloser } from "@/lib/queries/comision";
-import {
-  armarVistaDeMisMetricas,
-  sumarCifrasDeMiEspacio,
-} from "@/lib/queries/mi-espacio-metricas";
+import { armarVistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 import { cajaRecaudada, embudoDelRango } from "@/lib/queries/dashboard";
-import { conteo, dinero, tasa } from "@/lib/queries/agregado-programas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -83,27 +79,6 @@ describe("read model de Mis métricas", () => {
       expect(detalle.href).not.toContain("Ana");
       expect(detalle.desgloses.porCloser).toEqual([]);
     }
-  });
-});
-
-describe("Todos conserva la frontera de los tipos", () => {
-  it("suma solo conteos y caja por moneda", () => {
-    const total = sumarCifrasDeMiEspacio([
-      { agendas: conteo(2), shows: conteo(1), noShows: conteo(1), cierres: conteo(1), caja: [dinero("USD", 100)] },
-      { agendas: conteo(3), shows: conteo(2), noShows: conteo(0), cierres: conteo(1), caja: [dinero("USD", 50), dinero("COP", 20_000)] },
-    ]);
-    expect(total).toEqual({
-      agendas: conteo(5), shows: conteo(3), noShows: conteo(1), cierres: conteo(2),
-      caja: [dinero("COP", 20_000), dinero("USD", 150)],
-    });
-  });
-
-  it("no compila con una tasa", () => {
-    sumarCifrasDeMiEspacio([{
-      // @ts-expect-error ADR 0048: una tasa no entra al agregado personal entre programas.
-      agendas: tasa(0.5),
-      shows: conteo(1), noShows: conteo(0), cierres: conteo(0), caja: [],
-    }]);
   });
 });
 
