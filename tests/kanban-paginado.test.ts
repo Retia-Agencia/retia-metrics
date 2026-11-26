@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { columnaDelDeal, columnaDelDealSql, ETAPAS, PENDIENTES, type VistaDelTablero } from "@/lib/deals/etapas";
+import type { VistaDelTablero } from "@/lib/deals/etapas";
 import { canalDeLead, canalDeLeadSql, entradaAEtapaActualSql, entradasAEtapaActual, fechaLlamadaAgendadaVigenteSql, paginaDelTablero, tableroKanban, type FiltrosKanban } from "@/lib/queries/kanban";
 import { ultimaActividadPorDeal, ultimaActividadSql } from "@/lib/queries/ultima-actividad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -46,15 +46,24 @@ beforeEach(async () => {
     const [envio] = await db.insert(submissions).values({ leadId: lead.id, sourceId: fuente.id, token: `p-${n}`, utmSource: n % 2 ? "meta" : "google", utmMedium: n % 2 ? "cpc" : "organic" }).returning();
     const [deal] = await db.insert(deals).values({
       programId, leadId: lead.id, submissionOrigenId: envio.id, cohortId: n % 3 ? cohorte1 : cohorte2,
-      ownerUserId: n % 2 ? dueno1 : dueno2, etapa: n === 4 ? "agendado" : n % 2 ? "contactado" : "calificado",
-      pendiente: n === 4 ? "reagenda" : n === 5 ? "proxima_cohorte" : null,
+      ownerUserId: n % 2 ? dueno1 : dueno2,
+      etapa: n === 0 || n === 4 || n === 6 ? "agendado" : n === 2 ? "atendido" : n % 2 ? "contactado" : "calificado",
+      pendiente: n === 4 || n === 6 ? "reagenda" : n === 2 ? "seguimiento" : n === 5 ? "proxima_cohorte" : null,
       cohorteDestinoTexto: n === 5 ? "Cohorte futura" : null,
       fechaSeguimiento: n === 2 ? "2026-11-18" : null,
       createdAt: new Date(n < 2 ? "2026-11-01T12:00:00-05:00" : `2026-11-0${n + 1}T12:00:00-05:00`),
     }).returning();
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: null, a: deal.etapa, fecha: new Date(`2026-11-0${Math.min(n + 1, 7)}T13:00:00-05:00`) });
     if (n < 3) await db.insert(dealActividades).values({ dealId: deal.id, tipo: "nota", nota: `Actividad ${n}`, userId: dueno1, fecha: new Date(`2026-11-${10 + n}T10:00:00-05:00`) });
-    if (n === 1 || n === 4) await db.insert(calls).values({ programId, dealId: deal.id, closerUserId: dueno1, resultado: "agendada", fechaAgenda: new Date(n === 1 ? "2026-11-19T09:00:00-05:00" : "2026-11-25T09:00:00-05:00"), emailLead: lead.emailNormalizado, origen: "manual" });
+    if ([0, 1, 2, 4, 6].includes(n)) await db.insert(calls).values({
+      programId,
+      dealId: deal.id,
+      closerUserId: n % 2 ? dueno1 : dueno2,
+      resultado: "agendada",
+      fechaAgenda: new Date(n === 1 ? "2026-11-19T09:00:00-05:00" : `2026-11-20T${8 + n}:00:00-05:00`),
+      emailLead: lead.emailNormalizado,
+      origen: "manual",
+    });
   }
 
   const [anuladoLead] = await db.insert(leads).values({ programId, emailNormalizado: "anulado@retia.test", nombre: "Anulado", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA }).returning();
@@ -102,13 +111,20 @@ describe("página SQL del tablero", () => {
     for (const caso of casos) await esperarParidad(caso.filtros, caso.alcance);
   });
 
-  it("columnaDelDealSql es exhaustiva y coincide con la función TypeScript", async () => {
-    for (const etapa of ETAPAS) {
-      for (const pendiente of [null, ...PENDIENTES]) {
-        const expresion = columnaDelDealSql(sql`${etapa}`, sql`${pendiente}`);
-        const resultado = await db.execute(sql`select ${expresion} as columna`);
-        const filas = Array.isArray(resultado) ? resultado : resultado.rows;
-        expect((filas[0] as { columna: string }).columna).toBe(columnaDelDeal(etapa, pendiente));
+  it("mantiene paridad al combinar closer, cita de hoy, tag, orden de agenda y vista llamada", async () => {
+    const fecha = {
+      campo: "llamada" as const,
+      periodo: { preset: "custom" as const, a: { desde: HOY, hasta: HOY }, b: null },
+    };
+    for (const tag of ["por_reagendar", "seguimiento", "sin"] as const) {
+      for (const sentido of ["asc", "desc"] as const) {
+        await esperarParidad({
+          ownerUserId: dueno2,
+          fecha,
+          tag,
+          orden: { campo: "agenda", sentido },
+          vista: "llamada",
+        });
       }
     }
   });

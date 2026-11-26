@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, gte, inArray, lt, max, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, gte, inArray, isNull, lt, max, notInArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   cohorts,
@@ -21,8 +21,6 @@ import {
   ETAPAS_VENDIDAS,
   VISTA_PREDETERMINADA,
   VISTAS_DEL_TABLERO,
-  columnaDelDeal,
-  columnaDelDealSql,
   type ColumnaDelTablero,
   type EtapaDeal,
   type PendienteDeal,
@@ -40,7 +38,7 @@ import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-d
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
 import { atajosDePeriodo, type AtajoDePeriodo } from "@/lib/periodo";
-import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
+import { cerradosEn, fechaAnclaCall, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
 import { ultimaActividadPorDeal, ultimaActividadSql } from "@/lib/queries/ultima-actividad";
 import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
@@ -71,8 +69,7 @@ import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
  *
  * Las columnas de la vista salen SIEMPRE, en el orden del recorrido (`COLUMNAS_DE_VISTA`), aunque
  * esten vacias: un tablero con una columna que desaparece porque no tiene tarjetas confunde.
- * "Re-agenda" es una columna derivada, no una etapa (ADR 0103): cada deal cae en UNA columna
- * (`columnaDelDeal`), asi que Re-agenda + Agendado + Atendido suman lo que antes sumaban las dos.
+ * Cada deal cae en la columna de su etapa. Sus pendientes se muestran como tags (ADR 0142).
  */
 
 /** Los avisos de una tarjeta. Cada uno se pinta con su `<Badge variant>` en la UI. */
@@ -140,7 +137,7 @@ function confirmadoDeColumna(clave: ColumnaDelTablero, tarjetas: readonly Tarjet
   return redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0));
 }
 
-/** Una columna del tablero: una etapa, o la columna derivada Re-agenda (ADR 0103), y sus tarjetas. */
+/** Una columna del tablero: la etapa y sus tarjetas. */
 export interface ColumnaKanban {
   clave: ColumnaDelTablero;
   tarjetas: TarjetaDeal[];
@@ -183,6 +180,8 @@ export interface FiltrosKanban {
   antiguedadMinima?: number | null;
   leadQuality?: string | null;
   leadValue?: string | null;
+  /** Pendiente visible como tag, o ausencia de pendiente. */
+  tag?: TagDeDeal | null;
   /** Fecha de creacion, de ultima actividad o de cierre en el periodo A del selector (ticket 141). */
   fecha?: FiltroDeFecha<CampoDeFechaDeDeal> | null;
   /** Que columnas salen (ADR 0103). No filtra tarjetas ni cambia la cifra de una columna. */
@@ -199,6 +198,9 @@ const ordenSchema = z.object({
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
 
 const vistaSchema = z.enum(VISTAS_DEL_TABLERO);
+export const TAGS_DE_DEAL = ["por_reagendar", "seguimiento", "sin"] as const;
+export type TagDeDeal = (typeof TAGS_DE_DEAL)[number];
+const tagSchema = z.enum(TAGS_DE_DEAL);
 
 /**
  * La vista del tablero (ADR 0103): la de la URL; sin ella, la ultima que uso la persona
@@ -232,6 +234,7 @@ export const camposDeFiltrosKanban = {
   canal: z.string().max(300).optional(),
   calidad: z.string().max(300).optional(),
   valor: z.string().max(300).optional(),
+  tag: tagSchema.optional(),
   antiguedad: z.number().int().min(1).optional(),
   orden: z.enum(CAMPOS_DE_ORDEN_KANBAN).optional(),
   sentido: z.enum(["asc", "desc"]).optional(),
@@ -331,6 +334,7 @@ export function parsearFiltros(
   const antiguedadCruda = texto(busqueda.antiguedad);
   const antiguedad = antiguedadCruda != null && /^\d+$/.test(antiguedadCruda) ? Number(antiguedadCruda) : null;
   const orden = ordenSchema.safeParse({ campo: texto(busqueda.orden), sentido: texto(busqueda.sentido) });
+  const tag = tagSchema.safeParse(texto(busqueda.tag));
   const cohorte = texto(busqueda.cohorte);
   return {
     q: texto(busqueda.q),
@@ -341,6 +345,7 @@ export function parsearFiltros(
     canal: texto(busqueda.canal) ?? null,
     ...(texto(busqueda.calidad) !== undefined ? { leadQuality: texto(busqueda.calidad) } : {}),
     ...(texto(busqueda.valor) !== undefined ? { leadValue: texto(busqueda.valor) } : {}),
+    ...(tag.success ? { tag: tag.data } : {}),
     antiguedadMinima: antiguedad != null && antiguedad >= 1 ? antiguedad : null,
     orden: orden.success ? orden.data : ORDEN_PREDETERMINADO,
     ...(fecha ? { fecha } : {}),
@@ -588,7 +593,7 @@ export async function tableroKanban(
   // Cada deal va a UNA columna; las que la vista no muestra simplemente no salen.
   const porColumna = new Map<ColumnaDelTablero, TarjetaDeal[]>();
   for (const clave of columnasDeLaVista) porColumna.set(clave, []);
-  for (const t of filtradas) porColumna.get(columnaDelDeal(t.etapa, t.pendiente))?.push(t);
+  for (const t of filtradas) porColumna.get(t.etapa)?.push(t);
   for (const lista of porColumna.values()) lista.sort((a, b) => compararTarjetas(a, b, orden));
 
   const columnas = columnasDeLaVista.map((clave) => {
@@ -630,7 +635,6 @@ export async function paginaDelTablero(
   const entrada = entradaAEtapaActualSql(db);
   const agenda = fechaLlamadaAgendadaVigenteSql(db);
   const actividad = ultimaActividadSql(db, ahora);
-  const columna = columnaDelDealSql(sql`${deals.etapa}`, sql`${deals.pendiente}`);
   const canal = canalDeLeadSql();
   const fechaEntrada = sql<Date>`coalesce("entrada_etapa_actual"."fecha", ${deals.createdAt})`.mapWith(deals.createdAt);
   const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
@@ -651,6 +655,7 @@ export async function paginaDelTablero(
     filtrosVisibles.canal ? eq(canal, filtrosVisibles.canal) : undefined,
     filtrosVisibles.leadQuality ? eq(leads.leadQuality, filtrosVisibles.leadQuality) : undefined,
     filtrosVisibles.leadValue ? eq(leads.leadValue, filtrosVisibles.leadValue) : undefined,
+    condicionDeTag(filtrosVisibles.tag),
     limiteAntiguedad ? lt(fechaEntrada, instanteSql(limiteAntiguedad)) : undefined,
     rangos.actividad ? gte(actividad.fecha, instanteSql(inicioDeDia(rangos.actividad.desde))) : undefined,
     rangos.actividad ? lt(actividad.fecha, instanteSql(diaSiguiente(rangos.actividad.hasta))) : undefined,
@@ -658,9 +663,9 @@ export async function paginaDelTablero(
     rangos.seguimiento ? lt(deals.fechaSeguimiento, fechaSiguiente(rangos.seguimiento.hasta)) : undefined,
     q && q.length >= 2 ? or(casaSinTildes(leads.nombre, q), casaSinTildes(leads.emailNormalizado, q)) : undefined,
     sql`${deals.pendiente} is distinct from 'proxima_cohorte'`,
-    inArray(columna, [...columnas]),
+    inArray(deals.etapa, [...columnas]),
   );
-  const ordenColumna = sql<number>`case ${sql.join(columnas.map((clave, indice) => sql`when ${columna} = ${clave} then ${indice}`), sql.raw(" "))} else ${columnas.length} end`;
+  const ordenColumna = sql<number>`case ${sql.join(columnas.map((clave, indice) => sql`when ${deals.etapa} = ${clave} then ${indice}`), sql.raw(" "))} else ${columnas.length} end`;
   const principal = orden.campo === "actividad" ? actividad.fecha
     : orden.campo === "creado" ? deals.createdAt
       : orden.campo === "agenda" ? sql<Date>`"llamada_agendada_vigente"."fecha"`
@@ -737,7 +742,18 @@ function pasaFiltros(t: TarjetaDeal, f: FiltrosDeEntradaKanban): boolean {
   if (f.antiguedadMinima != null && t.diasEnEtapa < f.antiguedadMinima) return false;
   if (f.leadQuality && t.leadQuality !== f.leadQuality) return false;
   if (f.leadValue && t.leadValue !== f.leadValue) return false;
+  if (f.tag === "por_reagendar" && t.pendiente !== "reagenda") return false;
+  if (f.tag === "seguimiento" && t.pendiente !== "seguimiento") return false;
+  if (f.tag === "sin" && t.pendiente !== null) return false;
   return true;
+}
+
+/** Gemela SQL del filtro por el tag que representa `deals.pendiente`. */
+function condicionDeTag(tag: TagDeDeal | null | undefined) {
+  if (tag === "por_reagendar") return eq(deals.pendiente, "reagenda");
+  if (tag === "seguimiento") return eq(deals.pendiente, "seguimiento");
+  if (tag === "sin") return isNull(deals.pendiente);
+  return undefined;
 }
 
 /**
@@ -953,24 +969,26 @@ function rangosDeFecha(f: FiltrosDeEntradaKanban): Partial<Record<CampoDeFechaDe
 }
 
 /**
- * Los deals del programa con al menos una llamada VIGENTE cuya fecha de llamada cae en el
- * rango (dias de Bogota). Cualquier resultado cuenta —no-show incluido—; una llamada anulada
- * no, por `vigente(calls)` (ADR 0026, lo exige el guardian de vigencia).
+ * Los deals del programa con al menos una llamada VIGENTE cuya fecha ancla cae en el rango.
+ * `fechaAnclaCall()` comparte la definicion `coalesce(fechaAgenda, fechaLlamada)` convertida al
+ * dia de Bogota. Cualquier resultado cuenta —no-show incluido—; una llamada anulada no, por
+ * `vigente(calls)` (ADR 0026, lo exige el guardian de vigencia).
  *
- * El programa es frontera: solo llamadas de ESTE programa. Se agrupa aparte y se filtra en
- * memoria por `diaDeCalendario`, como `cerradosEn`: sin subconsultas correlacionadas y sin
- * interpolar un `Date` en una plantilla `sql` (AGENTS.md).
+ * El programa es frontera: solo llamadas de ESTE programa. Se agrupa aparte, sin subconsultas
+ * correlacionadas y sin interpolar un `Date` en una plantilla `sql` (AGENTS.md).
  */
 async function llamadasEn(db: Db, programId: string, rango: { desde: string; hasta: string }): Promise<string[]> {
   const filas = await db
-    .select({ dealId: calls.dealId, fecha: calls.fechaLlamada })
+    .select({ dealId: calls.dealId })
     .from(calls)
-    .where(and(eq(calls.programId, programId), vigente(calls)));
+    .where(and(
+      eq(calls.programId, programId),
+      vigente(calls),
+      between(fechaAnclaCall(), rango.desde, rango.hasta),
+    ));
   const dealIds = new Set<string>();
   for (const f of filas) {
-    if (!f.dealId || !f.fecha) continue;
-    const dia = diaDeCalendario(f.fecha);
-    if (dia >= rango.desde && dia <= rango.hasta) dealIds.add(f.dealId);
+    if (f.dealId) dealIds.add(f.dealId);
   }
   return [...dealIds];
 }
