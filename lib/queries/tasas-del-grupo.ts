@@ -19,6 +19,7 @@ import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
 import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 import { condicionDeAreaDePauta } from "@/lib/queries/hechos/agenda";
+import { confirmadaAntesDeLaCitaSql } from "@/lib/deals/confirmacion-de-cita";
 
 /**
  * Las tasas del embudo comercial sobre el MISMO grupo de personas (ADR 0079, ticket 187).
@@ -63,6 +64,7 @@ export interface CitaParaTasas {
   claveCloser: string;
   closer: string | null;
   resultado: string;
+  confirmadaAntes: boolean;
   /** El instante de la cita: `fecha_agenda`, o `fecha_llamada` en las filas viejas. */
   instante: Date;
   etapa: EtapaDeal;
@@ -78,6 +80,7 @@ export interface MiembroDelGrupo {
   closer: string | null;
   etapa: EtapaDeal;
   conShow: boolean;
+  confirmadaAntes: boolean;
   vendido: boolean;
 }
 
@@ -97,6 +100,7 @@ export interface TasasDelGrupo {
    * cuentan como no-show. La pantalla decide "parcial" con `estadoDeCobertura`.
    */
   razonShow: RazonConCobertura;
+  razonShowSinConfirmar: RazonConCobertura;
   razonCierre: RazonConCobertura;
   razonAgendaAVenta: RazonConCobertura;
 }
@@ -117,6 +121,8 @@ function dividir(numerador: number, denominador: number): number | null {
 
 function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelGrupo {
   const conShow = miembros.filter((m) => m.conShow).length;
+  const sinConfirmar = miembros.filter((m) => !m.confirmadaAntes);
+  const showsSinConfirmar = sinConfirmar.filter((m) => m.conShow).length;
   const vendidos = miembros.filter((m) => m.conShow && m.vendido).length;
   const universo = miembros.length + sinMarcar;
   const motivo = sinMarcar > 0 ? `${sinMarcar} de ${universo} citas pasadas siguen sin resultado` : null;
@@ -133,6 +139,9 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
     razonShow: miembros.length === 0
       ? razonVacia("Sin citas en el periodo")
       : razon(conShow, miembros.length, cobertura(miembros.length)),
+    razonShowSinConfirmar: sinConfirmar.length === 0
+      ? razonVacia("Sin citas sin confirmar en el periodo")
+      : razon(showsSinConfirmar, sinConfirmar.length, cobertura(miembros.length)),
     razonCierre: conShow === 0
       ? razonVacia("Sin shows en el periodo")
       : razon(vendidos, conShow, cobertura(conShow)),
@@ -182,6 +191,7 @@ export function calcularTasasDelGrupo(args: {
     closer: atribuye.closer,
     etapa: atribuye.etapa,
     conShow,
+    confirmadaAntes: atribuye.confirmadaAntes,
     // Gemela en memoria del predicado de venta (392): la cita ya viene con la etapa ACTUAL del deal.
     vendido: conShow && esEtapaVendida(atribuye.etapa),
   });
@@ -262,6 +272,7 @@ export async function leerCitasDelGrupo(
         claveCloser: claveCloserSql(users.id),
         closer: etiquetaDeCloserSql(),
         resultado: calls.resultado,
+        confirmadaAntes: confirmadaAntesDeLaCitaSql(),
         fechaAgenda: calls.fechaAgenda,
         fechaLlamada: calls.fechaLlamada,
         etapa: deals.etapa,
@@ -294,6 +305,7 @@ export async function leerCitasDelGrupo(
         claveCloser: fila.claveCloser,
         closer: fila.closer,
         resultado: fila.resultado,
+        confirmadaAntes: fila.confirmadaAntes,
         instante,
         etapa: fila.etapa,
       }];

@@ -163,6 +163,7 @@ export interface EmbudoDelRango {
   reagendadas: number;
   llamadasConShow: number;
   razonShow: RazonConCobertura;
+  razonShowSinConfirmar: RazonConCobertura;
   cierres: number;
   razonCierre: RazonConCobertura;
   agendaAVenta: number | null;
@@ -553,6 +554,7 @@ async function leerEmbudoDelRango(
     reagendadas,
     llamadasConShow,
     razonShow: tasas.razonShow,
+    razonShowSinConfirmar: tasas.razonShowSinConfirmar,
     cierres,
     razonCierre: tasas.razonCierre,
     agendaAVenta: tasas.agendaAVenta,
@@ -708,6 +710,7 @@ async function leerEmbudoPorCloser(
         reagendadas: 0,
         llamadasConShow: 0,
         razonShow: razonVacia("Sin citas en el periodo"),
+        razonShowSinConfirmar: razonVacia("Sin citas sin confirmar en el periodo"),
         cierres: 0,
         razonCierre: razonVacia("Sin shows en el periodo"),
         agendaAVenta: null,
@@ -743,6 +746,7 @@ async function leerEmbudoPorCloser(
   for (const fila of porClave.values()) {
     fila.grupo = tasasDelAlcance(grupo, fila.clave);
     fila.razonShow = fila.grupo.razonShow;
+    fila.razonShowSinConfirmar = fila.grupo.razonShowSinConfirmar;
     fila.razonCierre = fila.grupo.razonCierre;
     fila.agendaAVenta = fila.grupo.agendaAVenta;
     fila.pendientesDeResultado = fila.grupo.pendientes;

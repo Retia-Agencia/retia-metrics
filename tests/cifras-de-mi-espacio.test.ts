@@ -12,7 +12,7 @@ const detalle = (cantidad: number): DetalleDeCifra => ({
 });
 const periodo = { a: { desde: "2026-11-01", hasta: "2026-11-10" }, b: null, preset: "custom" };
 const cifrasA = (pendientes: number, caja: Array<{ moneda: string; total: number }>) => ({
-  agendas: 8, shows: 6, noShows: 2, cierres: 3, razonCierre: { valor: 0.5, base: 6, faltan: 0, motivo: undefined },
+  agendas: 8, shows: 6, noShows: 2, cierres: 3, razonShow: { valor: 0.75, base: 8, faltan: 0, motivo: undefined }, razonShowSinConfirmar: { valor: 0.5, base: 4, faltan: 0, motivo: undefined }, razonCierre: { valor: 0.5, base: 6, faltan: 0, motivo: undefined },
   pendientesDeResultado: pendientes, madurando: false, caja, comisionUsd: 120,
 });
 const vista = (pendientes: number, caja: Array<{ moneda: string; total: number }>) => ({

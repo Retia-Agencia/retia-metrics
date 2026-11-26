@@ -17,10 +17,10 @@ function embudo(faltan = 0): EmbudoDelRango {
   const razonAgendaAVenta = razon(3, 10, cobertura);
   return {
     agendas: 12, canceladas: 0, reagendadas: 0, llamadasConShow: 6, cierres: 3,
-    razonShow, razonCierre, agendaAVenta: 0.3, pendientesDeResultado: faltan, madurando: false,
+    razonShow, razonShowSinConfirmar: razonShow, razonCierre, agendaAVenta: 0.3, pendientesDeResultado: faltan, madurando: false,
     estadosDeCitas: { porVenir: 0, sinResultado: faltan, show: 6, noShow: 4, reagendadas: 0, otro: 0 },
     grupo: { deals: 10, conShow: 6, vendidos: 3, pendientes: faltan, sinMarcar: faltan,
-      cobertura: 10 / (10 + faltan), parcial: faltan > 1, agendaAVenta: 0.3, razonShow, razonCierre, razonAgendaAVenta },
+      cobertura: 10 / (10 + faltan), parcial: faltan > 1, agendaAVenta: 0.3, razonShow, razonShowSinConfirmar: razonShow, razonCierre, razonAgendaAVenta },
   };
 }
 

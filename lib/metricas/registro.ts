@@ -285,6 +285,22 @@ const REGISTRO_BASE = {
     gemelaTs: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "showPorDeal" },
     listas: ["grupo_pendientes", "grupo_sin_show"],
   }),
+  show_sin_confirmar: ficha("cita", {
+    filaDelDiccionario: "Se conectó sin confirmar",
+    tipo: "razon",
+    de: ["shows", "no_asistio"],
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: [],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls", "deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/deals/confirmacion-de-cita.ts", nombre: "confirmadaAntesDeLaCitaSql" },
+    gemelaTs: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "calcularTasasDelGrupo" },
+    listas: [],
+  }),
   cierre_de_ventas: ficha("cita", {
     filaDelDiccionario: "Cierre de ventas",
     tipo: "razon",
@@ -1234,6 +1250,15 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
       { nombre: "Sin marcar", explicacion: "Las citas pasadas que siguen sin resultado quedan fuera y se avisan como parcial." },
     ],
     { aliasExcel: "% de show / % presentación a zoom", unidadesDePartes: ["conteo", "conteo"] },
+  ),
+  show_sin_confirmar: texto(
+    "De las personas del grupo de citas que no confirmaron antes de la hora, qué parte sí se conectó.", "razon", ["Se conectaron sin confirmar", "Citas del grupo sin confirmar"],
+    [
+      { nombre: "Se conectaron sin confirmar", explicacion: "Personas que no confirmaron antes de la hora y tuvieron una cita atendida: show, compromiso de pago, cerrada o perdida." },
+      { nombre: "Citas del grupo sin confirmar", explicacion: "Personas con al menos una cita que ya debía ocurrir y cuya cita atributiva no fue confirmada antes de la hora." },
+      { nombre: "Sin marcar", explicacion: "Las citas pasadas que siguen sin resultado quedan fuera y se avisan como parcial." },
+    ],
+    { unidadesDePartes: ["conteo", "conteo"] },
   ),
   cierre_de_ventas: texto(
     "De los deals de pauta que asistieron a su cita, qué parte ya compró.", "razon", ["Deals que asistieron y compraron", "Deals que asistieron"],

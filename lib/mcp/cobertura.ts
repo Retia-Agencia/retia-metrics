@@ -220,6 +220,7 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   por_cobrar: "Cifra de resumen_del_hub: es vendido menos recaudado para las mismas ventas.",
   comision: "Cifra de resumen_del_hub: es un porcentaje sobre lo vendido, no una población aparte.",
   citas_del_dia: "Se pide por consultar_hechos: son las citas agrupadas por el día de la cita.",
+  show_sin_confirmar: "Pendiente en el MCP: la tasa de Mi espacio (Fase 2b) aún no sale en resumen_del_hub ni en consultar_metrica.",
   show_por_cita: "Cifra de resumen_del_hub: es una razón entre citas, no una lista adicional.",
   cita_a_venta: "Cifra de resumen_del_hub: es una tasa del grupo de citas y comparte sus filas.",
   nacio_agenda_del_dia: "Se pide por consultar_hechos: es una clasificación de las ventas según sus llamadas.",
@@ -276,11 +277,12 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
  * a «Cifra de resumen_del_hub» (sin filas propias). El total de excepciones no creció (49 + 3 = 52); los pendientes bajaron de 3 a 0.
  * 18-nov (auditoría D-2): 52 → 54 por dos conceptos NUEVOS, `vendido_cohorte` y `ventas_cohorte`, el numerador del ROAS que la
  * tabla de Pauta muestra para que ROAS = vendido de la cohorte ÷ inversión se pueda comprobar. Salen en el bloque `pauta`.
+ * 26-nov (Mi espacio 2b): 54 → 55 por `show_sin_confirmar`, nuevo y pendiente en el MCP.
  */
-export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 54;
+export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 55;
 
-/** Solo baja cuando un concepto pendiente entra al MCP. */
-export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 0;
+/** Solo baja cuando un concepto pendiente entra al MCP. 26-nov: 0 → 1 por `show_sin_confirmar` (Mi espacio 2b). */
+export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 1;
 
 /** Ruta estable de cada concepto que resumen_del_hub ya devuelve en su salida estructurada. */
 export const CIFRAS_EN_EL_RESUMEN = {

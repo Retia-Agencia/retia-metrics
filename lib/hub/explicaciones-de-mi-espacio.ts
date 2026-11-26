@@ -7,7 +7,9 @@ export function explicacionesDeMiEspacio(): ExplicacionesDeMiEspacio {
   return {
     citas: explicacionDe("citas", tuyas),
     shows: explicacionDe("shows", tuyas),
+    asistencia: explicacionDe("asistencia", tuyas),
     no_asistio: explicacionDe("no_asistio", tuyas),
+    show_sin_confirmar: explicacionDe("show_sin_confirmar", tuyas),
     ventas: explicacionDe("ventas", tuyas),
     cierre_de_ventas: explicacionDe("cierre_de_ventas", tuyas),
     citas_pendientes: explicacionDe("citas_pendientes", tuyas),

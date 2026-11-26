@@ -16,7 +16,7 @@ import { armarCifra, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/l
 import type { VistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 
 export const CONCEPTOS_DE_MI_ESPACIO = [
-  "citas", "shows", "no_asistio", "ventas", "cierre_de_ventas", "citas_pendientes", "comision", "entro_a_caja",
+  "citas", "shows", "asistencia", "no_asistio", "show_sin_confirmar", "ventas", "cierre_de_ventas", "citas_pendientes", "comision", "entro_a_caja",
 ] as const;
 export type ConceptoDeMiEspacio = (typeof CONCEPTOS_DE_MI_ESPACIO)[number];
 export type ExplicacionesDeMiEspacio = Record<ConceptoDeMiEspacio, ExplicacionDeConcepto>;
@@ -24,6 +24,7 @@ export type ExplicacionesDeMiEspacio = Record<ConceptoDeMiEspacio, ExplicacionDe
 /** «Tú»: el filtro de closer de Mi espacio es siempre la persona que mira. */
 const TU = "Tú";
 const BASE_DEL_CIERRE = "personas con cita realizada ya tienen resultado marcado";
+const BASE_DE_LA_ASISTENCIA = "personas con cita pasada ya tienen resultado marcado";
 
 export function contextoDeMiEspacio(e: { programa: string; periodo: VistaDeMisMetricas["periodo"]; hoy: string }): ContextoDelHub {
   return { programa: e.programa, cohorte: null, rango: e.periodo.a, hoy: e.hoy, closer: TU };
@@ -32,7 +33,9 @@ export function contextoDeMiEspacio(e: { programa: string; periodo: VistaDeMisMe
 export interface CifrasDeMiPrograma {
   citas: CifraDeMetrica;
   realizadas: CifraDeMetrica;
+  asistencia: CifraDeMetrica;
   noAsistio: CifraDeMetrica;
+  showSinConfirmar: CifraDeMetrica;
   ventas: CifraDeMetrica;
   cierre: CifraDeMetrica;
   /** Solo si hay citas pasadas sin resultado. */
@@ -56,19 +59,36 @@ export function cifrasDeMiPrograma(e: {
       concepto, explicacion: x[concepto], valor, comparacion: comparacionCon(ref, anterior),
       lista: listaDeDetalle(detalle, undefined, { nombre, articulo: "las" }), ...comun,
     });
-  const razon = entradaDesdeRazon(v.a.razonCierre, { base: BASE_DEL_CIERRE });
+  const razonAsistencia = entradaDesdeRazon(v.a.razonShow, { base: BASE_DE_LA_ASISTENCIA });
+  const razonShowSinConfirmar = entradaDesdeRazon(v.a.razonShowSinConfirmar, { base: BASE_DE_LA_ASISTENCIA });
+  const razonCierre = entradaDesdeRazon(v.a.razonCierre, { base: BASE_DEL_CIERRE });
+  const parcialMadurando = "Aún madurando: el rango terminó hace menos de 30 días.";
   const pendientes = v.a.pendientesDeResultado;
   return {
     citas: conteo("citas", v.a.agendas, v.b?.agendas, v.detalles.agendas, "citas"),
     realizadas: conteo("shows", v.a.shows, v.b?.shows, v.detalles.shows, "citas realizadas"),
+    asistencia: armarCifra({
+      concepto: "asistencia", explicacion: x.asistencia, ...razonAsistencia,
+      comparacion: comparacionCon(ref, v.b?.razonShow.valor),
+      lista: listaDeDetalle(v.detalles.grupoPendientes, undefined, { nombre: "citas sin marcar", articulo: "las" }),
+      ...comun,
+      parcial: razonAsistencia.parcial ?? (v.a.madurando ? parcialMadurando : undefined),
+    }),
     noAsistio: conteo("no_asistio", v.a.noShows, v.b?.noShows, v.detalles.noShows, "citas sin asistencia"),
+    showSinConfirmar: armarCifra({
+      concepto: "show_sin_confirmar", explicacion: x.show_sin_confirmar, ...razonShowSinConfirmar,
+      comparacion: comparacionCon(ref, v.b?.razonShowSinConfirmar.valor),
+      lista: listaDeDetalle(v.detalles.grupoPendientes, undefined, { nombre: "citas sin marcar", articulo: "las" }),
+      ...comun,
+      parcial: razonShowSinConfirmar.parcial ?? (v.a.madurando ? parcialMadurando : undefined),
+    }),
     ventas: conteo("ventas", v.a.cierres, v.b?.cierres, v.detalles.cierres, "ventas"),
     cierre: armarCifra({
-      concepto: "cierre_de_ventas", explicacion: x.cierre_de_ventas, ...razon,
+      concepto: "cierre_de_ventas", explicacion: x.cierre_de_ventas, ...razonCierre,
       comparacion: comparacionCon(ref, v.b?.razonCierre.valor),
       lista: listaDeDetalle(v.detalles.grupoVendidos, undefined, { nombre: "personas con cita realizada", articulo: "las", parte: "abajo" }),
       ...comun,
-      parcial: razon.parcial ?? (v.a.madurando ? "Aún madurando: el rango terminó hace menos de 30 días." : undefined),
+      parcial: razonCierre.parcial ?? (v.a.madurando ? parcialMadurando : undefined),
     }),
     sinResultado: pendientes > 0
       ? armarCifra({

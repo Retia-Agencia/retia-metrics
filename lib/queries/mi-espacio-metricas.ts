@@ -6,7 +6,7 @@ import { cajaRecaudada, embudoDelRango, type CajaPorMoneda } from "@/lib/queries
 import { comisionesPorCloser } from "@/lib/queries/comision";
 import { resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { detalleDeCifra, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
-import type { RazonConCobertura } from "@/lib/cobertura";
+import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
 export interface ProgramaDeMetricas {
   id: string;
@@ -19,6 +19,8 @@ export interface CifrasDePeriodo {
   shows: number;
   noShows: number;
   cierres: number;
+  razonShow: RazonConCobertura;
+  razonShowSinConfirmar: RazonConCobertura;
   razonCierre: RazonConCobertura;
   pendientesDeResultado: number;
   /** El rango termina hace menos de 30 días: el % de cierre todavía puede subir (ADR 0079). */
@@ -73,6 +75,8 @@ async function cifrasDelPeriodo(
     shows: embudo.llamadasConShow,
     noShows: noShows.subtotal.cantidad,
     cierres: embudo.cierres,
+    razonShow: embudo.razonShow,
+    razonShowSinConfirmar: embudo.razonShowSinConfirmar,
     razonCierre: embudo.razonCierre,
     pendientesDeResultado: embudo.pendientesDeResultado,
     madurando: embudo.madurando,
@@ -131,6 +135,8 @@ export async function armarVistaDeMisMetricas(
       shows: dashboard.embudo.llamadasConShow,
       noShows: noShowsA[0].subtotal.cantidad,
       cierres: dashboard.embudo.cierres,
+      razonShow: dashboard.embudo.razonShow,
+      razonShowSinConfirmar: dashboard.embudo.razonShowSinConfirmar,
       razonCierre: dashboard.embudo.razonCierre,
       pendientesDeResultado: dashboard.embudo.pendientesDeResultado,
       madurando: dashboard.embudo.madurando,
