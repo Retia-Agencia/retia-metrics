@@ -15,7 +15,7 @@ movimiento con motivo capture una razón nueva sin abandonar el flujo.
 - Motivo libre de hasta 80 caracteres, opcionalmente reutilizable como fila del catálogo.
 - Resolución y rastro dentro de la transacción del movimiento; `Otro` guarda el texto como nota.
 - Catálogo administrativo de Motivos con la lista A futuro.
-- ADR 0142 y pruebas de transiciones y resolución del motivo.
+- ADR 0143 y pruebas de transiciones y resolución del motivo.
 
 ## Verificación
 

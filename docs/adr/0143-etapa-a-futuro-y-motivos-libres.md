@@ -1,4 +1,4 @@
-# 0142 — Etapa A futuro y motivos libres
+# 0143 — Etapa A futuro y motivos libres
 
 - **Estado:** aceptada · 25-nov-2026 (Mani).
 
