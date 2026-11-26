@@ -298,8 +298,8 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: false,
     cobertura: "razon_con_cobertura",
     funcionSql: { archivo: "lib/deals/confirmacion-de-cita.ts", nombre: "confirmadaAntesDeLaCitaSql" },
-    gemelaTs: { archivo: "lib/deals/confirmacion-de-cita.ts", nombre: "confirmadaAntesDeLaCita" },
-    listas: ["grupo_pendientes"],
+    gemelaTs: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "calcularTasasDelGrupo" },
+    listas: [],
   }),
   cierre_de_ventas: ficha("cita", {
     filaDelDiccionario: "Cierre de ventas",

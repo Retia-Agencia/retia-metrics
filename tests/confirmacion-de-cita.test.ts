@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { confirmadaAntesDeLaCita, confirmadaAntesDeLaCitaSql } from "@/lib/deals/confirmacion-de-cita";
+import { confirmadaAntesDeLaCitaSql } from "@/lib/deals/confirmacion-de-cita";
 import { vigente } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -17,8 +17,8 @@ beforeEach(async () => vaciar());
 afterAll(async () => cerrar());
 
 describe("confirmación oportuna de una cita", () => {
-  // Falla si SQL y TypeScript discrepan en nulos, estados distintos o el borde temporal de la confirmación.
-  it("mantiene paridad en los cuatro estados que cambian la métrica", async () => {
+  // Falla si el predicado SQL trata mal los nulos, los estados distintos o el borde temporal de la confirmación.
+  it("decide bien los cuatro estados que cambian la métrica", async () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "confirmacion-paridad", nombre: "Confirmación paridad", ticketUsd: "100" }).returning();
     const [lead] = await db.insert(leads).values({
       programId: programa.id,
@@ -44,23 +44,10 @@ describe("confirmación oportuna de una cita", () => {
 
     const filas = await db.select({
       id: calls.id,
-      confirmacion: calls.confirmacion,
-      confirmacionEn: calls.confirmacionEn,
-      fechaAgenda: calls.fechaAgenda,
-      fechaLlamada: calls.fechaLlamada,
       valorSql: confirmadaAntesDeLaCitaSql(),
     }).from(calls).where(vigente(calls));
 
-    for (const fila of filas) {
-      const instante = fila.fechaAgenda ?? fila.fechaLlamada;
-      expect(instante).not.toBeNull();
-      const valorTs = confirmadaAntesDeLaCita({
-        confirmacion: fila.confirmacion,
-        confirmacionEn: fila.confirmacionEn,
-        instante: instante!,
-      });
-      expect(fila.valorSql).toBe(esperado.get(fila.id));
-      expect(valorTs).toBe(fila.valorSql);
-    }
+    expect(filas).toHaveLength(4);
+    for (const fila of filas) expect(fila.valorSql).toBe(esperado.get(fila.id));
   });
 });

@@ -9,18 +9,3 @@ export function confirmadaAntesDeLaCitaSql(): SQL<boolean> {
   )!;
   return sql<boolean>`coalesce(${confirmadaAntes}, false)`;
 }
-
-/** Gemela en memoria del predicado SQL de confirmación oportuna. */
-export function confirmadaAntesDeLaCita({
-  confirmacion,
-  confirmacionEn,
-  instante,
-}: {
-  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
-  confirmacionEn: Date | null;
-  instante: Date;
-}): boolean {
-  return confirmacion === "confirmada"
-    && confirmacionEn !== null
-    && confirmacionEn.getTime() <= instante.getTime();
-}
