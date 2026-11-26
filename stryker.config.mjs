@@ -11,7 +11,10 @@ export default {
   vitest: { configFile: "vitest.config.mts" },
   mutate: [mutar],
   coverageAnalysis: "perTest",
-  concurrency: 2,
+  // Los runners de GitHub tienen 4 vCPU. La corrida inicial ejecuta la suite entera con cobertura por
+  // test (~16 min de CPU en el CI normal): los 5 min por defecto no alcanzan.
+  concurrency: 4,
+  dryRunTimeoutMinutes: 90,
   timeoutMS: 60_000,
   reporters: ["html", "json", "clear-text", "progress"],
   htmlReporter: { fileName: "reports/mutation/index.html" },
