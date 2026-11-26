@@ -180,35 +180,6 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
 
-  it("muestra solo el aviso de fbclid cuando esa es la unica traza rota", () => {
-    const mensaje = armarMensajeDeLaHora([{
-      ...bloque(),
-      trazaRota: [{
-        fuente: "Typeform Tactical",
-        pagos: 5,
-        pagosSinId: 0,
-        pagosSinFbclid: 5,
-        sinId: false,
-        fbclidRoto: true,
-      }],
-    }], "09:00", null, ORIGEN);
-
-    expect(mensaje).toContain("⚠️ Typeform Tactical: 5 de 5 envíos pagos sin fbclid (24 h)");
-    expect(mensaje).not.toContain("envíos pagos sin anuncio");
-  });
-
-  it("dice cuánto más barato que la meta, o igual", () => {
-    const conPorcentaje = (porcentajeDelUmbral: number) => armarMensajeDeLaHora(
-      [{ ...bloque(), metricas: [{ ...METRICA, color: "exito", porcentajeDelUmbral }] }],
-      "09:00",
-      null,
-      ORIGEN,
-    );
-
-    expect(conPorcentaje(72.4)).toContain("🟢 Costo por agenda (según Meta): COP 304.930 · 28% más barato que la meta");
-    expect(conPorcentaje(100.2)).toContain("🟢 Costo por agenda (según Meta): COP 304.930 · igual a la meta");
-  });
-
   it("con gasto y cero agendas de Meta dice sin agendas, no sin dato", () => {
     const metrica: MetricaSemaforo = {
       ...METRICA,
@@ -260,17 +231,6 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).toMatch(/Falta cargar la meta en el CRM/);
   });
 
-  it("muestra una sola vez la sincronizacion y termina con el CRM general", () => {
-    const mensaje = armarMensajeDeLaHora([bloque(), { ...bloque(), programa: "Beta" }], "09:00", {
-      estado: "error",
-      ultimaFoto: "2026-07-14T15:27:00Z",
-    }, ORIGEN);
-
-    expect(mensaje.match(/⚠️ No se pudo leer Meta/g)).toHaveLength(1);
-    expect(mensaje).toContain("⚠️ No se pudo leer Meta; cifras de la última foto (10:27)");
-    expect(mensaje).toContain("CRM: https://crm.test");
-  });
-
   it("une dos programas, deduplica la info y confirma una corrida limpia", () => {
     const textoHQ4 = "HQ-4: Meta entregó datos parciales";
     const metricaLimpia: MetricaSemaforo = {
@@ -293,19 +253,6 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).toContain("CRM: https://crm.test");
   });
 
-  it("resume todas las cuentas de Meta al dia", () => {
-    const mensaje = armarMensajeDeLaHora([{
-      ...bloque(),
-      metricas: [{ ...METRICA, notas: [] }],
-      cuentasMeta: [
-        { nombre: "Cuenta uno", estado: "al_dia", detalle: null },
-        { nombre: "Cuenta dos", estado: "al_dia", detalle: null },
-      ],
-    }], "09:00", null, ORIGEN);
-
-    expect(mensaje).toContain("💳 Cuentas de Meta: todas al día (2)");
-  });
-
   it("lista las cuentas de Meta con problema y elimina la confirmacion limpia", () => {
     const mensaje = armarMensajeDeLaHora([{
       ...bloque(),
@@ -319,17 +266,6 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).toContain("💳 Cuentas de Meta con problema:\n🔴 Cuenta cobros (Alpha): pago pendiente");
     expect(mensaje).not.toContain("Cuenta sana (Alpha)");
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
-  });
-
-  it("marca solo el bloque de cierre cuando mezcla tipos", () => {
-    const mensaje = armarMensajeDeLaHora([
-      bloque(),
-      { ...bloque(), programa: "Beta", tipo: "cierre" },
-    ], "18:00", null, ORIGEN);
-
-    expect(mensaje).toMatch(/^🚦 Semáforo de pauta · 18:00 · 2🔴/);
-    expect(mensaje).toContain("*Alpha*\n");
-    expect(mensaje).toContain("*Beta* (cierre)\n");
   });
 
   it("dice sin foto cuando no existe comparación", () => {

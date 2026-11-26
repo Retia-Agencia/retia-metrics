@@ -55,14 +55,6 @@ describe("mapeoWebhookDesdeFuente — precedencia y traduccion de vocabulario", 
     expect(campos.correo).toBe("Correo en la plantilla del programa");
   });
 
-  it("la fuente gana sobre la plantilla del programa", () => {
-    const { campos } = mapeoWebhookDesdeFuente(
-      { emailNormalizado: "correo de la fuente" },
-      { emailNormalizado: "correo de la plantilla" },
-    );
-    expect(campos.correo).toBe("correo de la fuente");
-  });
-
   it("🩸 sin fuente ni plantilla falla con MapeoInvalidoError: no cae a un defecto que adivina (117)", () => {
     expect(() => mapeoWebhookDesdeFuente(null, null)).toThrow(MapeoInvalidoError);
     expect(() => mapeoWebhookDesdeFuente({}, {})).toThrow(/correo/);

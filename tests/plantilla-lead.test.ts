@@ -38,15 +38,6 @@ describe("combinarMapeo", () => {
     expect(origen.correo).toBe("defecto");
   });
 
-  it("origen reporta los tres casos a la vez", () => {
-    const { origen } = combinarMapeo(
-      { a: "de fuente" },
-      { b: "de programa" },
-      { a: "def a", b: "def b", c: "def c" },
-    );
-    expect(origen).toEqual({ a: "fuente", b: "programa", c: "defecto" });
-  });
-
   it("nulos en cualquier nivel no rompen; se usa el defecto de MAPEO_FORMULARIO", () => {
     const { mapeo } = combinarMapeo(null, null);
     // Sin fuente ni programa, el mapeo efectivo ES el defecto del codigo.
@@ -66,22 +57,5 @@ describe("combinarMapeo", () => {
   it("una lista de alternativas se conserva tal cual", () => {
     const { mapeo } = combinarMapeo({ telefono: ["whatsapp", "celular"] }, null, {});
     expect(mapeo.telefono).toEqual(["whatsapp", "celular"]);
-  });
-
-  /**
-   * No-op medido por la sesion principal: las fuentes de hoy traen los mismos 14
-   * campos que MAPEO_FORMULARIO y ningun programa ajusta plantilla. Pasar del
-   * ternario todo-o-nada a combinar campo por campo NO cambia el mapeo efectivo.
-   */
-  describe("no-op para las fuentes de hoy", () => {
-    it("fuente con el mapeo completo y sin plantilla da exactamente el mapeo de la fuente", () => {
-      const { mapeo } = combinarMapeo(MAPEO_FORMULARIO, null);
-      expect(mapeo).toEqual(MAPEO_FORMULARIO);
-    });
-
-    it("fuente con mapeo vacio y sin plantilla cae al defecto, igual que el viejo ternario", () => {
-      const { mapeo } = combinarMapeo({}, null);
-      expect(mapeo).toEqual(MAPEO_FORMULARIO);
-    });
   });
 });

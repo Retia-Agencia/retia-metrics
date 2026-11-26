@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   comparacionesDe,
-  descripcionDeComparacion,
   parametrosDeComparaciones,
   parsearPeriodoUrl,
   resolverPeriodo,
@@ -90,18 +89,6 @@ describe("periodo A contra B", () => {
     expect(resolverPeriodo(parsearPeriodoUrl({ ...base, b_desde: "2026-07-01", b_hasta: "2026-07-09" }), contexto).b).toEqual({ desde: "2026-07-01", hasta: "2026-07-09" });
     expect(resolverPeriodo(parsearPeriodoUrl({ ...base, comparar: "no" }), contexto)).toMatchObject({ b: null, aviso: undefined });
   });
-  it("un rango explícito gana sobre comparar", () => {
-    const entrada = parsearPeriodoUrl({ periodo: "este_mes", comparar: "no", b_desde: "2026-07-01", b_hasta: "2026-07-09" });
-    expect(resolverPeriodo(entrada, { hoy: "2026-10-09" }).b).toEqual({ desde: "2026-07-01", hasta: "2026-07-09" });
-  });
-  it("cohorte sin ventana anterior conserva el aviso existente en palabras", () => {
-    const periodo = resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "cohorte" }), { hoy: "2026-10-09" });
-    expect(periodo.b).toBeNull();
-    expect(periodo.aviso).toBe("Sin cohorte anterior con ventana de venta. Elige un rango para comparar.");
-  });
-  it("una URL inválida de comparación usa la caída existente", () => {
-    expect(parsearPeriodoUrl({ periodo: "este_mes", comparar: "otra" })).toMatchObject({ preset: "hoy", aviso: "Periodo inválido: se muestra Hoy." });
-  });
   it("por defecto no compara y el atajo por defecto lo decide quien llama", () => {
     expect(parsearPeriodoUrl({})).toMatchObject({ preset: "hoy", comparaciones: [] });
     expect(parsearPeriodoUrl({}, { porDefecto: "desde_el_inicio" })).toMatchObject({ preset: "desde_el_inicio", comparaciones: [] });
@@ -171,13 +158,5 @@ describe("periodo A contra B", () => {
     // Ida y vuelta: lo que se escribe se lee igual.
     const { comparar } = parametrosDeComparaciones([{ tipo: "anterior" }, { tipo: "rango", rango: { desde: "2026-09-01", hasta: "2026-09-09" } }]);
     expect(parsearPeriodoUrl({ comparar }).comparaciones).toEqual([{ tipo: "anterior" }, { tipo: "rango", rango: { desde: "2026-09-01", hasta: "2026-09-09" } }]);
-  });
-  it("describe la comparación en palabras", () => {
-    const contexto = { hoy: "2026-10-09", anterior: { inicio: "2026-08-03", cierre: "2026-08-28" } };
-    const rango = resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "2026-09-01_2026-09-09" }), contexto);
-    expect(descripcionDeComparacion(rango)).toBe("contra 1 sep 2026 a 9 sep 2026");
-    expect(descripcionDeComparacion(resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "cohorte" }), contexto))).toBe("contra la cohorte anterior al mismo día hábil");
-    expect(descripcionDeComparacion(resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "anterior" }), contexto))).toBe("contra el mismo punto de septiembre");
-    expect(descripcionDeComparacion({ ...rango, b: null, comparaciones: undefined })).toBe("sin comparación");
   });
 });

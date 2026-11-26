@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { leads, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
+import { leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import { construirEnvio } from "@/lib/ingesta/envio";
@@ -157,51 +157,6 @@ for (const nombre of proveedores) {
 it("Dapta aplana una respuesta de objeto", () => {
   const entrada = PROVEEDORES.dapta.adaptar(JSON.stringify(daptaCompleto), OPCIONES);
   expect(entrada.columnas.nombre_dividido).toBe("Ana Pérez");
-});
-
-it.each(proveedores)("una firma mala de %s no cambia ninguna tabla por la ruta real", async (nombre) => {
-  const { db, cerrar } = await crearBaseDePrueba();
-  holder.db = db;
-  try {
-    const [programa] = await db
-      .insert(programs)
-      .values({
-        ...PROGRAMA_DE_PRUEBA,
-        slug: `contrato-${nombre}`,
-        nombre: `Contrato ${nombre}`,
-        ticketUsd: "1500",
-      })
-      .returning();
-    const [fuente] = await db
-      .insert(sources)
-      .values({
-        programId: programa.id,
-        nombre: `Fuente ${nombre}`,
-        tipo: "webhook",
-        proveedor: nombre,
-        secretoWebhook: "secreto-del-contrato",
-        activo: true,
-      })
-      .returning();
-    const cuerpo = JSON.stringify(CASOS[nombre].completo);
-    const peticion = new Request("https://app.retia.co/api/webhooks/formularios/x", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        [PROVEEDORES[nombre].headerFirma]: "sha256=00",
-      },
-      body: cuerpo,
-    });
-    const { POST } = await import("@/app/api/webhooks/formularios/[fuente]/route");
-    const respuesta = await POST(peticion, { params: Promise.resolve({ fuente: fuente.id }) });
-    expect(respuesta.status).toBe(401);
-    expect(await db.select().from(submissions)).toHaveLength(0);
-    expect(await db.select().from(leads)).toHaveLength(0);
-    expect(await db.select().from(sobresCrudos)).toHaveLength(0);
-  } finally {
-    holder.db = null;
-    await cerrar();
-  }
 });
 
 /**

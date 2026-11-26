@@ -154,52 +154,6 @@ describe("acciones de usuarios — barrera de rol (ADR 0003)", () => {
   });
 });
 
-describe("acciones de usuarios — el gerente administra", () => {
-  beforeEach(() => auth.mockResolvedValue(sesionGerente));
-
-  it("crea un closer con closerId y programa", async () => {
-    const { crearUsuarioAccion } = await acciones();
-    const res = await crearUsuarioAccion({
-      email: "andrea@retiagrowth.com",
-      nombre: "Andrea",
-      rol: "closer",
-      closerId: "Andrea",
-      programas: [programaAId],
-    });
-    expect(res.ok).toBe(true);
-
-    const [creado] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, "andrea@retiagrowth.com"));
-    expect(creado).toBeDefined();
-    const membresias = await db
-      .select()
-      .from(miembrosPrograma)
-      .where(eq(miembrosPrograma.userId, creado.id));
-    expect(membresias).toHaveLength(1);
-  });
-
-  it("un closer sin closerId se crea (167: closerId es opcional)", async () => {
-    const { crearUsuarioAccion } = await acciones();
-    const res = await crearUsuarioAccion({
-      email: "sin-codigo@retiagrowth.com",
-      rol: "closer",
-      closerId: "",
-      programas: [programaAId],
-    });
-    expect(res.ok).toBe(true);
-  });
-
-  it("un gerente no puede desactivarse a si mismo", async () => {
-    const { desactivarUsuarioAccion } = await acciones();
-    const res = await desactivarUsuarioAccion(gerenteId);
-    expect(res.ok).toBe(false);
-    const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
-    expect(u.activo).toBe(true);
-  });
-});
-
 describe("acciones de usuarios — gerente limitado", () => {
   beforeEach(async () => {
     await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: programaAId });

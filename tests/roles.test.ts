@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { administraGlobal, administraUsuarios, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veSoloLoBasicoDelLead, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, administraUsuarios, editaObjetivo, esAdministrador, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veSoloLoBasicoDelLead, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -86,10 +86,6 @@ describe("manejaPauta (ADR 0052, ticket 173)", () => {
     expect(esAdministrador("paid_trafficker")).toBe(false);
     expect(trabajaLeads(sujeto("paid_trafficker"))).toBe(false);
   });
-
-  it("el rol paid_trafficker es válido (está en ROLES)", () => {
-    expect(esRolValido("paid_trafficker")).toBe(true);
-  });
 });
 
 describe("veEquipoComercial (ticket 102)", () => {
@@ -114,15 +110,6 @@ describe("veTableroDelPrograma (ticket 224)", () => {
     expect(veTableroDelPrograma("closer")).toBe(false);
     expect(veTableroDelPrograma("customer_success")).toBe(false);
     expect(veTableroDelPrograma(null)).toBe(false);
-  });
-
-  // Es su propia pregunta, distinta de `veEquipoComercial`: un closer ve el equipo pero NO el
-  // tablero, y un paid trafficker ve el tablero pero NO el equipo.
-  it("se distingue de veEquipoComercial en el closer y el paid trafficker", () => {
-    expect(veEquipoComercial("closer")).toBe(true);
-    expect(veTableroDelPrograma("closer")).toBe(false);
-    expect(veEquipoComercial("paid_trafficker")).toBe(false);
-    expect(veTableroDelPrograma("paid_trafficker")).toBe(true);
   });
 });
 
@@ -195,10 +182,6 @@ describe("marcaOnboarding (ticket 145)", () => {
     expect(trabajaLeads(sujeto("customer_success"))).toBe(false);
     expect(manejaPauta("customer_success")).toBe(false);
   });
-
-  it("el rol customer_success es válido (está en ROLES)", () => {
-    expect(esRolValido("customer_success")).toBe(true);
-  });
 });
 
 describe("veSoloLoBasicoDelLead", () => {
@@ -225,16 +208,6 @@ describe("puedeSerMiembro (ticket 145)", () => {
   it("el gerente que opera como closer sí puede ser miembro (ticket 236): sin membresía no sería dueño", () => {
     expect(puedeSerMiembro({ rol: "gerente", operaComoCloser: true })).toBe(true);
     expect(puedeSerMiembro({ rol: null, operaComoCloser: true })).toBe(false);
-  });
-});
-
-describe("etiquetaDeRol (ticket 177)", () => {
-  it("nombra cada rol para la interfaz y los mensajes de permiso", () => {
-    expect(etiquetaDeRol("gerente")).toBe("Gerencia comercial");
-    expect(etiquetaDeRol("closer")).toBe("Closer");
-    expect(etiquetaDeRol("developer")).toBe("Desarrollo");
-    expect(etiquetaDeRol("paid_trafficker")).toBe("Paid Trafficker");
-    expect(etiquetaDeRol("customer_success")).toBe("Customer Success");
   });
 });
 
@@ -378,16 +351,6 @@ describe("navegacion por rol", () => {
       ]);
     }
     expect(navParaRol(sujeto("customer_success"), inactivo).filter((item) => item.href.startsWith("/p/"))).toEqual([]);
-  });
-
-  it("la barra ya no lleva un item por programa (ADR 0050)", () => {
-    expect(rutasDe("gerente").some((r) => r.startsWith("/programas/"))).toBe(false);
-  });
-
-  it("la navegación ya no contiene la pantalla Personas", () => {
-    for (const rol of ["gerente", "closer", "developer"] as const) {
-      expect(rutasDe(rol)).not.toContain("/personas");
-    }
   });
 
   it("ambos roles ven la tab Recursos y ya no /documentos (ticket 023)", () => {

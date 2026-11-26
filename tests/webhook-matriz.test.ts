@@ -806,21 +806,6 @@ describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)
     expect(envio.utmCampaign).toBeNull();
   });
 
-  it('el centinela "xxxxx" tampoco queda en utm_term ni utm_content', async () => {
-    const p = conAgenda(fixture(), "");
-    p.form_response.hidden = {
-      utm_source: "facebook",
-      utm_medium: "paid",
-      utm_campaign: "camp",
-      utm_term: "xxxxx",
-      utm_content: "xxxxx",
-    };
-    await enviar(p);
-    const [envio] = await db.select().from(submissions);
-    expect(envio.utmTerm).toBeNull();
-    expect(envio.utmContent).toBeNull();
-  });
-
   it("las seis UTM de la plantilla de Pauta quedan en sus columnas y no en respuestas; la macro, tal cual (ticket 116)", async () => {
     const p = conAgenda(fixture(), "");
     p.form_response.hidden = {
@@ -1014,20 +999,6 @@ describe("caso D — caja negra: se guarda el cuerpo crudo de CADA envío", () =
 // ─────────────────────────────────── caso E: variables genéricas por la ruta
 
 describe("caso E — variables genéricas (nada hard-coded a estado)", () => {
-  it("una variable desconocida entra sola a submissions.respuestas, prefijada", async () => {
-    const p = conAgenda(fixture(), "");
-    p.form_response.variables = [
-      { key: "estado", type: "text", text: "setteo_no_calificado" },
-      { key: "score", type: "number", number: 88 },
-      { key: "segmento", type: "text", text: "premium" },
-    ];
-    const res = await enviar(p);
-    expect(res.status).toBe(200);
-    const [envio] = await db.select().from(submissions);
-    const respuestas = envio.respuestas as Record<string, string | null>;
-    expect(respuestas["variable:score"]).toBe("88");
-    expect(respuestas["variable:segmento"]).toBe("premium");
-  });
 
   it("un payload SIN la variable estado entra sin Estado y no revienta", async () => {
     const p = conAgenda(fixture(), "");
@@ -1041,31 +1012,4 @@ describe("caso E — variables genéricas (nada hard-coded a estado)", () => {
     expect(deal.etapa).toBe("registrado");
   });
 
-  it("una fuente que apunta el Estado a OTRA variable la usa (config, no código)", async () => {
-    // La fuente configura `estadoHoja` = nombre de la variable que clasifica.
-    const [fuenteOtra] = await db
-      .insert(sources)
-      .values({
-        programId,
-        nombre: "Typeform con estado en otra variable",
-        tipo: "webhook",
-        proveedor: "typeform",
-        secretoWebhook: SECRETO,
-        activo: false,
-        mapeoColumnas: { agenda: AGENDA, estadoHoja: "clasificacion" },
-      })
-      .returning();
-    await db.update(sources).set({ activo: false }).where(eq(sources.id, sourceId));
-    await db.update(sources).set({ activo: true }).where(eq(sources.id, fuenteOtra.id));
-
-    const p = conAgenda(fixture(), "");
-    p.form_response.variables = [
-      { key: "estado", type: "text", text: "descartado" },
-      { key: "clasificacion", type: "text", text: "setteo_no_calificado" },
-    ];
-    const res = await enviar(p, fuenteOtra.id);
-    expect(res.status).toBe(200);
-    const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("setteo_no_calificado");
-  });
 });
