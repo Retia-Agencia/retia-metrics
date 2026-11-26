@@ -79,7 +79,7 @@ restricción conserva su test dueño.
 - **Extender antes de crear.** Un archivo nuevo solo si el comportamiento no tiene dueño. Primero se busca el
   dueño (`rg` por la función central).
 - **Un archivo de base nuevo dice por qué no es puro**, en su comentario de cabecera.
-- **Techo de tiempo:** ningún shard del CI pasa de 4 min de `npm test`. Si un PR lo cruza, ese PR recorta o
+- **Techo de tiempo:** ningún shard del CI pasa de 2 min de `npm test` (6 shards desde el 25-nov). Si un PR lo cruza, ese PR recorta o
   baja de nivel antes de entrar.
 - **Un agente delegado (Codex) recibe este contrato en el brief** y entrega la línea "falla si ___" por test.
 
