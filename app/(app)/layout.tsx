@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BarraSuplantacion } from "@/components/barra-suplantacion";
+import { AvisoVersionNueva } from "@/components/aviso-version-nueva";
 import { paginaConSesion } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { administraGlobal, esAccesoTotal } from "@/lib/auth/roles";
@@ -58,6 +59,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <BarraSuplantacion nombre={session.user.name ?? session.user.email ?? "este closer"} />
         ) : null}
         {children}
+        <AvisoVersionNueva />
       </div>
     </div>
   );
