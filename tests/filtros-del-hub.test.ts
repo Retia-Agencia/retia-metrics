@@ -7,7 +7,7 @@ import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-fil
 import { cohorteDeLaUrl } from "@/lib/queries/cohorte-del-hub";
 import { urlDeLista, vistaDeLista } from "@/lib/queries/vista-metrica";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
@@ -34,7 +34,7 @@ const periodoDe = (rango = SEPTIEMBRE): PeriodoResuelto => ({ preset: "custom", 
 beforeAll(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
-  ({ db, cerrar } = await crearBaseDePrueba());
+  ({ db, cerrar } = await crearBaseReutilizable());
   await sembrar();
 }, 60_000);
 afterAll(async () => {
