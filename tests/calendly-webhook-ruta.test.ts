@@ -320,6 +320,30 @@ describe("reagenda: la MISMA llamada, en los dos ordenes", () => {
     expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
   });
 
+  it("adopta la cita CRM creada por el closer después de marcar la anterior como no-show", async () => {
+    await enviar(creado("VIEJA"));
+    const [vieja] = await llamadas();
+    await enviar(noShow("VIEJA"));
+    const crm = await agregarLlamada(
+      db,
+      { userId: maru, rol: "closer", operaComoCloser: false },
+      { dealId, fechaAgenda: new Date("2026-10-05T16:00:00Z") },
+    );
+
+    await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
+
+    const todas = await llamadas();
+    expect(todas).toHaveLength(2);
+    expect(todas.find((call) => call.id === vieja.id)?.resultado).toBe("no_show");
+    expect(todas.find((call) => call.id === crm.callId)).toMatchObject({
+      resultado: "agendada",
+      origen: "crm",
+      huellaFila: "calendly:NUEVA",
+      fechaAgenda: new Date("2026-10-05T16:00:00Z"),
+    });
+    expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
+  });
+
   it("adopta la cita CRM creada por el closer después de cancelar la anterior", async () => {
     await enviar(creado("VIEJA"));
     const [vieja] = await llamadas();
