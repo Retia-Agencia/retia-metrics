@@ -10,6 +10,7 @@ import type { CitaReservada } from "@/lib/calendly/escritura";
 import { registrarAbono, type DatosRegistrarAbono } from "./abonos";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { exigirTextoDelMotivo } from "./motivo-con-texto";
+import { resolverMotivoLibre, type MotivoLibre } from "./resolver-motivo-libre";
 import {
   escribirDatosDelDeal,
   moverEtapa,
@@ -32,6 +33,7 @@ export interface DatosMoverConHecho {
   a: EtapaDeal;
   pendiente?: PendienteDeal | null;
   motivoId?: string | null;
+  motivoLibre?: MotivoLibre;
   comentarioMotivo?: string;
   /**
    * Un comentario del closer que se guarda como NOTA antes de mover (ticket 228). Lo usa
@@ -68,10 +70,30 @@ export async function moverConHecho(
       entrada.a,
       entrada.pendiente ?? null,
     );
-    const motivoReagenda = resuelta.transicion?.tipoDeMotivo === "reagenda";
-    if (motivoReagenda && entrada.motivoId) {
-      await exigirTextoDelMotivo(tx, entrada.motivoId, entrada.comentarioMotivo);
-      if (entrada.comentarioMotivo?.trim()) {
+    if (entrada.correccion && entrada.motivoLibre) {
+      throw new ErrorDeApp("Una corrección no acepta motivos libres.", 422);
+    }
+    const tipoDeMotivo = resuelta.transicion?.tipoDeMotivo;
+    const motivoId = entrada.motivoLibre && tipoDeMotivo
+      ? await resolverMotivoLibre(tx, {
+          motivoLibre: entrada.motivoLibre,
+          tipo: tipoDeMotivo,
+          actorUserId: actor.userId,
+          dealId: inicial.id,
+          etiqueta: emailLead,
+        })
+      : entrada.motivoId;
+    if (entrada.motivoLibre && !tipoDeMotivo) {
+      throw new ErrorDeApp("Este movimiento no acepta motivo.", 422);
+    }
+    if (tipoDeMotivo && motivoId) {
+      await exigirTextoDelMotivo(
+        tx,
+        motivoId,
+        tipoDeMotivo,
+        entrada.motivoLibre?.texto ?? entrada.comentarioMotivo,
+      );
+      if (!entrada.motivoLibre && entrada.comentarioMotivo?.trim()) {
         await crearConRastro(
           { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
           {
@@ -203,7 +225,7 @@ export async function moverConHecho(
         a: entrada.a,
         pendiente: entrada.pendiente,
         actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
-        motivoId: entrada.motivoId ?? null,
+        motivoId: motivoId ?? null,
         correccion: entrada.correccion,
         datos: entrada.datos,
       });

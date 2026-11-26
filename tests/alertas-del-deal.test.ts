@@ -139,7 +139,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
 
     const alerta = (await alertasDelDeal(db, programId, dealId))!;
 
-    expect(alerta.paraAvanzar.map((ruta) => ruta.destino)).toEqual(["cierre_perdido"]);
+    expect(alerta.paraAvanzar.map((ruta) => ruta.destino)).toEqual(["cierre_perdido", "a_futuro"]);
   });
 
   it("refleja en ambos sentidos los motivos de atención del Inbox", async () => {

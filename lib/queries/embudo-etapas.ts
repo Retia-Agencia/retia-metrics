@@ -177,7 +177,9 @@ const ETAPAS_ABIERTAS: readonly EtapaDeal[] = ETAPAS_EN_ORDEN.filter(
 const ETAPAS_DE_TIEMPO = ETAPAS_ABIERTAS;
 const BUCKETS: readonly BucketAntiguedad[] = ["0-7", "8-30", "31-90", ">90"];
 const indiceEtapa: ReadonlyMap<EtapaDeal, number> = new Map<EtapaDeal, number>(
-  ETAPAS_EN_ORDEN.filter((etapa) => etapa !== "cierre_perdido").map((etapa, indice) => [etapa, indice]),
+  ETAPAS_EN_ORDEN
+    .filter((etapa) => etapa !== "cierre_perdido" && etapa !== "a_futuro")
+    .map((etapa, indice) => [etapa, indice]),
 );
 
 /** Calcula todas las lecturas sin acceder a la base. */

@@ -136,6 +136,18 @@ describe("calcularEmbudoEtapas", () => {
     expect(lectura.pasos.every((paso) => paso.tasaDesdeAnterior === null && paso.tasaDesdeEntrada === null)).toBe(true);
   });
 
+  it("A futuro sigue abierto y no acredita una venta ni pasos que no alcanzó", () => {
+    const filas = [deal("futuro", "a_futuro")];
+    const historial = [
+      movimiento("01", "futuro", null, "calificado", "2026-09-01T12:00:00Z"),
+      movimiento("02", "futuro", "calificado", "atendido", "2026-09-02T12:00:00Z"),
+      movimiento("03", "futuro", "atendido", "a_futuro", "2026-09-03T12:00:00Z"),
+    ];
+    const lectura = calcular(filas, historial).conversion.todas;
+    expect(lectura.pasos.find((paso) => paso.paso === "atendido")).toMatchObject({ llegaron: 1 });
+    expect(lectura.pasos.find((paso) => paso.paso === "vendido")).toMatchObject({ llegaron: 0 });
+  });
+
   it("separa quienes avanzan, siguen y se pierden, y conserva la suma de cada paso", () => {
     const filas = [deal("avanza", "atendido"), deal("sigue", "agendado"), deal("pierde", "cierre_perdido")];
     const historial = [

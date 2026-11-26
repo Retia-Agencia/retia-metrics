@@ -48,6 +48,12 @@ export interface DefinicionCatalogo {
   nombre: string;
   /** Campos booleanos editables por el formulario genérico. */
   camposBooleanos: readonly { campo: string; etiqueta: string }[];
+  /** Campos de lista que el formulario genérico ofrece al crear una fila. */
+  camposOpciones: readonly {
+    campo: string;
+    etiqueta: string;
+    opciones: readonly { valor: string; etiqueta: string }[];
+  }[];
   /** El unico esquema zod de la entidad (el mismo que usa el molde). */
   esquema: ZodType<EntradaCatalogo>;
   /** Fabrica del catalogo del molde; recibe la base (por defecto la de la app). */
@@ -61,6 +67,7 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     compartidoConClosers: true,
     nombre: "Plataformas de pago",
     camposBooleanos: [],
+    camposOpciones: [],
     esquema: esquemaPlataformaPago,
     fabrica: plataformasDePago,
   },
@@ -68,8 +75,19 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     slug: "motivos",
     vinculadoAProgramas: false,
     compartidoConClosers: false,
-    nombre: "Motivos de pérdida",
+    nombre: "Motivos",
     camposBooleanos: [{ campo: "pideTexto", etiqueta: "Pide texto" }],
+    camposOpciones: [{
+      campo: "tipo",
+      etiqueta: "Lista",
+      opciones: [
+        { valor: "perdida", etiqueta: "Pérdida" },
+        { valor: "reagenda", etiqueta: "Re-agenda" },
+        { valor: "retroceso", etiqueta: "Retroceso" },
+        { valor: "recuperacion", etiqueta: "Recuperación" },
+        { valor: "a_futuro", etiqueta: "A futuro" },
+      ],
+    }],
     esquema: esquemaMotivo,
     fabrica: motivos,
   },

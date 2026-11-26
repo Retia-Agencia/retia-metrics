@@ -15,12 +15,14 @@ export async function cargarDatosDeCatalogos(db: Db) {
       nombre: def.nombre,
       puedeAdministrar: true,
       camposBooleanos: def.camposBooleanos,
+      camposOpciones: def.camposOpciones,
       programas: def.vinculadoAProgramas ? programas.map((programa) => ({ id: programa.id, nombre: programa.nombre })) : undefined,
       items: items.map((item) => ({
         id: item.id,
         nombre: String(item.nombre),
         activo: item.activo,
         booleanos: Object.fromEntries(def.camposBooleanos.map(({ campo }) => [campo, item[campo] === true])),
+        opciones: Object.fromEntries(def.camposOpciones.map(({ campo }) => [campo, String(item[campo] ?? "")])),
         programas: def.vinculadoAProgramas ? (vinculos.get(item.id) ?? []) : undefined,
       })),
     };

@@ -104,6 +104,7 @@ const FALTANTES_POR_ETAPA = {
   ganado_parcial: ["cohorte", "dueno", "valor_vendido", "abono", "fecha_limite_pago"],
   ganado_completo: ["cohorte", "dueno", "valor_vendido", "abono", "saldo_en_cero"],
   cierre_perdido: ["motivo"],
+  a_futuro: ["motivo"],
 } as const;
 
 describe("propiedades acumuladas de la etapa", () => {
