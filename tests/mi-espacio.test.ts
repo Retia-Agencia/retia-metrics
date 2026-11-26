@@ -318,7 +318,7 @@ describe("/mi-espacio (ticket 172)", () => {
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(true);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 
