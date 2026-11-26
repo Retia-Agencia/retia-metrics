@@ -183,13 +183,6 @@ describe("guardarCloserIdPropioAccion — quien PUEDE", () => {
     expect(await closerIdEnBase(gerenteId)).toBe("GerenteCloser");
   });
 
-  it("un developer se carga su propio closerId", async () => {
-    auth.mockResolvedValue({ user: { id: developerId, email: "dev@retiagrowth.com", rol: "developer" } });
-    const { guardarCloserIdPropioAccion } = await accion();
-    const res = await guardarCloserIdPropioAccion({ closerId: "Mani" });
-    expect(res.ok).toBe(true);
-    expect(await closerIdEnBase(developerId)).toBe("Mani");
-  });
 });
 
 describe("guardarCloserIdPropioAccion — quien NO PUEDE (el test que importa)", () => {

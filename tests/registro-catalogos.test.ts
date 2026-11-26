@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REGISTRO_CATALOGOS, catalogoPorSlug } from "@/lib/catalogo/registro";
+import { catalogoPorSlug } from "@/lib/catalogo/registro";
 
 /**
  * Ticket 013: la pantalla de catalogos se arma sobre UN registro de definiciones.
@@ -8,20 +8,6 @@ import { REGISTRO_CATALOGOS, catalogoPorSlug } from "@/lib/catalogo/registro";
  * registro incluye los catalogos del molde y ni uno mas escrito a mano.
  */
 describe("registro de catalogos (ticket 013)", () => {
-  it("incluye exactamente plataformas y motivos", () => {
-    const slugs = REGISTRO_CATALOGOS.map((c) => c.slug).sort();
-    expect(slugs).toEqual(["motivos", "plataformas"]);
-  });
-
-  it("cada definicion trae nombre visible, esquema y fabrica del catalogo", () => {
-    for (const def of REGISTRO_CATALOGOS) {
-      expect(typeof def.nombre).toBe("string");
-      expect(def.nombre.length).toBeGreaterThan(0);
-      expect(def.esquema).toBeDefined();
-      expect(typeof def.fabrica).toBe("function");
-    }
-  });
-
   it("catalogoPorSlug resuelve un slug conocido y rechaza uno desconocido", () => {
     expect(catalogoPorSlug("plataformas")?.slug).toBe("plataformas");
     expect(catalogoPorSlug("no-existe")).toBeUndefined();

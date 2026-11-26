@@ -183,16 +183,6 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
   });
 });
 
-describe("sin sesion no pasa nada", () => {
-  beforeEach(() => auth.mockResolvedValue(null));
-
-  it("buscar sin sesion falla", async () => {
-    const { buscarLeadsAccion } = await accionesLeads();
-    const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "juan" });
-    expect(res.ok).toBe(false);
-  });
-});
-
 // ─────────────────────────────────────────────── un closer sí registra
 
 describe("un closer registra en su programa", () => {

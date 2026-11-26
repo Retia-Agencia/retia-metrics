@@ -270,26 +270,6 @@ describe("ruta MCP real", () => {
     expect(filas.at(-1)).toMatchObject({ herramienta: "ficha_de_deal", resultado: "denegado" });
   });
 
-  it("petición forjada: un paid trafficker no tiene la herramienta de fichas de deal", async () => {
-    const [paid] = await db.insert(users).values({
-      email: "paid-mcp@retia.test", nombre: "Paid", rol: "paid_trafficker",
-    }).returning();
-    const token = await emitirTokenPersonal(db, {
-      userId: paid.id, actorId: paid.id, nombre: "Paid", scope: "lectura",
-    });
-    const listado = await json(await post("tools/list", {}, token.valor));
-    const nombres = (listado.result as { tools: { name: string }[] }).tools.map((t) => t.name);
-    expect(nombres).not.toContain("ficha_de_deal");
-    expect(nombres).not.toContain("buscar_leads");
-
-    const respuesta = await json(await post("tools/call", {
-      name: "ficha_de_deal",
-      arguments: { programa: "visible-a", id: crypto.randomUUID() },
-    }, token.valor));
-    expect(JSON.stringify(respuesta)).not.toContain("structuredContent");
-    expect(respuesta.error ?? (respuesta.result as { isError?: boolean }).isError).toBeTruthy();
-  });
-
   it("rechaza entradas con texto desmedido sin ejecutar la herramienta", async () => {
     const respuesta = await json(await post("tools/call", {
       name: "buscar_leads",

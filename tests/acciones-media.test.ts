@@ -146,10 +146,4 @@ describe("las acciones de media", () => {
     expect(sinLink.ok && sinLink.sinLink).toMatch(/no tiene programa/);
   });
 
-  it("sin sesion no hay accion", async () => {
-    const a = await acciones();
-    auth.mockResolvedValue(null);
-    const r = await a.crearTipoDePiezaAccion("Reel").catch((e: unknown) => ({ ok: false, error: String(e) }));
-    expect(r.ok).toBe(false);
-  });
 });

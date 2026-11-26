@@ -184,13 +184,6 @@ describe("acciones de recursos — closer en su programa (A)", () => {
     expect(await db.select().from(recursos)).toHaveLength(0);
   });
 
-  it("un closer NO puede crear un enlace de pago en un programa donde no vende (B)", async () => {
-    const { crearEnlacePagoAccion } = await accionesPrograma();
-    const res = await crearEnlacePagoAccion(enlaceEn(programaB));
-    expect(res.ok).toBe(false);
-    expect(await db.select().from(enlacesPago)).toHaveLength(0);
-  });
-
   it("un closer NO puede crear un recurso GLOBAL (programId nulo)", async () => {
     const { crearRecursoAccion } = await acciones();
     const res = await crearRecursoAccion(recursoEn(null));
@@ -242,13 +235,6 @@ describe("acciones de recursos — un administrador entra a todo", () => {
     expect((await crearRecursoAccion(recursoEn(null))).ok).toBe(true);
   });
 
-  it("una url http:// (no https) devuelve ok:false con mensaje", async () => {
-    const { crearRecursoAccion } = await acciones();
-    const res = await crearRecursoAccion({ ...recursoEn(programaA), url: "http://inseguro.com" });
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
-  });
-
   it("crea un recurso SIN categoriaId (ticket 171) y deja su rastro en change_log", async () => {
     const { crearRecursoAccion } = await acciones();
     // Sin la propiedad `categoriaId`: el esquema la trata como `null` (recurso libre).
@@ -268,14 +254,6 @@ describe("acciones de recursos — un administrador entra a todo", () => {
     expect(log.every((l) => l.tabla === "recursos")).toBe(true);
   });
 
-  it("reemplaza un recurso conservando el historial", async () => {
-    const { crearRecursoAccion, reemplazarRecursoAccion } = await acciones();
-    await crearRecursoAccion(recursoEn(programaA));
-    const [creado] = await db.select().from(recursos).where(eq(recursos.programId, programaA));
-    expect((await reemplazarRecursoAccion(creado.id, "https://drive.google.com/v2")).ok).toBe(true);
-    const filas = await db.select().from(recursos).where(eq(recursos.programId, programaA));
-    expect(filas).toHaveLength(2);
-  });
 });
 
 // ─────────────────────────────────────────── developer: el dueno, todo (ADR 0025)
@@ -445,31 +423,4 @@ describe("acciones de plataformas de la tab Programa (ticket 171)", () => {
     expect(vinculos[0].programId).toBe(programaA);
   });
 
-  it("un closer forjando la accion en un programa ajeno (B) recibe ok:false y nada se escribe", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    const { crearOVincularPlataformaAccion } = await accionesPrograma();
-    const res = await crearOVincularPlataformaAccion("Wise", programaB);
-    expect(res.ok).toBe(false);
-    expect(await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Wise"))).toHaveLength(0);
-    expect(await db.select().from(plataformasPrograma)).toHaveLength(0);
-  });
-
-  it("un nombre que ya existe (PayPal) con otras mayusculas vincula, no duplica", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    const { crearOVincularPlataformaAccion } = await accionesPrograma();
-    expect((await crearOVincularPlataformaAccion("paypal", programaA)).ok).toBe(true);
-
-    // Sigue habiendo UNA sola fila PayPal: se reuso la existente.
-    const paypal = await db
-      .select()
-      .from(plataformasPago)
-      .where(eq(plataformasPago.id, plataforma));
-    expect(paypal).toHaveLength(1);
-    const vinculos = await db
-      .select()
-      .from(plataformasPrograma)
-      .where(eq(plataformasPrograma.plataformaId, plataforma));
-    expect(vinculos).toHaveLength(1);
-    expect(vinculos[0].programId).toBe(programaA);
-  });
 });

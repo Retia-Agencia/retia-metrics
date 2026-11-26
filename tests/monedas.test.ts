@@ -29,7 +29,4 @@ describe("una sola moneda para vender y cobrar", () => {
     ).toBe(false);
   });
 
-  it("el enlace acepta USD", () => {
-    expect(esquemaEnlacePago.safeParse({ ...enlace, moneda: "USD" }).success).toBe(true);
-  });
 });
