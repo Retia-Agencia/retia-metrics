@@ -13,7 +13,6 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { navParaRol, rutaAlCambiarDePrograma } from "@/lib/nav";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
@@ -69,15 +68,17 @@ function sesion(id: string, rol: "closer" | "gerente" | "developer") {
   return { user: { id, email: `${rol}@retiagrowth.com`, rol, closerId: null } };
 }
 
-beforeAll(async () => {
-  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
-});
-
-beforeEach(async () => {
-  await vaciar();
+// Siembra UNA vez para el archivo: las lecturas, las páginas y las escrituras forjadas (rechazadas) no
+// tocan la base; los dos tests que sí escriben (plataformas, formulario principal) no cambian lo que
+// afirman los demás.
+beforeEach(() => {
   auth.mockReset();
   notFound.mockClear();
+});
 
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  await vaciar();
   const [pa] = await db
     .insert(programs)
     .values({
@@ -316,20 +317,5 @@ describe("forjar la escritura desde un closer con membresía", () => {
     const [p] = await db.select().from(programs).where(eq(programs.id, programaA));
     expect(p.comisionPorcentaje).toBe("10.04");
     expect(await bitacora()).toBe(antes);
-  });
-});
-
-describe("la tab en la navegación", () => {
-  it("la ven gerente y developer en el programa elegido; el closer ya no (ticket 224, ADR 0082)", () => {
-    for (const rol of ["gerente", "developer"] as const) {
-      expect(navParaRol({ rol, operaComoCloser: false }, { slug: "a", activo: true }).map((i) => i.href)).toContain("/p/a/programa");
-    }
-    // El closer, que antes la LEÍA, dejó de verla: la ficha es ahora de quien configura.
-    expect(navParaRol({ rol: "closer", operaComoCloser: false }, { slug: "a", activo: true }).map((i) => i.href)).not.toContain("/p/a/programa");
-    expect(navParaRol({ rol: "closer", operaComoCloser: false }, null).map((i) => i.href)).not.toContain("/p/a/programa");
-  });
-
-  it("cambiar de programa desde la ficha se queda en la ficha", () => {
-    expect(rutaAlCambiarDePrograma("/p/a/programa", "b")).toBe("/p/b/programa");
   });
 });

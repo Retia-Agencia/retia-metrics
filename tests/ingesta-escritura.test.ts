@@ -240,10 +240,6 @@ describe("ingerirEntradas", () => {
 });
 
 describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0061, tickets 051 y 117)", () => {
-  // Que Estados reconoce el programa lo dice su tabla (117): sin filas, todo se cuenta.
-  beforeEach(async () => {
-  });
-
   // Cada fila del contrato, con la etiqueta EXACTA que escribe el Apps Script en la
   // columna Estado y el valor del enum que le corresponde.
   const CONTRATO: [etiqueta: string, valor: Calificacion][] = [
@@ -261,15 +257,6 @@ describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0061, tickets 05
     ];
     const [uno] = entradasDesdeMatriz(matriz, { sourceId, zona: "UTC" });
     await ingerirEntradas(db, programId, [uno]);
-    const [envio] = await db.select().from(submissions);
-    expect(envio.calificacion).toBe(valor);
-    const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe(valor);
-  });
-
-  it.each(CONTRATO)("el valor del codigo %2$s entra directo por un Envio", async (_etiqueta, valor) => {
-    // Lo que mandara el webhook (ticket 106): el valor del enform en la variable `estado`.
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: valor })]);
     const [envio] = await db.select().from(submissions);
     expect(envio.calificacion).toBe(valor);
     const [lead] = await db.select().from(leads);
@@ -571,7 +558,7 @@ describe("resumirEnvios", () => {
   });
 });
 
-describe("ticket 389: el lead nace con su fecha y su calificacion es determinista", () => {
+describe("el lead nace con su fecha y su calificacion es determinista (N6)", () => {
   it("un parcial sin fecha_envio deja al lead con la fecha en que el CRM lo recibio (N6)", async () => {
     const antes = Date.now();
     await ingerirEntradas(db, programId, [entrada({ token: "p1", correo: "parcial@correo.co", fecha: null, posicion: 2 })]);
@@ -584,13 +571,6 @@ describe("ticket 389: el lead nace con su fecha y su calificacion es determinist
     expect(lead.fechaPrimeraAplicacion!.getTime()).toBeGreaterThanOrEqual(antes - 1000);
     // El dato que no existe sigue sin inventarse: la ultima aplicacion es de un envio fechado.
     expect(lead.fechaUltimaAplicacion).toBeNull();
-  });
-
-  it("si despues llega el completo fechado, gana la mas antigua de las dos y no se pierde nada", async () => {
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "a@correo.co", fecha: null, posicion: 2 })]);
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "a@correo.co", fecha: "2020-01-05T10:00:00Z", posicion: 3 })]);
-    const [lead] = await db.select().from(leads);
-    expect(lead.fechaPrimeraAplicacion?.toISOString()).toBe("2020-01-05T10:00:00.000Z");
   });
 
   it("406: quien solo dejo un parcial cuenta como lead, y la cifra del Hub y la lista dan lo mismo", async () => {

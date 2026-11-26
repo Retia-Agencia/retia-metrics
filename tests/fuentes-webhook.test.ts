@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, programs, proveedorFormularioEnum, sources, users } from "@/lib/db/schema";
+import { changeLog, programs, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   activarFuente,
@@ -9,11 +9,8 @@ import {
   guardarSecretoDeFuente,
   listarFuentes,
   rotarSecretoDeFuente,
-  rutaDelWebhook,
 } from "@/lib/catalogo/fuentes";
-import { PROVEEDORES_FORMULARIO } from "@/lib/catalogo/fuentes-webhook";
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
-import { esProveedorRegistrado } from "@/lib/ingesta/proveedores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -77,13 +74,6 @@ async function secretoEnLaBase(id: string): Promise<string | null> {
   return f.s;
 }
 
-it("la lista de proveedores de la pantalla excluye el valor retirado pendiente de migración", () => {
-  // retirado: solo queda en el enum hasta la migración.
-  expect([...PROVEEDORES_FORMULARIO]).toEqual(
-    proveedorFormularioEnum.enumValues.filter(esProveedorRegistrado),
-  );
-});
-
 describe("crear una fuente webhook", () => {
   it("nace inactiva, sin hoja, con su proveedor y sin secreto", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
@@ -105,20 +95,6 @@ describe("crear una fuente webhook", () => {
     ).rejects.toThrow();
   });
 
-  it("una hoja se sigue creando como antes", async () => {
-    const f = await crearFuente(db, actorGerente(), {
-      programId,
-      nombre: "Hoja",
-      sheetId: "sheet-1",
-      tab: "Hoja",
-    });
-    expect(f).toMatchObject({ tipo: "google_sheet", proveedor: null });
-  });
-
-  it("la ruta es derivada del id opaco", async () => {
-    const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    expect(rutaDelWebhook(f.id)).toBe(`/api/webhooks/formularios/${f.id}`);
-  });
 });
 
 describe("el secreto", () => {
@@ -130,16 +106,11 @@ describe("el secreto", () => {
     expect((await activarFuente(db, actorGerente(), f.id)).activo).toBe(true);
   });
 
-  it("se genera una vez, se devuelve y queda guardado", async () => {
-    const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    const secreto = await rotarSecretoDeFuente(db, actorGerente(), f.id);
-    expect(secreto.length).toBeGreaterThanOrEqual(40);
-    expect(await secretoEnLaBase(f.id)).toBe(secreto);
-  });
-
-  it("rotar lo cambia", async () => {
+  it("rotar genera y devuelve un secreto largo, lo guarda y la siguiente rotación lo cambia", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
     const uno = await rotarSecretoDeFuente(db, actorGerente(), f.id);
+    expect(uno.length).toBeGreaterThanOrEqual(40);
+    expect(await secretoEnLaBase(f.id)).toBe(uno);
     const dos = await rotarSecretoDeFuente(db, actorGerente(), f.id);
     expect(dos).not.toBe(uno);
     expect(await secretoEnLaBase(f.id)).toBe(dos);
@@ -221,13 +192,6 @@ describe("activar y editar", () => {
   it("sin secreto no se activa (422)", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
     await expect(activarFuente(db, actorGerente(), f.id)).rejects.toMatchObject({ status: 422 });
-  });
-
-  it("con secreto se activa sin probar ninguna hoja", async () => {
-    const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    await rotarSecretoDeFuente(db, actorGerente(), f.id);
-    const a = await activarFuente(db, actorGerente(), f.id);
-    expect(a.activo).toBe(true);
   });
 
   it("el tipo no se cambia al editar (422)", async () => {

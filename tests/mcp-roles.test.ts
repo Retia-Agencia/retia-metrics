@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { miembrosPrograma, mcpTokens, oauthCodigos, programs, usuariosProgramasAlcance, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -21,12 +21,29 @@ let programaB: string;
 type Actor = { id: string; rol: Rol; token: string; limitado: boolean };
 let actores: Actor[];
 
+
+/** Un usuario con su par OAuth de lectura, como lo deja el flujo de conexión. */
+async function emitirActor(email: string, rol: Rol, limitado: boolean, indice: number): Promise<Actor & { userId: string }> {
+  const [usuario] = await db.insert(users).values({ email, rol }).returning();
+  const [codigo] = await db.insert(oauthCodigos).values({
+    hash: `codigo-${indice}`,
+    userId: usuario.id,
+    clientId: "https://cliente.example/oauth.json",
+    redirectUri: "http://localhost/callback",
+    codeChallenge: "a".repeat(43),
+    scope: "lectura",
+    resource: "http://localhost:3000/api/mcp",
+    venceEn: new Date(Date.now() + 60_000),
+  }).returning();
+  const par = await emitirParOauth(db, { userId: usuario.id, clientId: "https://cliente.example/oauth.json", resource: "http://localhost:3000/api/mcp", scope: "lectura", codigoId: codigo.id });
+  return { id: usuario.id, userId: usuario.id, rol, token: par.accessToken, limitado };
+}
+
+// Los tests de lectura (herramientas por rol, forja, alcance) no escriben: los actores se siembran una vez.
+// Los dos que sí escriben crean su propio usuario, para no cambiar el rol de un actor compartido.
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   estado.db = db;
-});
-
-beforeEach(async () => {
   await vaciar();
   process.env.AUTH_URL = "http://localhost:3000";
   const [a, b] = await db.insert(programs).values([
@@ -44,24 +61,12 @@ beforeEach(async () => {
     { email: "students@retia.test", rol: "customer_success", limitado: true, membresia: true },
     { email: "media@retia.test", rol: "media", limitado: true },
   ];
-  const filas = await db.insert(users).values(datos.map((dato) => ({ email: dato.email, rol: dato.rol }))).returning();
   actores = [];
-  for (const [indice, usuario] of filas.entries()) {
-    const dato = datos[indice];
-    if (dato.membresia) await db.insert(miembrosPrograma).values({ userId: usuario.id, programId: programaA });
-    if (dato.limitado && !dato.membresia) await db.insert(usuariosProgramasAlcance).values({ userId: usuario.id, programId: programaA });
-    const [codigo] = await db.insert(oauthCodigos).values({
-      hash: `codigo-${indice}`,
-      userId: usuario.id,
-      clientId: "https://cliente.example/oauth.json",
-      redirectUri: "http://localhost/callback",
-      codeChallenge: "a".repeat(43),
-      scope: "lectura",
-      resource: "http://localhost:3000/api/mcp",
-      venceEn: new Date(Date.now() + 60_000),
-    }).returning();
-    const par = await emitirParOauth(db, { userId: usuario.id, clientId: "https://cliente.example/oauth.json", resource: "http://localhost:3000/api/mcp", scope: "lectura", codigoId: codigo.id });
-    actores.push({ id: usuario.id, rol: dato.rol, token: par.accessToken, limitado: dato.limitado });
+  for (const [indice, dato] of datos.entries()) {
+    const actor = await emitirActor(dato.email, dato.rol, dato.limitado, indice);
+    if (dato.membresia) await db.insert(miembrosPrograma).values({ userId: actor.id, programId: programaA });
+    if (dato.limitado && !dato.membresia) await db.insert(usuariosProgramasAlcance).values({ userId: actor.id, programId: programaA });
+    actores.push(actor);
   }
 });
 
@@ -157,10 +162,9 @@ describe("MCP por rol y alcance", () => {
 
   it("la administracion no puede revocar fuera del alcance", async () => {
     const actor = actores.find((item) => item.rol === "gerente" && item.limitado)!;
-    const fuera = actores.find((item) => item.rol === "gerente" && !item.limitado)!;
-    await db.update(users).set({ rol: "closer" }).where(eq(users.id, fuera.id));
-    await db.insert(miembrosPrograma).values({ userId: fuera.id, programId: programaB });
-    const [tokenFuera] = await db.select({ id: mcpTokens.id }).from(mcpTokens).where(eq(mcpTokens.userId, fuera.id));
+    const fuera = await emitirActor("closer-fuera@retia.test", "closer", true, 100);
+    await db.insert(miembrosPrograma).values({ userId: fuera.userId, programId: programaB });
+    const [tokenFuera] = await db.select({ id: mcpTokens.id }).from(mcpTokens).where(eq(mcpTokens.userId, fuera.userId));
     await expect(revocarConexionOauthAdministrada(db, { tokenId: tokenFuera.id, actor: { id: actor.id, rol: actor.rol } })).rejects.toMatchObject({ status: 403 });
   });
 });

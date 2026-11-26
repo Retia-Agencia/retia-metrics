@@ -1,5 +1,5 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import type { Session } from "next-auth";
 import { calls, cohorts, dealEtapaHistorial, deals, gastoPauta, leads, miembrosPrograma, programs, sources, submissions, users, usuariosProgramasAlcance } from "@/lib/db/schema";
@@ -20,11 +20,13 @@ let closerId: string;
 let leadId: string;
 let slug: string;
 
-beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
-beforeEach(async () => {
+// Las consultas del MCP solo LEEN: se siembra una vez. El único test que escribe (sin dueño / sin cohorte)
+// agrega filas propias y solo afirma sobre las agendas "sin dueño" y "sin cohorte", que la siembra no tiene.
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   await vaciar();
   slug = "hechos-a";
-  const [programa, ajeno] = await db.insert(programs).values([
+  const [programa] = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug, nombre: "Hechos A", ticketUsd: "797" },
     { ...PROGRAMA_DE_PRUEBA, slug: "hechos-b", nombre: "Hechos B", ticketUsd: "1500" },
   ]).returning();
@@ -52,7 +54,6 @@ beforeEach(async () => {
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "50", moneda: "USD", registradoPorUserId: closer.id, anuladoEn: new Date(), anuladoPor: gerente.id, motivoAnulacion: "prueba" },
   ]);
   await db.insert(gastoPauta).values({ programId: programa.id, fecha: "2026-11-05", monto: "300000", moneda: "COP", origen: "manual", area: "paid" });
-  expect(ajeno.id).not.toBe(programa.id);
 });
 afterAll(async () => cerrar());
 

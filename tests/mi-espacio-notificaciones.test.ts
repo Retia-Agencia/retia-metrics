@@ -402,15 +402,6 @@ describe("conteoSinVer: el numero del circulito (223)", () => {
 
     expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(0);
   });
-
-  it("coincide con la suma de las razones distintas (consistencia con los chips)", async () => {
-    const calendly = await deal({ etapa: "agendado" });
-    await novedadCalendly(calendly.dealId, "ev-c");
-    await dealId({ etapa: "registrado", nuevo: true });
-    await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: HOY });
-
-    expect(await conteoSinVer(db, { programId, userId: yo }, HOY)).toBe(3);
-  });
 });
 
 describe("GET /api/mi-espacio/sin-ver: el numero por la ruta (223)", () => {

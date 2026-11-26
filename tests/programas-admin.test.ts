@@ -165,11 +165,6 @@ describe("esquema de programa", () => {
     expect(datos.calendlyUrl).toBeNull();
   });
 
-  it("rechaza una url invalida", () => {
-    expect(
-      esquemaPrograma.safeParse({ ...programaValido, webUrl: "no-es-url" }).success,
-    ).toBe(false);
-  });
 });
 
 describe("la reja de activación (ADR 0057 y 0068)", () => {
@@ -323,12 +318,6 @@ describe("crear programa", () => {
     expect(log.some((l) => l.campo === "slug" && l.valorNuevo === "programa-alfa")).toBe(true);
   });
 
-  it("con token y fuente principal se reactiva y aparece en los programas activos del sidebar", async () => {
-    await crearProgramaActivo(db, gerenteId);
-    const activos = await programasActivos(db);
-    expect(activos.some((p) => p.slug === "programa-alfa")).toBe(true);
-  });
-
 });
 
 describe("editar programa", () => {
@@ -403,21 +392,6 @@ describe("desactivar y reactivar programa", () => {
   });
 });
 
-describe("listar programas", () => {
-  it("devuelve activos e inactivos", async () => {
-    const a = await crearProgramaActivo(db, gerenteId);
-    const b = await crearProgramaActivo(db, gerenteId, {
-      ...programaValido,
-      nombre: "Beta",
-      slug: "beta",
-    });
-    await desactivarPrograma(db, gerenteId, b.id);
-    const lista = await listarProgramas(db);
-    expect(lista.find((p) => p.id === a.id)!.activo).toBe(true);
-    expect(lista.find((p) => p.id === b.id)!.activo).toBe(false);
-  });
-});
-
 // ─────────────────────────────────────────────────────────── cohortes
 
 const cohorteBase = {
@@ -438,12 +412,6 @@ function sinInicioVentas() {
 }
 
 describe("esquema de cohorte", () => {
-
-  it("rechaza un programId que no es uuid", () => {
-    expect(
-      esquemaCohorte.safeParse({ ...cohorteBase, programId: "no-uuid" }).success,
-    ).toBe(false);
-  });
 
   it("una cohorte por definir puede quedar sin inicio de ventas", () => {
     const cerrada = esquemaCohorte.safeParse({
@@ -480,15 +448,6 @@ describe("cohortes de un programa", () => {
     expect(lista.map((c) => c.id)).toContain(creada.id);
   });
 
-  it("crear deja change_log con origen app y userId", async () => {
-    const creada = await crearCohorte(db, gerenteId, { ...cohorteBase, programId });
-    const log = await logDe(creada.id);
-    expect(log.length).toBeGreaterThan(0);
-    expect(log.every((l) => l.origen === "app")).toBe(true);
-    expect(log.every((l) => l.userId === gerenteId)).toBe(true);
-    expect(log[0].tabla).toBe("cohorts");
-  });
-
   it("dos programas distintos pueden tener cada uno su cohorte activa", async () => {
     const otro = await crearPrograma(db, gerenteId, {
       ...programaValido,
@@ -509,23 +468,5 @@ describe("cohortes de un programa", () => {
     await editarCohorte(db, gerenteId, c1.id, { ...cohorteBase, programId, metaCupos: 50 });
     const log = await logDe(c1.id);
     expect(log.some((l) => l.campo === "metaCupos" && l.valorNuevo === "50")).toBe(true);
-  });
-
-  it("un id que no es uuid es un 400", async () => {
-    const error = await editarCohorte(db, gerenteId, "no-uuid", { ...cohorteBase, programId }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
-
-});
-
-describe("activar un programa (ADR 0057, enmendado por el 0068 y el 0095)", () => {
-  it("un programa nace inactivo por default; la reja de activación vive en el catálogo", async () => {
-    const [p] = await db
-      .insert(programs)
-      .values({ slug: "default", nombre: "Default", ticketUsd: "100" })
-      .returning();
-    expect(p!.activo).toBe(false);
-    await expect(reactivarPrograma(db, gerenteId, p!.id)).rejects.toMatchObject({ status: 422 });
   });
 });

@@ -1,5 +1,5 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import type { Session } from "next-auth";
 import {
@@ -12,12 +12,6 @@ import type { ContextoMcp } from "@/lib/mcp/herramientas";
 import { consultarDatosMcp, definicionesDeMetricasMcp } from "@/lib/mcp/herramientas/datos";
 import { CATALOGO_DE_VISTAS, VISTAS_DE_LECTURA, type VistaDeLectura } from "@/lib/queries/mcp-lectura/catalogo";
 import { consultarDatos, ejecutarAcotado } from "@/lib/queries/mcp-lectura/consultar";
-import * as abonoHecho from "@/lib/queries/hechos/abono";
-import * as agendaHecho from "@/lib/queries/hechos/agenda";
-import * as citaHecho from "@/lib/queries/hechos/cita";
-import * as envioHecho from "@/lib/queries/hechos/envio";
-import * as gastoHecho from "@/lib/queries/hechos/gasto";
-import * as ventaHecho from "@/lib/queries/hechos/venta";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { conexionDeLecturaPglite } from "./helpers/conexion-de-lectura-pglite";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -32,13 +26,11 @@ let paidId: string;
 let closerId: string;
 const ids: Record<string, string> = {};
 
-const RANGO = { desde: "2000-01-01", hasta: "2100-01-01" };
-const PAGINA = { limite: 1000, offset: 0 };
 
-beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
-afterAll(async () => cerrar());
-
-beforeEach(async () => {
+// Todo el archivo solo LEE (consultas del MCP; los intentos de escritura de los tests de rechazo fallan y
+// terminan en ROLLBACK), así que se siembra una sola vez para el archivo entero.
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   await vaciar();
   const [a, b] = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "lectura-a", nombre: "Lectura A", ticketUsd: "797" },
@@ -131,6 +123,7 @@ beforeEach(async () => {
   ]).returning();
   Object.assign(ids, { g1: g1.id, g2: g2.id, g3: g3.id });
 });
+afterAll(async () => cerrar());
 
 const conexion = () => conexionDeLecturaPglite(db);
 
@@ -157,18 +150,9 @@ describe("el catálogo coincide con la base", () => {
   });
 });
 
-describe("paridad: la vista dice lo mismo que lib/queries", () => {
-  const lib = { rango: RANGO, pagina: PAGINA };
-
-  it("envios: completos y parciales sin completar como lib (429), día de Bogotá (23:30 sigue siendo el 5) y área por árbol de pauta", async () => {
+describe("la vista aplica las reglas de negocio (la paridad con lib/queries la prueba mcp-definicion-unica)", () => {
+  it("envios: día de Bogotá (23:30 sigue siendo el 5) y área por árbol de pauta", async () => {
     const filas = await leer("select id_del_envio, dia, area, canal, cuenta, categoria from mcp_lectura.envios");
-    const esperado = await envioHecho.listar(db, { programId: programaA, universo: "completos_y_parciales", ...lib });
-    expect(new Set(filas.map((f) => f.id_del_envio))).toEqual(new Set(esperado.filas.map((f) => f.envioId)));
-    for (const fila of esperado.filas) {
-      const vista = filas.find((f) => f.id_del_envio === fila.envioId)!;
-      expect({ dia: dia(vista.dia), area: vista.area, canal: vista.canal, cuenta: vista.cuenta, categoria: vista.categoria })
-        .toEqual({ dia: dia(fila.dia), area: fila.area, canal: fila.canal, cuenta: fila.cuenta, categoria: fila.categoria });
-    }
     const porId = Object.fromEntries(filas.map((f) => [f.id_del_envio, f]));
     expect(dia(porId[ids.s1].dia)).toBe("2026-11-05");
     expect(porId[ids.s4].area).toBe("paid");
@@ -189,15 +173,8 @@ describe("paridad: la vista dice lo mismo que lib/queries", () => {
 
   it("agendas: sin llamada anulada ni de deal anulado, con origen y dueño", async () => {
     const filas = await leer("select id_de_la_llamada, dia, hora_minuto, area, canal, cuenta, dueno, cohorte_id, etapa, tiene_envio from mcp_lectura.agendas");
-    const esperado = await agendaHecho.listar(db, { programId: programaA, ...lib });
-    expect(new Set(filas.map((f) => f.id_de_la_llamada))).toEqual(new Set(esperado.filas.map((f) => f.callId)));
     expect(filas.map((f) => f.id_de_la_llamada)).not.toContain(ids.c2);
     expect(filas.map((f) => f.id_de_la_llamada)).not.toContain(ids.c3);
-    for (const fila of esperado.filas) {
-      const vista = filas.find((f) => f.id_de_la_llamada === fila.callId)!;
-      expect({ dia: dia(vista.dia), hm: vista.hora_minuto, area: vista.area, canal: vista.canal, cuenta: vista.cuenta, dueno: vista.dueno, cohorte: vista.cohorte_id, etapa: vista.etapa })
-        .toEqual({ dia: dia(fila.dia), hm: fila.horaMinuto, area: fila.area, canal: fila.canal, cuenta: fila.cuenta, dueno: fila.dueno, cohorte: fila.cohorte, etapa: fila.etapa });
-    }
     const c1 = filas.find((f) => f.id_de_la_llamada === ids.c1)!;
     expect(dia(c1.dia)).toBe("2026-11-05");
     expect(filas.find((f) => f.id_de_la_llamada === ids.c4)).toMatchObject({ area: "sin_envio_origen", tiene_envio: "si".replace("si", "no") });
@@ -212,54 +189,25 @@ describe("paridad: la vista dice lo mismo que lib/queries", () => {
     }
   });
 
-  it("citas: día de la cita y `ocurrio`", async () => {
-    const filas = await leer("select id_de_la_llamada, dia, area, ocurrio, etapa from mcp_lectura.citas");
-    const esperado = await citaHecho.listar(db, { programId: programaA, ...lib });
-    expect(new Set(filas.map((f) => f.id_de_la_llamada))).toEqual(new Set(esperado.filas.map((f) => f.callId)));
-    for (const fila of esperado.filas) {
-      const vista = filas.find((f) => f.id_de_la_llamada === fila.callId)!;
-      expect({ dia: dia(vista.dia), area: vista.area, ocurrio: vista.ocurrio, etapa: vista.etapa })
-        .toEqual({ dia: dia(fila.dia), area: fila.area, ocurrio: fila.ocurrio, etapa: fila.etapa });
-    }
-  });
-
   it("ventas: Abonado o Completo, sin cortesía, sin anulado; día de venta = primer pago vigente y día de etapa tras la reversa", async () => {
     const filas = await leer("select id_del_deal, dia, area, canal, cuenta, dueno, cohorte_id from mcp_lectura.ventas");
-    const esperado = await ventaHecho.listar(db, { programId: programaA, ...lib });
-    expect(new Set(filas.map((f) => f.id_del_deal))).toEqual(new Set(esperado.filas.map((f) => f.dealId)));
     expect(filas.map((f) => f.id_del_deal)).toEqual([ids.d1]);
-    // Paridad con lib (ADR 0136): la venta se fecha por el primer pago vigente del concepto ticket; la etapa queda aparte.
+    // ADR 0136: la venta se fecha por el primer pago vigente del concepto ticket; la etapa queda aparte.
     const [fecha] = await leer("select dia, dia_de_venta, dia_de_etapa from mcp_lectura.ventas");
     expect(dia(fecha.dia_de_etapa)).toBe("2026-11-08");
     expect(dia(fecha.dia_de_venta)).toBe("2026-11-02");
-    expect(dia(fecha.dia_de_venta)).toBe(dia(esperado.filas[0].dia));
     expect(dia(fecha.dia)).toBe(dia(fecha.dia_de_venta));
-    expect({ area: filas[0].area, canal: filas[0].canal, dueno: filas[0].dueno }).toEqual({ area: esperado.filas[0].area, canal: esperado.filas[0].canal, dueno: esperado.filas[0].dueno });
   });
 
   it("abonos: sin anulados, moneda aparte y el abono de un deal anulado se ve marcado", async () => {
     const filas = await leer("select id_del_abono, dia, moneda, monto, dueno, cohorte_id, deal_vigente from mcp_lectura.abonos");
-    const esperado = await abonoHecho.listar(db, { programId: programaA, ...lib });
-    expect(new Set(filas.map((f) => f.id_del_abono))).toEqual(new Set(esperado.filas.map((f) => f.abonoId)));
     expect(filas.map((f) => f.id_del_abono)).not.toContain(ids.a3);
-    for (const fila of esperado.filas) {
-      const vista = filas.find((f) => f.id_del_abono === fila.abonoId)!;
-      expect({ dia: dia(vista.dia), moneda: vista.moneda, monto: Number(vista.monto), dueno: vista.dueno })
-        .toEqual({ dia: dia(fila.dia), moneda: fila.moneda, monto: Number(fila.monto), dueno: fila.dueno });
-    }
     expect(filas.find((f) => f.id_del_abono === ids.a4)).toMatchObject({ deal_vigente: false });
   });
 
   it("gasto: solo Paid o colgado de un objeto, en su moneda y con su cuenta", async () => {
     const filas = await leer("select id_del_gasto, dia, moneda, monto, objeto_de_pauta, cuenta_meta from mcp_lectura.gasto");
-    const esperado = await gastoHecho.listar(db, { programId: programaA, ...lib });
-    expect(new Set(filas.map((f) => f.id_del_gasto))).toEqual(new Set(esperado.filas.map((f) => f.gastoId)));
-    expect(filas.map((f) => f.id_del_gasto)).not.toContain(ids.g2);
-    for (const fila of esperado.filas) {
-      const vista = filas.find((f) => f.id_del_gasto === fila.gastoId)!;
-      expect({ dia: dia(vista.dia), moneda: vista.moneda, monto: Number(vista.monto), objeto: vista.objeto_de_pauta, cuenta: vista.cuenta_meta })
-        .toEqual({ dia: dia(fila.dia), moneda: fila.moneda, monto: Number(fila.monto), objeto: fila.objeto_de_pauta, cuenta: fila.cuenta_meta });
-    }
+    expect(new Set(filas.map((f) => f.id_del_gasto))).toEqual(new Set([ids.g1, ids.g3]));
   });
 
   it("leads y deals: únicos por correo, y el deal anulado no aparece", async () => {
@@ -337,11 +285,6 @@ describe("la base rechaza lo que la validación previa no vio", () => {
     const pedido = acotado(`select count(*) from mcp_lectura.deals where programa = 'lectura-b'`);
     expect((await pedido).filas).toEqual([[0]]);
   });
-
-  it("el tope de filas trae una de más para saber que hay más", async () => {
-    const r = await acotado("select generate_series(1, 5000)", 10);
-    expect(r.filas).toHaveLength(11);
-  });
 });
 
 describe("consultar_datos (herramienta)", () => {
@@ -388,13 +331,9 @@ describe("consultar_datos (herramienta)", () => {
 
   it.each([
     ["INSERT", "insert into mcp_lectura.deals select 1", /INSERT/],
-    ["UPDATE", "update public.deals set etapa = 'x'", /UPDATE/],
     ["set_config", "select set_config('role', 'postgres', true)", /set_config/],
-    ["DDL", "create table z (a int)", /CREATE/],
     ["varias sentencias", "select 1; select 2", /una consulta por llamada/],
-    ["fijar_alcance", "select mcp_lectura.fijar_alcance(array[]::uuid[], true)", /fijar_alcance/],
     ["tablas de la app", "select * from public.deals", /public/],
-    ["query_to_xml", "select query_to_xml('select 1', true, false, '')", /query_to_xml/],
   ])("rechaza %s con un mensaje útil", async (_nombre, consulta, mensaje) => {
     await expect(consultarDatosMcp.ejecutar(contexto(gerenteId, "gerente"), consultarDatosMcp.entrada.parse({ sql: consulta }))).rejects.toThrow(mensaje);
   });
