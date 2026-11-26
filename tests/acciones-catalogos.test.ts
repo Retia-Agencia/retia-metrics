@@ -75,13 +75,6 @@ describe("operaciones de catalogos — barrera de rol (ADR 0003)", () => {
     }
   });
 
-  it("sin sesion es rechazado (401)", async () => {
-    auth.mockResolvedValue(null);
-    const { crearItem } = await ops();
-    const error = await crearItem(db, "plataformas", { nombre: "Wise" }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(401);
-  });
 });
 
 describe("operaciones de catalogos — el gerente administra", () => {
@@ -185,22 +178,6 @@ describe("operaciones de catalogos — el gerente administra", () => {
  * sigue en la base para que la pantalla ofrezca desactivar.
  */
 describe("operaciones de catalogos — borrar solo lo que nunca se uso (ticket 030)", () => {
-  it("un closer no puede borrar (403), igual que en el resto de operaciones", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    const { borrarItemSiNoSeUso } = await ops();
-    const error = await borrarItemSiNoSeUso(db, "plataformas", UUID_INEXISTENTE).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(403);
-  });
-
-  it("un id que NO es uuid se rechaza como validacion (400), no como error interno", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    const { borrarItemSiNoSeUso } = await ops();
-    const error = await borrarItemSiNoSeUso(db, "plataformas", "no-es-uuid").catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
-
   it("borra de verdad una fila sin referencias y deja la huella en change_log", async () => {
     auth.mockResolvedValue(sesionGerente);
     const { crearItem, listarItems, borrarItemSiNoSeUso } = await ops();

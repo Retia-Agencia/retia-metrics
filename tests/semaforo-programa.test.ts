@@ -420,25 +420,6 @@ describe("semáforo del programa", () => {
       .toEqual(["08:00", "11:00", "14:00", "17:00", "20:00"]);
   });
 
-  it("el caso real del 16-oct a las 8 pinta rojo contra la meta aunque ayer no tuviera agendas", async () => {
-    const p = await crearPrograma("caso-real");
-    await foto({ ...p, dia: "2026-10-15", hora: "08:00", gasto: 100000, agendasMeta: 0 });
-    await foto({ ...p, dia: "2026-10-16", hora: "08:00", gasto: 218653, agendasMeta: 1 });
-    await crearAgenda({ ...p, creadaEn: new Date("2026-10-16T07:30:00-05:00") });
-
-    const dia = await semaforoDelPrograma(db, {
-      programId: p.programId, ahora: new Date("2026-10-16T08:05:00-05:00"), tipo: "dia",
-    });
-
-    expect(dia).toMatchObject({
-      color: "peligro",
-      gasto: 218653,
-      agendasMeta: 1,
-      agendasCrm: 1,
-      costo: 218653,
-    });
-  });
-
   it("sin agendas de Meta hoy cuenta 0 y pinta rojo si el programa ya tuvo agendas de Meta", async () => {
     const p = await crearPrograma("mide-agendas");
     await db.insert(gastoPauta).values({

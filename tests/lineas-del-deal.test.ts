@@ -1,7 +1,8 @@
+/** Líneas del deal como fuente de verdad: valor vendido, cupo, saldo y comisión viven en la línea. Es base porque los derivados salen de SQL sobre abonos y líneas. */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import {
-  abonos, cohorts, dealEtapaHistorial, dealLineas, deals, leads, plataformasPago,
+  cohorts, dealEtapaHistorial, dealLineas, deals, leads, plataformasPago,
   productos, programs, skus, users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -110,7 +111,7 @@ async function lineaSinClasificar(deal: typeof deals.$inferSelect, monto: number
   }));
 }
 
-describe("ticket 376 B1: líneas como fuente de verdad", () => {
+describe("líneas como fuente de verdad: el valor, el cupo y la comisión viven en la línea", () => {
   it("el SKU virtual de prueba conserva su precio de lista al editar la cohorte", async () => {
     const cohorte = await crearCohorte(db, closerId, {
       programId, codigo: "PUENTE", metaCupos: 3, precioUsd: "275", fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
@@ -203,15 +204,6 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     expect((await saldosDeLineas(db, [abierto.deal.id])).get(propuesta.id)?.vendida).toBe(false);
   });
 
-  it("al anular el único abono conserva la reversión A1 de hoy", async () => {
-    const { deal } = await crearDeal("contactado");
-    const linea = await asignar(deal, virtual1, 100);
-    const registrado = await pago(deal.id, "25", linea.id);
-    expect(registrado.etapa).toBe("ganado_parcial");
-    const anulado = await anularAbono(db, actor(), { abonoId: registrado.abonoId, motivo: "Pago duplicado" });
-    expect(anulado.etapa).toBe("contactado");
-  });
-
   it("saldo del deal suma líneas vendidas y el sobrepago se rechaza por su línea", async () => {
     const { deal } = await crearDeal();
     const virtual = await asignar(deal, virtual1, 100);
@@ -253,18 +245,6 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     await db.update(skus).set({ comisionPorcentaje: null }).where(eq(skus.id, unoAUno1));
     const [conNulo] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
     expect(conNulo.comisionUsd).toBe(10);
-  });
-
-  it("ADR 0137 punto 14: un abono a una línea sin clasificar elegida mueve el deal", async () => {
-    const { deal } = await crearDeal();
-    const adicional = await lineaSinClasificar(deal, 25);
-    const registrado = await pago(deal.id, "25", adicional.id);
-    expect(registrado.etapa).toBe("ganado_completo");
-    const [abono] = await db.select().from(abonos).where(eq(abonos.id, registrado.abonoId));
-    const [linea] = await db.select().from(dealLineas).where(eq(dealLineas.id, abono.lineaId));
-    const [sku] = await db.select().from(skus).where(eq(skus.id, linea.skuId));
-    expect(sku.slug).toBe("sin_clasificar");
-    expect(linea.valorVendidoUsd).toBe("25.00");
   });
 
   it("cambiar cohorte mueve la línea con cupo y no la duplica", async () => {

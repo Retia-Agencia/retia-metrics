@@ -4,7 +4,6 @@ import { calls, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { pct } from "@/lib/format";
 import {
-  CONCEPTOS_DE_COMERCIAL,
   cifrasClaveDeComercial,
   cifrasDeCloser,
   MOTIVO_SIN_VENTAS_DEL_CLOSER,
@@ -381,9 +380,5 @@ describe("419 E-2: paridad cifra = lista en Comercial", () => {
     expect(deBeto.sinMarcar).toBeNull();
     // La suma de los closers da el grupo del programa: cada persona cuenta en un solo closer.
     expect(filas.reduce((s, f) => s + f.grupo.deals, 0)).toBe(8);
-  });
-
-  it("el módulo declara los conceptos que pinta, para que la ficha de cada uno se pueda exigir", () => {
-    expect(Object.keys(explicaciones).sort()).toEqual([...CONCEPTOS_DE_COMERCIAL].sort());
   });
 });

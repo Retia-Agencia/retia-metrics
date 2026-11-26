@@ -527,17 +527,6 @@ const PAGINAS_DE_GERENTE = [
   ["/ajustes/catalogos", "@/app/(app)/ajustes/catalogos/page"],
 ] as const;
 
-/**
- * `/ajustes` dejo de dejar entrar al closer (ticket 224, ADR 0082): el closer ya no
- * administra plataformas de pago desde aqui —la ficha del Programa, donde lo hacia, es
- * ahora de administradores—, asi que la raiz lo rebota como las subpaginas. Entran quien
- * administra (gerente, developer) y el paid trafficker (Canales, ADR 0052); el closer
- * aterriza en su vista (`/mi-espacio`).
- */
-const PAGINAS_DE_AJUSTES = [
-  ["/ajustes", "@/app/(app)/ajustes/page"],
-] as const;
-
 const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
   "@/app/(app)/ajustes/salud/page",
@@ -692,36 +681,19 @@ describe("reporte diario de todos los programas (ticket 427)", () => {
 });
 
 describe("índice de Ajustes por rol en el servidor (ticket 224, ADR 0082)", () => {
-  for (const [nombre, ruta] of PAGINAS_DE_AJUSTES) {
-    it(`${nombre} REBOTA a un closer a su vista (ya no entra)`, async () => {
-      auth.mockResolvedValue(sesionCloser);
-      expect(await destinoDe(ruta)).toBe("/mi-espacio");
-    });
-
-    it(`${nombre} deja entrar al gerente, que administra`, async () => {
-      auth.mockResolvedValue(sesionGerente);
-      programasActivos.mockResolvedValue([]);
-      expect(await destinoDe(ruta)).toBeNull();
-    });
-
-    it(`${nombre} deja entrar al developer, que administra (ADR 0025)`, async () => {
-      auth.mockResolvedValue(sesionDeveloper);
-      programasActivos.mockResolvedValue([]);
-      expect(await destinoDe(ruta)).toBeNull();
-    });
-
-    it(`${nombre} deja entrar al paid trafficker (Canales, ADR 0052)`, async () => {
-      auth.mockResolvedValue(sesionPaidTrafficker);
-      programasActivos.mockResolvedValue([]);
-      expect(await destinoDe(ruta)).toBeNull();
-    });
-
-    it(`${nombre} manda al login a quien no tiene sesion`, async () => {
-      auth.mockResolvedValue(null);
-      expect(await destinoDe(ruta)).toBe("/login");
-    });
-
-  }
+  // Una fila por rol: el closer rebota a su vista, quien administra (gerente, developer) y el paid trafficker
+  // (Canales, ADR 0052) entran, y sin sesión va a login.
+  it.each([
+    ["un closer REBOTA a su vista", sesionCloser, "/mi-espacio"],
+    ["el gerente entra, que administra", sesionGerente, null],
+    ["el developer entra, que administra (ADR 0025)", sesionDeveloper, null],
+    ["el paid trafficker entra (Canales, ADR 0052)", sesionPaidTrafficker, null],
+    ["quien no tiene sesion va al login", null, "/login"],
+  ])("/ajustes: %s", async (_nombre, sesion, esperado) => {
+    auth.mockResolvedValue(sesion);
+    programasActivos.mockResolvedValue([]);
+    expect(await destinoDe("@/app/(app)/ajustes/page")).toBe(esperado);
+  });
 });
 
 describe("Ajustes completo respeta administraGlobal (ADR 0094)", () => {
@@ -782,17 +754,13 @@ describe("usuarios tiene su propia guarda", () => {
 });
 
 describe("paginas de gerente", () => {
-  for (const [nombre, ruta] of PAGINAS_DE_GERENTE) {
-    it(`${nombre} rechaza a un closer y lo manda a su vista`, async () => {
-      auth.mockResolvedValue(sesionCloser);
-      expect(await destinoDe(ruta)).toBe("/mi-espacio");
-    });
-
-    it(`${nombre} manda al login a quien no tiene sesion`, async () => {
-      auth.mockResolvedValue(null);
-      expect(await destinoDe(ruta)).toBe("/login");
-    });
-  }
+  // Misma guarda que /ajustes (arriba): el closer rebota a su vista y sin sesión va a login, en cada página de gerente.
+  it.each(PAGINAS_DE_GERENTE)("%s rechaza a un closer y manda al login a quien no tiene sesion", async (_nombre, ruta) => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destinoDe(ruta)).toBe("/mi-espacio");
+    auth.mockResolvedValue(null);
+    expect(await destinoDe(ruta)).toBe("/login");
+  });
 });
 
 /**
@@ -857,27 +825,10 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
 });
 
 /**
- * `/mi-dia` y `/perfil` se fusionaron en Mi espacio (ticket 172): ahora solo redirigen,
- * conservando su guarda. Se invoca el componente real: la guarda corre antes del
- * redirect, así que sin sesión manda a login y con sesión manda a `/mi-espacio`.
+ * `/perfil` se fusionó en Mi espacio (ticket 172): solo redirige. La guarda de `/mi-dia` (que
+ * también redirige a Mi espacio) la prueba "pagina de closer", más abajo.
  */
-describe("mi-dia y perfil redirigen a Mi espacio (ticket 172)", () => {
-  it("/mi-dia manda a /mi-espacio a un closer", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/mi-espacio");
-  });
-
-  it("/mi-dia manda al login a quien no tiene sesion (conserva su guarda)", async () => {
-    auth.mockResolvedValue(null);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/login");
-  });
-
-  it("/mi-dia rebota a un gerente: la guarda de closer sigue vigente (ADR 0003)", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    // Un gerente no trabaja leads: la guarda lo manda a su inicio, no a /mi-espacio.
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).not.toBe("/mi-espacio");
-  });
-
+describe("perfil redirige a Mi espacio (ticket 172)", () => {
   it("/perfil manda a /mi-espacio a cualquiera con sesion", async () => {
     auth.mockResolvedValue(sesionCloser);
     expect(await destinoDe("@/app/(app)/perfil/page")).toBe("/mi-espacio");
@@ -889,18 +840,10 @@ describe("mi-dia y perfil redirigen a Mi espacio (ticket 172)", () => {
   });
 });
 describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
-  it("no lo redirige una guarda exclusiva de gerente", async () => {
+  it.each(["gerente", "closer"] as const)("no lo redirige una guarda exclusiva de %s", async (rol) => {
     auth.mockResolvedValue(sesionDeveloper);
     const { paginaConRol } = await import("@/lib/auth/page-guards");
-    const session = await paginaConRol("gerente");
-    expect(session.user.rol).toBe("developer");
-    expect(redirect).not.toHaveBeenCalled();
-  });
-
-  it("no lo redirige una guarda exclusiva de closer", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    const { paginaConRol } = await import("@/lib/auth/page-guards");
-    const session = await paginaConRol("closer");
+    const session = await paginaConRol(rol);
     expect(session.user.rol).toBe("developer");
     expect(redirect).not.toHaveBeenCalled();
   });
@@ -1016,15 +959,11 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     });
   }
 
-  it("el gerente pasa la guarda de las tres rutas", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    for (const [, ruta] of RUTAS) {
-      expect(await correr(ruta)).toBe("paso-la-guarda");
-    }
-  });
-
-  it("el developer (vista todo) pasa la guarda de las tres rutas (ADR 0025)", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
+  it.each([
+    ["el gerente", sesionGerente],
+    ["el developer (vista todo, ADR 0025)", sesionDeveloper],
+  ])("%s pasa la guarda de las tres rutas", async (_nombre, sesion) => {
+    auth.mockResolvedValue(sesion);
     for (const [, ruta] of RUTAS) {
       expect(await correr(ruta)).toBe("paso-la-guarda");
     }
@@ -1191,26 +1130,18 @@ describe("dashboard de programa /p/[programa]/dashboard (ADR 0048 + 0012)", () =
   const SLUG_EXISTE = "programa-a";
   const SLUG_NO_EXISTE = "no-existe";
 
-  it("redirige al gerente a la tab Programa con un slug existente", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
-    expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
-  });
-
   it("CIERRA con 404 a un closer, aun con un slug dentro de su alcance (ticket 224, ADR 0082)", async () => {
     auth.mockResolvedValue(sesionCloser);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("notFound");
   });
 
-  it("deja pasar a un paid trafficker con un slug existente (ADR 0052, ticket 102)", async () => {
-    auth.mockResolvedValue(sesionPaidTrafficker);
-    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
-    expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
-  });
-
-  it("deja pasar a un developer con un slug existente (ADR 0025)", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
+  it.each([
+    ["gerente", sesionGerente],
+    ["paid trafficker (ADR 0052, ticket 102)", sesionPaidTrafficker],
+    ["developer (ADR 0025)", sesionDeveloper],
+  ])("deja pasar a un %s con un slug existente", async (_nombre, sesion) => {
+    auth.mockResolvedValue(sesion);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: SLUG_EXISTE, nombre: "Programa A" });
     expect(await correrPrograma(SLUG_EXISTE)).toBe("paso");
   });
@@ -1404,13 +1335,11 @@ describe("pagina de recursos /p/[programa]/recursos (ticket 023)", () => {
     return elemento.props.children.props.esAdmin;
   }
 
-  it("deja pasar a un gerente (lee y administra)", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    expect(await correrRecursos()).toBeNull();
-  });
-
-  it("deja pasar a un closer (ambos roles leen, ADR 0009)", async () => {
-    auth.mockResolvedValue(sesionCloser);
+  it.each([
+    ["gerente (lee y administra)", sesionGerente],
+    ["closer (ambos roles leen, ADR 0009)", sesionCloser],
+  ])("deja pasar a un %s", async (_nombre, sesion) => {
+    auth.mockResolvedValue(sesion);
     expect(await correrRecursos()).toBeNull();
   });
 
@@ -1446,36 +1375,18 @@ describe("pagina de recursos /p/[programa]/recursos (ticket 023)", () => {
    * `gerente` los ve (`puedeEditar` true); en vista `closer` NO (un closer no
    * administra). Se captura la prop `puedeEditar` que la pagina le pasa a la pantalla.
    */
-  it("developer en vista 'gerente' VE los controles de edicion", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    ponerVista("gerente");
-    expect(await puedeEditarDeRecursos()).toBe(true);
-  });
-
-  it("developer en vista 'todo' (por defecto) VE los controles de edicion", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    ponerVista("todo");
-    expect(await puedeEditarDeRecursos()).toBe(true);
-  });
-
-  it("developer en vista 'closer' NO ve los controles de edicion", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    ponerVista("closer");
-    expect(await puedeEditarDeRecursos()).toBe(false);
-  });
-
-  it("un closer real con cookie 'gerente' a mano NO ensancha: sigue sin controles", async () => {
-    // Estrechar nunca otorga (ticket 028): la vista se ignora para un no-developer.
-    auth.mockResolvedValue(sesionCloser);
-    ponerVista("gerente");
-    expect(await puedeEditarDeRecursos()).toBe(false);
-  });
-
-  it("un gerente sigue viendo los controles, con o sin cookie", async () => {
-    auth.mockResolvedValue(sesionGerente);
-    ponerVista("closer");
-    // La cookie 'closer' no lo estrecha: no es developer.
-    expect(await puedeEditarDeRecursos()).toBe(true);
+  // Estrechar nunca otorga (ticket 028): la vista solo estrecha a un developer; a un closer real o a un gerente
+  // la cookie no los ensancha ni los estrecha.
+  it.each([
+    ["developer en vista 'gerente'", sesionDeveloper, "gerente", true],
+    ["developer en vista 'todo' (por defecto)", sesionDeveloper, "todo", true],
+    ["developer en vista 'closer'", sesionDeveloper, "closer", false],
+    ["closer real con cookie 'gerente' a mano", sesionCloser, "gerente", false],
+    ["gerente con cookie 'closer'", sesionGerente, "closer", true],
+  ])("controles de edicion: %s", async (_nombre, sesion, vista, ve) => {
+    auth.mockResolvedValue(sesion);
+    ponerVista(vista);
+    expect(await puedeEditarDeRecursos()).toBe(ve);
   });
 });
 
@@ -1538,25 +1449,15 @@ describe("pagina de closer", () => {
 describe("pagina de developer /nerd-stats (ticket 025)", () => {
   const RUTA = "@/app/(app)/nerd-stats/page";
 
-  it("deja pasar a un developer", async () => {
-    auth.mockResolvedValue(sesionDeveloper);
-    expect(await destinoDe(RUTA)).toBeNull();
-  });
-
-  it("rechaza a un gerente y lo manda a su primer programa", async () => {
-    auth.mockResolvedValue(sesionGerente);
+  it.each([
+    ["deja pasar a un developer", sesionDeveloper, null],
+    ["rechaza a un gerente y lo manda a su primer programa", sesionGerente, "/p/programa-a/hub"],
+    ["rechaza a un closer y lo manda a su vista", sesionCloser, "/mi-espacio"],
+    ["manda al login a quien no tiene sesion", null, "/login"],
+  ])("%s", async (_nombre, sesion, esperado) => {
+    auth.mockResolvedValue(sesion);
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    expect(await destinoDe(RUTA)).toBe("/p/programa-a/hub");
-  });
-
-  it("rechaza a un closer y lo manda a su vista", async () => {
-    auth.mockResolvedValue(sesionCloser);
-    expect(await destinoDe(RUTA)).toBe("/mi-espacio");
-  });
-
-  it("manda al login a quien no tiene sesion", async () => {
-    auth.mockResolvedValue(null);
-    expect(await destinoDe(RUTA)).toBe("/login");
+    expect(await destinoDe(RUTA)).toBe(esperado);
   });
 });
 
@@ -2262,12 +2163,5 @@ describe("Mi espacio y el customer success (ticket 145)", () => {
     programasVisibles.mockResolvedValue([]);
     const arbol = await renderMiEspacio();
     expect(contieneTexto(arbol, MENSAJE)).toBe(true);
-  });
-
-  it("con un programa visible, muestra el enlace conceptual a Students y sus conexiones", async () => {
-    auth.mockResolvedValue(sesionCustomerSuccess);
-    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    const arbol = await renderMiEspacio();
-    expect(contieneTexto(arbol, "Tu trabajo por programa está en Students.")).toBe(true);
   });
 });

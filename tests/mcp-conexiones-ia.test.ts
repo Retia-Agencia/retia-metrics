@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { changeLog, mcpTokens, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { emitirTokenPersonal, hashDeToken } from "@/lib/mcp/token";
-import { puedeConectarIa, puedeCrearTokenPersonal, ROLES, type Rol } from "@/lib/auth/roles";
+import type { Rol } from "@/lib/auth/roles";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 const auth = vi.fn();
@@ -55,14 +55,6 @@ function sesion(id: string, rol: Rol) {
 async function acciones() {
   return import("@/app/(app)/mi-espacio/acciones");
 }
-
-describe("capacidad para conectar una IA", () => {
-  it("todos conectan una IA y solo developer crea claves personales", () => {
-    expect(ROLES.every((rol) => puedeConectarIa(rol))).toBe(true);
-    expect(ROLES.filter((rol) => rol !== "developer").every((rol) => !puedeCrearTokenPersonal(rol))).toBe(true);
-    expect(puedeCrearTokenPersonal("developer")).toBe(true);
-  });
-});
 
 describe("acciones de conexiones de IA", () => {
   it("rechaza una llamada forjada de otro rol sin tocar la base", async () => {

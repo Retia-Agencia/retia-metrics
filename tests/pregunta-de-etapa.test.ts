@@ -43,9 +43,6 @@ const SIN_RESPUESTA: Record<string, string> = {
   "E4 registrado>agendado": "la trae Calendly",
   "E4 en_gestion>agendado": "la trae Calendly",
   "E4 contactado>agendado": "la trae Calendly",
-  // Un deal cerrado no recibe llamadas, así que no hay cita con la que volver a Agendado:
-  // se recupera a En gestión y desde ahí se agenda.
-  "R cierre_perdido>agendado": "un deal cerrado no recibe llamadas",
 };
 
 const etapaClave = (id: string, de: EtapaDeal, a: EtapaDeal) => `${id} ${de}>${a}`;
@@ -229,11 +226,6 @@ describe("respuestasPorDestino: Transición (ADR 0075)", () => {
     expect(texto("calificado", "nota")).toBe("Una nota en el historial. No cambia la etapa.");
   });
 
-  it("sin frase propia, la respuesta dice solo lo que cambia", () => {
-    const califica = respuestasDe("contactado", null).find((r) => r.id === "califica")!;
-    expect(queHace("contactado", null, califica, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE))
-      .toBe(`El deal pasa a ${NOMBRE_DE_ETAPA.calificado}.`);
-  });
 });
 
 describe("etapaTrasActividad: la regla de registrarActividad", () => {
@@ -267,7 +259,7 @@ describe("etapaTrasActividad: la regla de registrarActividad", () => {
 
 describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)", () => {
   // La regla única: si una respuesta cambia la etapa, va en "Mover a". El guardián recorre
-  // las once etapas (con y sin pendiente) y falla si una respuesta que cambia la etapa
+  // las doce etapas (con y sin pendiente) y falla si una respuesta que cambia la etapa
   // —otra etapa, o una actividad que mueve según `etapaTrasActividad`— queda fuera de ese
   // grupo (en "Dejar en espera" o suelta como actividad).
   it("ninguna respuesta que cambie la etapa queda fuera de 'Mover a'", () => {

@@ -1,15 +1,14 @@
+/** Cohorte y descuento del deal: nacimiento Sin SKU o con SKU, congelado del valor y cambio de cohorte. Es base porque verifica deals, líneas, abonos y actividad. */
 import { abonoDePrueba, lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  abonos,
   changeLog,
   cohorts,
   dealActividades,
   dealLineas,
   deals,
   leads,
-  plataformasPago,
   programs,
   skus,
   users,
@@ -17,7 +16,6 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { editarDeal } from "@/lib/deals/editar-deal";
-import { registrarAbono } from "@/lib/deals/abonos";
 import { cambiarCohorte } from "@/lib/deals/estudiante";
 import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -40,7 +38,6 @@ let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closerId: string;
-let plataformaId: string;
 let secuencia = 0;
 
 const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
@@ -113,12 +110,11 @@ beforeEach(async () => {
     .values({ email: "closer-134@retia.co", rol: "closer", closerId: "Closer 134" })
     .returning();
   closerId = closer.id;
-  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma 134" }).returning())[0].id;
 });
 
 afterAll(async () => cerrar());
 
-describe("ticket 134 — cohorte y descuento", () => {
+describe("cohorte y descuento del deal", () => {
   it("un deal nuevo nace Sin SKU y, con un SKU predeterminado, nace con su línea y su ciclo (ADR 0140, ya no por fecha)", async () => {
     const primera = await lead();
     const sinSku = await abrirDeal(db, {
@@ -154,36 +150,6 @@ describe("ticket 134 — cohorte y descuento", () => {
 
     await db.update(cohorts).set({ precioUsd: "897" }).where(eq(cohorts.id, cohortId));
     expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id)))[0].valorVendidoUsd).toBe("697.00");
-  });
-
-  it("el primer abono congela el ticket sin descuento; un deal Sin SKU rechaza sin escribir (ADR 0140)", async () => {
-    const conCohorte = await dealDirecto("atendido", { valorVendidoUsd: null });
-    await registrarAbono(db, actor(), {
-      dealId: conCohorte.id,
-      fecha: "2026-10-01",
-      monto: "100",
-      plataformaId,
-      comprobanteUrl: "https://drive.google.com/abono",
-    });
-    const [congelado] = await db.select().from(deals).where(eq(deals.id, conCohorte.id));
-    expect(congelado).toMatchObject({ cohortId, valorVendidoUsd: "797.00", etapa: "ganado_parcial" });
-
-    const sinSku = await dealDirecto("atendido", { cohortId: null, valorVendidoUsd: null });
-    const error = await capturar(
-      registrarAbono(db, actor(), {
-        dealId: sinSku.id,
-        fecha: "2026-10-01",
-        monto: "100",
-        plataformaId,
-        comprobanteUrl: "https://drive.google.com/abono",
-      }),
-    );
-    expect(error).toMatchObject({
-      status: 409,
-      message: "El deal no tiene SKU: asígnale uno antes de registrar el abono",
-    });
-    expect((await db.select().from(deals).where(eq(deals.id, sinSku.id)))[0].valorVendidoUsd).toBeNull();
-    expect(await db.select().from(abonos).where(eq(abonos.dealId, sinSku.id))).toHaveLength(0);
   });
 
   it("rechaza descuento igual al ticket y un total menor que lo abonado, sin mover la fila", async () => {

@@ -47,6 +47,7 @@ export interface ItemCatalogo {
   nombre: string;
   activo: boolean;
   booleanos: Record<string, boolean>;
+  opciones: Record<string, string>;
   /** Los programas que sirve, solo en los catalogos vinculados (ADR 0034). */
   programas?: string[];
 }
@@ -58,6 +59,11 @@ export interface CatalogoVista {
   /** Si este actor puede renombrar, desactivar y borrar (no solo crear y vincular). */
   puedeAdministrar: boolean;
   camposBooleanos: readonly { campo: string; etiqueta: string }[];
+  camposOpciones: readonly {
+    campo: string;
+    etiqueta: string;
+    opciones: readonly { valor: string; etiqueta: string }[];
+  }[];
   /** Los programas vinculables. Ausente = este catalogo no se vincula a programas. */
   programas?: ProgramaOpcion[];
 }
@@ -97,6 +103,9 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
   const [pendiente, startTransition] = useTransition();
   const [nuevo, setNuevo] = useState("");
   const [booleanosNuevos, setBooleanosNuevos] = useState<Record<string, boolean>>({});
+  const [opcionesNuevas, setOpcionesNuevas] = useState<Record<string, string>>(() =>
+    Object.fromEntries(catalogo.camposOpciones.map(({ campo, opciones }) => [campo, opciones[0]?.valor ?? ""])),
+  );
   const [programasNuevos, setProgramasNuevos] = useState<string[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
   const [borrador, setBorrador] = useState("");
@@ -128,12 +137,15 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
     const limpiar = () => {
       setNuevo("");
       setBooleanosNuevos({});
+      setOpcionesNuevas(Object.fromEntries(
+        catalogo.camposOpciones.map(({ campo, opciones }) => [campo, opciones[0]?.valor ?? ""]),
+      ));
       setProgramasNuevos([]);
     };
     if (seVincula) {
       correr(() => crearPlataformaAccion(nombre, programasNuevos), "Agregado", limpiar);
     } else {
-      correr(() => agregarAccion(catalogo.slug, nombre, booleanosNuevos), "Agregado", limpiar);
+      correr(() => agregarAccion(catalogo.slug, nombre, { ...booleanosNuevos, ...opcionesNuevas }), "Agregado", limpiar);
     }
   }
 
@@ -264,6 +276,20 @@ function PanelCatalogo({ catalogo }: { catalogo: CatalogoVista }) {
               ))}
             </div>
           ) : null}
+          {catalogo.camposOpciones.map(({ campo, etiqueta, opciones }) => (
+            <label key={campo} className="flex items-center gap-2 text-sm">
+              <span>{etiqueta}</span>
+              <select
+                className="h-8 rounded-md border border-border bg-background px-2"
+                value={opcionesNuevas[campo] ?? opciones[0]?.valor ?? ""}
+                onChange={(e) => setOpcionesNuevas((actuales) => ({ ...actuales, [campo]: e.currentTarget.value }))}
+              >
+                {opciones.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>
+                ))}
+              </select>
+            </label>
+          ))}
         </form>
 
         <ul className={clasesDeZonaConScroll("divide-y rounded-md border")}>

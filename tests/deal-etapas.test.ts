@@ -3,36 +3,37 @@ import { sql } from "drizzle-orm";
 import { deals, leads, programs } from "@/lib/db/schema";
 import {
   ETAPAS, NOMBRE_DE_ETAPA, TRANSICIONES, TRANSICIONES_PENDIENTE,
-  aceptaAbono, esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
+  aceptaAbono, destinosDeCorreccion, esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
 } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
-/** Matriz manual del ticket 142: cubre las 121 combinaciones sin derivarse del motor. */
+/** Matriz manual del ticket 142: cubre las 144 combinaciones sin derivarse del motor. */
 const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
-  potencial: ["registrado", "calificado", "en_gestion", "agendado", "cierre_perdido"],
-  registrado: ["calificado", "en_gestion", "agendado", "cierre_perdido"],
-  en_gestion: ["contactado", "calificado", "agendado", "cierre_perdido"],
-  contactado: ["calificado", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
-  calificado: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
-  agendado: ["agendado", "atendido", "cierre_perdido"],
-  atendido: ["atendido", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
-  compromiso_verbal: ["contactado", "calificado", "atendido", "ganado_parcial", "ganado_completo", "cierre_perdido"],
-  ganado_parcial: ["contactado", "calificado", "atendido", "compromiso_verbal", "ganado_completo", "cierre_perdido"],
+  potencial: ["registrado", "calificado", "en_gestion", "agendado", "cierre_perdido", "a_futuro"],
+  registrado: ["calificado", "en_gestion", "agendado", "cierre_perdido", "a_futuro"],
+  en_gestion: ["contactado", "calificado", "agendado", "cierre_perdido", "a_futuro"],
+  contactado: ["calificado", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"],
+  calificado: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"],
+  agendado: ["agendado", "atendido", "cierre_perdido", "a_futuro"],
+  atendido: ["atendido", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"],
+  compromiso_verbal: ["contactado", "calificado", "atendido", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"],
+  ganado_parcial: ["contactado", "calificado", "atendido", "compromiso_verbal", "ganado_completo", "cierre_perdido", "a_futuro"],
   ganado_completo: ["ganado_parcial"],
-  cierre_perdido: ["en_gestion", "agendado"],
+  cierre_perdido: ["en_gestion", "agendado", "a_futuro"],
+  a_futuro: ["en_gestion", "agendado", "cierre_perdido"],
 };
 
-describe("las once etapas", () => {
-  it("son once, no se repiten y todas tienen nombre", () => {
-    expect(ETAPAS).toHaveLength(11);
-    expect(new Set(ETAPAS).size).toBe(11);
+describe("las doce etapas", () => {
+  it("son doce, no se repiten y todas tienen nombre", () => {
+    expect(ETAPAS).toHaveLength(12);
+    expect(new Set(ETAPAS).size).toBe(12);
     for (const etapa of ETAPAS) expect(NOMBRE_DE_ETAPA[etapa]).toBeTruthy();
   });
 });
 
 describe("la tabla de transiciones", () => {
-  it("recorre las 121 combinaciones: las de la tabla pasan y el resto se rechaza", () => {
+  it("recorre las 144 combinaciones: las de la tabla pasan y el resto se rechaza", () => {
     const errores: string[] = [];
     for (const de of ETAPAS) for (const a of ETAPAS) {
       const esperada = ESPERADAS[de].includes(a);
@@ -46,9 +47,9 @@ describe("la tabla de transiciones", () => {
     expect(new Set(pares).size).toBe(pares.length);
   });
 
-  it("trae cada id del documento: S1 a S3, E1 a E14, RETRO, P, R, A1 y A2", () => {
+  it("trae cada id del documento: S1 a S3, E1 a E14, RETRO, F, RF, P, R, A1 y A2", () => {
     const ids = new Set(TRANSICIONES.map((t) => t.id));
-    const esperados = ["S1", "S2", "S3", ...Array.from({ length: 14 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
+    const esperados = ["S1", "S2", "S3", ...Array.from({ length: 14 }, (_, i) => `E${i + 1}`), "RETRO", "F", "RF", "P", "R", "A1", "A2"];
     expect([...ids].sort()).toEqual(esperados.sort());
   });
 
@@ -65,18 +66,25 @@ describe("las reglas generales del motor", () => {
     expect(aceptaAbono("ganado_parcial")).toBe(true);
   });
 
-  it("Cierre Perdido es alcanzable desde las nueve abiertas y nunca desde Ganado Pagado Completo", () => {
+  it("Cierre Perdido es alcanzable desde las nueve etapas del embudo y A futuro, nunca desde Ganado Pagado Completo", () => {
     const hacia = ETAPAS.filter((etapa) => esTransicionPermitida(etapa, "cierre_perdido"));
     expect(new Set(hacia)).toEqual(new Set([
       "potencial", "registrado", "en_gestion", "contactado", "calificado", "agendado",
-      "atendido", "compromiso_verbal", "ganado_parcial",
+      "atendido", "compromiso_verbal", "ganado_parcial", "a_futuro",
     ]));
     expect(esTransicionPermitida("ganado_completo", "cierre_perdido")).toBe(false);
   });
 
   it("un perdido se recupera solo hacia En gestión o Agendado, y con motivo", () => {
-    expect(new Set(siguientesDe("cierre_perdido"))).toEqual(new Set(["en_gestion", "agendado"]));
+    expect(new Set(siguientesDe("cierre_perdido"))).toEqual(new Set(["en_gestion", "agendado", "a_futuro"]));
     for (const a of siguientesDe("cierre_perdido")) expect(transicion("cierre_perdido", a)!.exigeMotivo).toBe(true);
+  });
+
+  it("cubre F, RF y P desde A futuro, sin ofrecer correcciones libres", () => {
+    expect(transicion("cierre_perdido", "a_futuro")).toMatchObject({ id: "F", tipoDeMotivo: "a_futuro" });
+    expect(transicion("a_futuro", "en_gestion")).toMatchObject({ id: "RF", tipoDeMotivo: "recuperacion" });
+    expect(transicion("a_futuro", "cierre_perdido")).toMatchObject({ id: "P", tipoDeMotivo: "perdida" });
+    expect(destinosDeCorreccion("a_futuro")).toEqual([]);
   });
 
   it("a Ganado Pago Parcial y Ganado Pagado Completo solo entra el sistema", () => {
@@ -96,11 +104,11 @@ describe("las reglas generales del motor", () => {
 
   it("exigen motivo exactamente Perdido, Recuperar, Retroceso y Re-agenda manual", () => {
     const todas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE];
-    expect(new Set(todas.filter((t) => t.exigeMotivo).map((t) => t.id))).toEqual(new Set(["P", "R", "RETRO", "PR2"]));
+    expect(new Set(todas.filter((t) => t.exigeMotivo).map((t) => t.id))).toEqual(new Set(["F", "RF", "P", "R", "RETRO", "PR2"]));
   });
 
   it("cada flecha con lista de motivos tiene la lista correcta y las demas no declaran una", () => {
-    const esperado: Record<string, string> = { P: "perdida", R: "recuperacion", RETRO: "retroceso", PR2: "reagenda" };
+    const esperado: Record<string, string> = { F: "a_futuro", RF: "recuperacion", P: "perdida", R: "recuperacion", RETRO: "retroceso", PR2: "reagenda" };
     const todas = [...TRANSICIONES, ...TRANSICIONES_PENDIENTE];
     for (const t of todas.filter((t) => t.exigeMotivo)) expect(t.tipoDeMotivo, t.id).toBe(esperado[t.id]);
     for (const t of todas.filter((t) => !t.exigeMotivo)) expect(t.tipoDeMotivo, t.id).toBeNull();
@@ -117,7 +125,7 @@ describe("las reglas generales del motor", () => {
 });
 
 describe("la base acepta el modelo del ticket 142", () => {
-  it("el enum de Postgres tiene las once etapas, y un deal puede quedar Atendido con Seguimiento", async () => {
+  it("el enum de Postgres tiene las doce etapas, y un deal puede quedar Atendido con Seguimiento", async () => {
     const { db, cerrar } = await crearBaseDePrueba();
     try {
       const filas = await db.execute<{ valor: string }>(sql`select unnest(enum_range(null::etapa_deal))::text as valor`);

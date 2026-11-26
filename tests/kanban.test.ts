@@ -172,11 +172,11 @@ async function deal(o: OpcDeal): Promise<string> {
 }
 
 describe("tableroKanban", () => {
-  it("las once etapas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
+  it("las doce etapas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const orden = t.columnas.map((c) => c.clave);
     expect([...orden].sort()).toEqual([...ETAPAS].sort());
-    expect(orden.at(-1)).toBe("cierre_perdido");
+    expect(orden.at(-1)).toBe("a_futuro");
     expect(t.total).toBe(0);
     expect(t.columnas.every((columna) => columna.potencialUsd === 0)).toBe(true);
     // Confirmado solo existe donde se abona; en el resto no aplica.
@@ -549,11 +549,11 @@ describe("tags y vistas del tablero (ticket 498, ADR 0142)", () => {
     const setteo = await tableroKanban(db, programId, { tipo: "todos" }, { vista: "setteo" }, HOY);
 
     expect(llamada.columnas.map((c) => c.clave)).toEqual([
-      "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+      "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
     ]);
-    // El setter cierra por chat sin pasar por llamada: Compromiso, los dos Ganados y Cierre perdido.
+    // El setter resuelve por chat sin pasar por llamada: Compromiso, Ganados, Cierre perdido y A futuro.
     expect(setteo.columnas.map((c) => c.clave)).toEqual([
-      ...ETAPAS_DE_SETTEO, "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+      ...ETAPAS_DE_SETTEO, "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
     ]);
     expect(todo.columnas.map((c) => c.clave)).toEqual([...COLUMNAS_DE_VISTA.todo]);
     // Una vista no cambia la cifra de una columna: solo cuales salen.
@@ -624,11 +624,6 @@ describe("parsearFiltros", () => {
     expect(parsearFiltros({ orden: "creado", sentido: "asc" }).orden).toEqual({ campo: "creado", sentido: "asc" });
     expect(parsearFiltros({ orden: "otro", sentido: "asc" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
     expect(parsearFiltros({ orden: "creado", sentido: "otro" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
-  });
-
-  it("acepta nombre y ante un orden invalido de la URL vuelve a actividad reciente", () => {
-    expect(parsearFiltros({ orden: "nombre", sentido: "asc" }).orden).toEqual({ campo: "nombre", sentido: "asc" });
-    expect(parsearFiltros({ orden: "nombre", sentido: "lateral" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
   });
 
   it("deja el ciclo sin filtrar por ausencia, vacío o todas y conserva un id explícito", () => {

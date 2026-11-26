@@ -29,7 +29,7 @@ export default async function CatalogosPage() {
   return (
     <PageShell
       titulo="Motivos"
-      descripcion="Se usan al perder, retroceder o recuperar un deal."
+      descripcion="Se usan al perder, dejar para después, retroceder, recuperar o re-agendar un deal."
       volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
       fija
     >

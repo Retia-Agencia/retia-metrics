@@ -137,6 +137,7 @@ const PROPIEDADES_POR_ETAPA: Record<EtapaDeal, CodigoReal[]> = {
   ganado_parcial: ["cohorte", "dueno", "valor_vendido", "abono", "fecha_limite_pago"],
   ganado_completo: ["cohorte", "dueno", "valor_vendido", "abono", "saldo_en_cero"],
   cierre_perdido: ["motivo"],
+  a_futuro: ["motivo"],
 };
 
 /** Las etapas cuya ficha exige esta propiedad: la usa una consulta que no puede llamar a `CUMPLE` fila por fila. */

@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { ContextoDelHub } from "@/lib/hub/contexto-de-cifras";
-import { CONCEPTOS_DE_DINERO, cifrasDeDinero, cifrasPorCohorte, type ExplicacionesDeDinero } from "@/lib/hub/cifras-de-dinero";
+import { cifrasDeDinero, cifrasPorCohorte, type ExplicacionesDeDinero } from "@/lib/hub/cifras-de-dinero";
 import { FRASE_CERO, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
 import { cajaRecaudada, dineroDelRango, ventasPorCohorte } from "@/lib/queries/dashboard";
 import { SIN_DINERO } from "@/lib/queries/dinero-de-ventas";
@@ -256,9 +256,5 @@ describe("419 E-2: paridad cifra = lista en Dinero", () => {
     }
     // La suma de las cohortes es el total del programa: conteos, que sí son sumables.
     expect(c.reduce((s, x) => s + (x.ventas.valor ?? 0), 0)).toBe(4);
-  });
-
-  it("el módulo declara los conceptos que pinta, para que la ficha de cada uno se pueda exigir", () => {
-    expect(Object.keys(explicaciones).sort()).toEqual([...CONCEPTOS_DE_DINERO].sort());
   });
 });

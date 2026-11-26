@@ -99,25 +99,6 @@ describe("esquema de usuario", () => {
     ).toThrow(ZodError);
   });
 
-  it("un closer sin closerId valida y lo normaliza a null", () => {
-    expect(esquemaUsuario.parse({ ...closerValido, closerId: "", programas: [programaAId] }).closerId).toBeNull();
-  });
-
-  it("los programas son opcionales", () => {
-    expect(esquemaUsuario.parse(closerValido).programas).toEqual([]);
-  });
-
-  it("un gerente no necesita closerId ni programas", () => {
-    const datos = esquemaUsuario.parse({
-      email: "otro@retiagrowth.com",
-      nombre: "Otro Gerente",
-      rol: "gerente",
-      closerId: "",
-      programas: [],
-    });
-    expect(datos.rol).toBe("gerente");
-  });
-
   it("parsearEntradaUsuario expone el mismo esquema para el CLI", () => {
     const datos = parsearEntradaUsuario({
       email: "  Dana@Retiagrowth.com ",

@@ -13,7 +13,6 @@ import { sinComentarios } from "./helpers/codigo-fuente";
  */
 const RAIZ = fileURLToPath(new URL("./", import.meta.url));
 const EXCEPCIONES: Record<string, string> = {
-  "lead-formulario-con-fecha.test.ts": "Prueba justamente que la base rechaza un lead de formulario sin fecha.",
   "lead-de-prueba-guardian.test.ts": "Sus propias cadenas de muestra contienen inserts sin fecha para morder el guardian.",
   "lead-nace-con-fecha.test.ts": "Incluye el caso que prueba el rechazo del CHECK (insert de formulario sin fecha).",
 };

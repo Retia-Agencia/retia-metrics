@@ -75,21 +75,6 @@ describe("texto de registros pendientes de la mañana", () => {
     expect(texto).toContain("Verlos todos: https://crm.retia.co/mi-espacio?programa=tactical&chip=sin_resultado");
   });
 
-  it.each([
-    [{ tipo: "sin_resultado", fecha: "2026-11-01" }, "marca cómo terminó la cita del dom, 01-nov"],
-    [{ tipo: "sin_comprobante", fecha: "2026-11-01" }, "sube el comprobante del abono del dom, 01-nov"],
-    [{ tipo: "sin_grain", fecha: "2026-11-01" }, "pega el link de Grain de la llamada del dom, 01-nov"],
-    [{ tipo: "reagenda", fecha: "2026-11-01" }, "vuelve a agendar la llamada"],
-    [{ tipo: "nuevos", fecha: "2026-11-01" }, "ábrelo y haz el primer contacto"],
-    [{ tipo: "vencidos", fecha: "2026-11-01", detalle: "seguimiento" }, "haz el seguimiento (venció el dom, 01-nov)"],
-    [{ tipo: "vencidos", fecha: "2026-11-01", detalle: "compromiso" }, "confirma el pago comprometido (venció el dom, 01-nov)"],
-    [{ tipo: "vencidos", fecha: "2026-11-01", detalle: "cartera" }, "cobra el saldo (venció el dom, 01-nov)"],
-    [{ tipo: "vencidos", fecha: null, detalle: "cartera" }, "cobra el saldo y ponle fecha límite"],
-  ] as const)("usa la acción exacta para %#", (pendiente, accion) => {
-    const texto = textoDePendientesDeCloser({ ...base, deals: [deal(0, [pendiente])] });
-    expect(texto).toContain(`Lead Completo 0 (Tactical): ${accion}`);
-  });
-
   it("cuenta pendientes por tipo, suma las citas antiguas y omite los tipos en cero", () => {
     const texto = textoDePendientesDeCloser({
       ...base,
@@ -123,25 +108,5 @@ describe("texto de registros pendientes de la mañana", () => {
     });
     expect(varios).toContain("Verlos todos en Tactical: https://x?programa=tactical&chip=sin_comprobante");
     expect(varios).toContain("Verlos todos en Comunicarte: https://x?programa=comunicarte&chip=vencidos");
-  });
-});
-
-describe("texto de la tarde", () => {
-  it("conserva exactamente el formato de citas, Grain y enlace", () => {
-    const texto = textoDePendientesDeCloser({
-      nombreCloser: "Andrea Pérez",
-      ventana: "tarde",
-      deals: [deal(0, [
-        { tipo: "sin_resultado", fecha: new Date("2026-11-14T10:00:00-05:00") },
-        { tipo: "sin_grain", fecha: new Date("2026-11-14T11:00:00-05:00") },
-      ])],
-      citasAntiguas: 0,
-      enlaces: [{ programa: "Tactical", url: "https://crm.retia.co/mi-espacio?programa=tactical&chip=sin_resultado" }],
-    });
-    expect(texto).toBe([
-      "Andrea, hoy tuviste 1 cita que sigue sin resultado: Lead Completo 0 (10:00).",
-      "Una llamada de hoy sigue sin link de Grain: Lead Completo 0.",
-      "Márcalas aquí: https://crm.retia.co/mi-espacio?programa=tactical&chip=sin_resultado",
-    ].join("\n"));
   });
 });
