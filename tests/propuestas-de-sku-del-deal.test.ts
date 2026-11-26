@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { eq, sql } from "drizzle-orm";
-import { readFileSync, readdirSync } from "node:fs";
+import { eq } from "drizzle-orm";
 import { cohorts, dealLineas, deals, leads, plataformasPago, programs, skus, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
@@ -34,7 +33,13 @@ async function lead() {
   return (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@test.local`, entrada: "formulario", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA }).returning())[0];
 }
 
-describe("tickets 464 y 460", () => {
+/**
+ * Un deal nace con una propuesta por cada SKU predeterminado activo y solo vende la linea que recibe su primer
+ * abono (tickets 460 y 464, ADR 0137). Es de base porque las lineas, el valor vendido y la cohorte del deal se
+ * recalculan en SQL. El SKU de otro programa lo rechaza la FK compuesta de `deal_lineas` (programa como
+ * frontera, AGENTS.md): es el unico test que la ejecuta.
+ */
+describe("propuestas de SKU y lineas del deal", () => {
   it("nace con una propuesta por cada SKU predeterminado activo y ninguna vende", async () => {
     await sku("B-C2", c2, { predeterminado: true });
     await sku("A-C1", c1, { predeterminado: true });
@@ -114,25 +119,14 @@ describe("tickets 464 y 460", () => {
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].cohortId).toBe(c1);
   });
 
-  it("el backfill de la 0158 marca el SKU con cupo del ciclo que vende hoy y el deal nace con la misma línea de antes", async () => {
-    const [vigente] = await db.insert(cohorts).values({ programId, codigo: "C8", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31" }).returning();
-    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "1999-01-01", fechaCierreVentas: "1999-02-01" }).returning();
-    const hoy = await sku("HOY", vigente.id);
-    const sinCupo = await sku("SIN-CUPO", vigente.id, { cuentaComoCupo: false });
-    const inactivo = await sku("INACTIVO", vigente.id, { activo: false });
-    const viejo = await sku("VIEJO", cerrada.id);
-    const archivo = readdirSync("drizzle").find((f) => f.startsWith("0158_") && f.endsWith(".sql"))!;
-    const pasos = readFileSync(`drizzle/${archivo}`, "utf8").split("--> statement-breakpoint");
-    await db.execute(sql.raw(pasos.find((p) => p.includes('UPDATE "skus"'))!));
-    const marcado = async (id: string) => (await db.select().from(skus).where(eq(skus.id, id)))[0].predeterminado;
-    expect(await marcado(hoy.id)).toBe(true);
-    expect(await marcado(sinCupo.id)).toBe(false);
-    expect(await marcado(inactivo.id)).toBe(false);
-    expect(await marcado(viejo.id)).toBe(false);
+  it("rechaza una linea con el SKU de otro programa", async () => {
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-programa-464", nombre: "Otro", ticketUsd: "100" }).returning();
+    const [cohorteAjena] = await db.insert(cohorts).values({ programId: otro.id, codigo: "X1", metaCupos: 10, precioUsd: "100" }).returning();
+    const ajeno = (await db.insert(skus).values({ programId: otro.id, nombre: "Ajeno", slug: "ajeno", cohortId: cohorteAjena.id, codigo: "AJENO", precioListaUsd: "100", cuentaComoCupo: true }).returning())[0];
     const persona = await lead();
-    const id = await abrirDeal(db, { leadId: persona.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
-    const lineas = await db.select().from(dealLineas).where(eq(dealLineas.dealId, id));
-    expect(lineas.map((l) => l.skuId)).toEqual([hoy.id]);
-    expect((await db.select().from(deals).where(eq(deals.id, id)))[0].cohortId).toBe(vigente.id);
+    const [deal] = await db.insert(deals).values({ leadId: persona.id, programId, etapa: "compromiso_verbal", ownerUserId: closerId }).returning();
+    await expect(
+      db.insert(dealLineas).values({ dealId: deal.id, programId, skuId: ajeno.id, precioListaUsd: "100", valorVendidoUsd: "100" }),
+    ).rejects.toThrow();
   });
 });

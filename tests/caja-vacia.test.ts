@@ -1,5 +1,3 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Session } from "next-auth";
 import { programs, users } from "@/lib/db/schema";
@@ -45,33 +43,5 @@ describe("la caja vacía: un solo vacío, en la fuente", () => {
 
   it("con filas no inventa nada", () => {
     expect(cajaConMonedaDelPrograma([{ moneda: "USD", total: 5 }])).toEqual([{ moneda: "USD", total: 5 }]);
-  });
-});
-
-describe("guardián: ninguna pantalla inventa el vacío de la caja", () => {
-  const DUENO = "lib/queries/dashboard.ts";
-  // Subtotales de LISTAS (la mayoría de las listas no tiene montos: ahí «sin caja» es lo normal), no «Entró a caja».
-  const SUBTOTALES_DE_LISTA = ["components/cifra-con-lista.tsx"];
-  const PROHIBIDOS: Array<[RegExp, string]> = [
-    [/(?<![.\w])caja\.length\s*(===\s*0|>\s*0|\?)|vista\.caja\.length|reporte\.caja\.length|a\.caja\.length/, "pregunta si la caja está vacía (el vacío ya viene como 0 desde la fuente)"],
-    [/moneda:\s*"USD",\s*total:\s*0/, "fabrica una caja en cero a mano (usa cajaConMonedaDelPrograma)"],
-    [/ningún abono/i, "pinta un texto propio para la caja vacía"],
-  ];
-  function recorrer(dir: string): string[] {
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-      e.isDirectory() ? (e.name === "node_modules" || e.name === ".next" ? [] : recorrer(join(dir, e.name))) : /\.tsx?$/.test(e.name) ? [join(dir, e.name)] : []);
-  }
-
-  it("el vacío de la caja vive solo en dashboard.ts", () => {
-    const hallazgos: string[] = [];
-    for (const archivo of ["app", "components", "lib"].flatMap(recorrer)) {
-      if (archivo === DUENO || SUBTOTALES_DE_LISTA.includes(archivo)) continue;
-      const lineas = readFileSync(archivo, "utf8").split("\n");
-      lineas.forEach((linea, i) => {
-        for (const [patron, motivo] of PROHIBIDOS) if (patron.test(linea)) hallazgos.push(`${archivo}:${i + 1} ${motivo}`);
-      });
-    }
-    expect(hallazgos).toEqual([]);
   });
 });

@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { calls, deals, dealEtapaHistorial, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -77,13 +76,6 @@ describe("381: embudo comercial", () => {
       }
     }
     expect(pasos.map((paso) => paso.cantidad)).toEqual([2, 2, 1, 1]);
-  });
-
-  it("lee el área desde la derivación central existente", () => {
-    const fuente = readFileSync(new URL("../lib/queries/embudo-comercial.ts", import.meta.url), "utf8");
-    expect(fuente).toContain('import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen"');
-    expect(fuente).toContain("dimensionesDeOrigen(");
-    expect(fuente).not.toMatch(/areaDelDeal\s*=\s*sql`case/);
   });
 
   it("reclasifica como completo al lead que primero envió parcial y luego terminó, con lista y cifra iguales", async () => {

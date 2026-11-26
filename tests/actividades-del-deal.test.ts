@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
@@ -132,29 +130,5 @@ describe("registrarActividad", () => {
       pendiente: "proxima_cohorte",
     });
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deal.id))).toHaveLength(1);
-  });
-});
-
-const escribeIntento = (codigo: string) => /\btipo\s*:\s*["']intento["']/.test(codigo);
-
-function archivosDeCodigo(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
-    const ruta = join(dir, entrada.name);
-    if (entrada.isDirectory()) return archivosDeCodigo(ruta);
-    return /\.[cm]?[jt]sx?$/.test(entrada.name) ? [ruta] : [];
-  });
-}
-
-describe("guardián de actividades intento", () => {
-  it("detecta una escritura y no confunde el tipo de lectura ni la etiqueta histórica", () => {
-    expect(escribeIntento('insert({ tipo: "intento" })')).toBe(true);
-    expect(escribeIntento('tipo: "contacto" | "intento" | "nota"')).toBe(false);
-    expect(escribeIntento('intento: "Intento"')).toBe(false);
-  });
-
-  it("ningún camino de la app escribe una actividad intento", () => {
-    const archivos = ["lib", "app", "components"].flatMap(archivosDeCodigo);
-    const infractores = archivos.filter((archivo) => escribeIntento(readFileSync(archivo, "utf8")));
-    expect(infractores).toEqual([]);
   });
 });

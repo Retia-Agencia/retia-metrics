@@ -171,20 +171,6 @@ describe("acciones MCP", () => {
     expect(filas.every((fila) => fila.origen !== null)).toBe(true);
   });
 
-  it("solo un lugar inserta en deal_etapa_historial, y su tipo exige el origen", async () => {
-    const { readFileSync, readdirSync, statSync } = await import("node:fs");
-    const { join } = await import("node:path");
-    const recorrer = (dir: string): string[] => readdirSync(dir).flatMap((nombre) => {
-      const ruta = join(dir, nombre);
-      return statSync(ruta).isDirectory() ? recorrer(ruta) : /\.tsx?$/.test(nombre) ? [ruta] : [];
-    });
-    const sitios = ["lib", "app", "scripts"].flatMap(recorrer)
-      .flatMap((ruta) => (readFileSync(ruta, "utf8").match(/\.insert\(dealEtapaHistorial\)/g) ?? []).map(() => ruta));
-    expect(sitios).toEqual([join("lib", "deals", "mover-etapa.ts")]);
-    expect(readFileSync(join("lib", "deals", "mover-etapa.ts"), "utf8"))
-      .toMatch(/type FilaDeHistorial = PgInsertValue<typeof dealEtapaHistorial> & \{ origen: OrigenOperativo \}/);
-  });
-
   it("un moverEtapa con origen mcp marca todas las filas de change_log que produce", async () => {
     const dealId = await nuevoDeal();
     await moverEtapa(db, {

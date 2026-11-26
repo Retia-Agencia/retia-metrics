@@ -1,8 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { sql } from "drizzle-orm";
 import { columnasCohorteConEstado, estadoDeCohorte, estadoDeCohorteSql } from "@/lib/cohortes/estado";
-import * as catalogoCohortes from "@/lib/catalogo/cohortes";
-import { readFileSync } from "node:fs";
 import { cohorts, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { hoyEnBogota } from "@/lib/format";
@@ -33,7 +30,13 @@ beforeEach(async () => {
 
 afterAll(async () => cerrar());
 
-describe("376 B2 — estado deducido de la ventana", () => {
+/**
+ * El estado de una cohorte (futuro, activo, cerrado) se deduce de su ventana de ventas y nadie lo fija a mano
+ * (ticket 376 B2). Por que es de base: la paridad entre `estadoDeCohorte` (TS) y `estadoDeCohorteSql` solo se
+ * ve ejecutando el SQL, y `cohorteActiva` lee la ventana de la tabla. Que la columna `estado` no exista la
+ * guarda `esquema-cohorte.test.ts`; el EXCLUDE sin solape, `cohortes-sin-solape.test.ts`.
+ */
+describe("estado deducido de la ventana de la cohorte", () => {
   it("mantiene paridad TS/SQL en todos los bordes, incluido 23:30 en Bogota", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-11-21T04:30:00.000Z"));
@@ -88,20 +91,5 @@ describe("376 B2 — estado deducido de la ventana", () => {
       { programId, codigo: "FUTURA", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-21", fechaCierreVentas: null },
     ]);
     expect((await cohorteActiva(programId, db))?.codigo).toBe("ACTIVA");
-  });
-
-  it("no existe forma exportada de activar o cerrar a mano", () => {
-    expect("activarCohorte" in catalogoCohortes).toBe(false);
-    expect("desactivarCohorte" in catalogoCohortes).toBe(false);
-    // Las acciones se leen como texto: importarlas arrastra next-auth fuera de Next.
-    const acciones = readFileSync("app/(app)/p/[programa]/programa/acciones-programa.ts", "utf8");
-    expect(acciones).not.toMatch(/export async function (des)?activarCohorteAccion/);
-  });
-
-  it("0155 aplicada en PGlite deja cohorts sin estado y conserva el EXCLUDE", async () => {
-    const columnas = await db.execute(sql`select column_name from information_schema.columns where table_schema = 'public' and table_name = 'cohorts'`);
-    expect(columnas.rows.map((fila) => fila.column_name)).not.toContain("estado");
-    const restricciones = await db.execute(sql`select conname from pg_constraint where conrelid = 'cohorts'::regclass`);
-    expect(restricciones.rows.map((fila) => fila.conname)).toContain("cohorts_sin_solape_de_ventas");
   });
 });
