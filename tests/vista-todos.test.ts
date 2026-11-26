@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -34,21 +34,21 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797", comisionPorcentaje: "10" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500", comisionPorcentaje: "5" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" },
   ]).returning();
   programas = programas.map(({ id, slug, nombre }) => ({ id, slug, nombre }));
 
   for (const [indice, programa] of programas.entries()) {
-    await db.insert(cohorts).values({
+    const [cohorte] = await db.insert(cohorts).values({
       programId: programa.id,
       codigo: `C${indice + 1}`,
       metaCupos: 10 + indice,
-      precioUsd: indice ? "1500" : "797",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-    });
+    }).returning();
+    await skuVirtualDePrueba(db, cohorte.id, indice ? "1500" : "797", indice ? "5" : "10");
     const [lead] = await db.insert(leads).values({
       programId: programa.id,
       emailNormalizado: `persona-${indice}@retia.co`,
@@ -61,7 +61,6 @@ beforeEach(async () => {
       ownerUserId: await duenoDePrueba(db, programa.id),
       etapa: "ganado_parcial",
       valorVendidoUsd: indice ? "1500" : "797",
-      comisionPorcentaje: indice ? "5" : "10",
     }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,

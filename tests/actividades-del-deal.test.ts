@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning())[0].id;
   closer = (await db.insert(users).values({ email: "closer@retia.co", rol: "closer" }).returning())[0].id;
 });
 afterAll(async () => cerrar());
@@ -37,7 +37,6 @@ async function enProximaCohorte(fechaInicioVentas: string | null) {
     programId,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2026-10-01",
     // Antigua a proposito: el destino puede vender desde el 2000 y no pueden solaparse (0122).
     fechaInicioVentas: "1999-01-01",
@@ -47,7 +46,6 @@ async function enProximaCohorte(fechaInicioVentas: string | null) {
     programId,
     codigo: "C2",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2099-02-01",
     fechaInicioVentas,
     fechaCierreVentas: "2099-01-31",

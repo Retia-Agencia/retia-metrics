@@ -15,8 +15,8 @@ describe("emparejar y asignar compras de pasarela", () => {
   beforeEach(async () => {
     await vaciar();
     const [programa, otro] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "pagos", nombre: "Pagos", ticketUsd: "100" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "100" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "pagos", nombre: "Pagos" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" },
     ]).returning();
     programId = programa.id; otroProgramId = otro.id;
     const [gerente] = await db.insert(users).values({ email: "gerente-pagos@retia.test", rol: "gerente" }).returning();

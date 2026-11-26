@@ -31,7 +31,6 @@ describe("closer: una pregunta y una definicion", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "closer-una-pregunta",
       nombre: "Closer una pregunta",
-      ticketUsd: "1000",
     }).returning();
     const closerA = await duenoDePrueba(db, programa.id);
     const [closerB] = await db.insert(users).values({
@@ -50,7 +49,6 @@ describe("closer: una pregunta y una definicion", () => {
         ownerUserId,
         etapa: "ganado_parcial",
         valorVendidoUsd: "1000",
-        comisionPorcentaje: "10",
       }).returning();
       await db.insert(dealEtapaHistorial).values({
         dealId: deal.id,

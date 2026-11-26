@@ -39,15 +39,14 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" }).returning();
-  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1000" }).returning();
+  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" }).returning();
+  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" }).returning();
   programaA = a.id;
   programaB = b.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId: programaA,
     codigo: "C-2026",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-10-31",
     fechaInicioClases: "2026-11-01",

@@ -141,7 +141,7 @@ describe("saludDeFuentes (contra la base)", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
       .returning();
     programId = p.id;
   });
@@ -211,7 +211,6 @@ describe("saludDeFuentes (contra la base)", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "otro",
       nombre: "Otro",
-      ticketUsd: "900",
     }).returning();
     const [otraFuente] = await db.insert(sources).values({
       programId: otroPrograma.id,

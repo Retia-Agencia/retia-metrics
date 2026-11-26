@@ -44,7 +44,7 @@ describe("Typeform Insights", () => {
       vaciarCacheDeInsights();
       const [actor] = await db.insert(users).values({ email: "typeform@retia.test", rol: "gerente" }).returning();
       actorId = actor.id;
-      const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "typeform", nombre: "Typeform", ticketUsd: "1000" }).returning();
+      const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "typeform", nombre: "Typeform" }).returning();
       programId = programa.id;
     });
     afterAll(async () => cerrar());

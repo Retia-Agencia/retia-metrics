@@ -130,9 +130,9 @@ beforeEach(async () => {
   await vaciar();
   secuencia = 0;
   holder.db = db;
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte" }).returning();
   programId = programa.id;
-  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500" }).returning();
+  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" }).returning();
   otroProgramId = otro.id;
   await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: CLAVE_CALENDLY });
   await sembrarIntegracion(db, otroProgramId, "calendly", { token: "token", claveFirma: CLAVE_OTRO });

@@ -25,7 +25,7 @@ describe("búsqueda sin tildes", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
       .returning();
     programId = p.id;
   });

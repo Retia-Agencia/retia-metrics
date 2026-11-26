@@ -38,8 +38,8 @@ afterAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const [programa, otroPrograma] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "reasignar-a", nombre: "Reasignar A", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "reasignar-b", nombre: "Reasignar B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "reasignar-a", nombre: "Reasignar A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "reasignar-b", nombre: "Reasignar B" },
   ]).returning();
   programId = programa.id;
   otroProgramId = otroPrograma.id;

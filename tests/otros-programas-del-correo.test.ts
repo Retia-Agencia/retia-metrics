@@ -30,7 +30,7 @@ describe("otrosProgramasDelCorreo (PGlite)", () => {
 
   beforeEach(async () => {
     await vaciar();
-    const programa = (slug: string) => ({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug.toUpperCase(), ticketUsd: "1000" });
+    const programa = (slug: string) => ({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug.toUpperCase() });
     [{ id: a }, { id: b }, { id: c }] = await db.insert(programs).values([programa("a"), programa("b"), programa("c")]).returning();
     const [u] = await db.insert(users).values({ email: "maru@retia.co", rol: "closer", closerId: "Maru" }).returning();
     closer = u.id;

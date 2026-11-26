@@ -68,9 +68,9 @@ beforeEach(async () => {
   await vaciar();
   auth.mockReset();
 
-  const [pa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "1000" }).returning();
+  const [pa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A" }).returning();
   programaA = pa.id;
-  const [pb] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "800" }).returning();
+  const [pb] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B" }).returning();
   programaB = pb.id;
 
   const [a] = await db.insert(users).values({ email: "ana@retiagrowth.com", rol: "closer", closerId: "Ana", nombre: "Ana" }).returning();
@@ -93,7 +93,6 @@ beforeEach(async () => {
       programId: programaA,
       codigo: "CA",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-30",

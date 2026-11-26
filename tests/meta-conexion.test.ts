@@ -20,7 +20,7 @@ beforeEach(async () => {
   await vaciar();
   const [actor] = await db.insert(users).values({ email: "meta@retia.test", rol: "gerente" }).returning();
   actorId = actor.id;
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "meta", nombre: "Meta", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "meta", nombre: "Meta" }).returning();
   programId = programa.id;
   await sembrarIntegracion(db, programId, "meta", { token: TOKEN }, { nombre: "Retia" });
 });

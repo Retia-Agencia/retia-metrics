@@ -52,8 +52,8 @@ const periodo = { preset: "custom" as const, a: { desde: comun.dia, hasta: comun
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseReutilizable());
   const [p, ajeno] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "pend419", nombre: "Prueba", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "pend419-ajeno", nombre: "Ajeno", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "pend419", nombre: "Prueba" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "pend419-ajeno", nombre: "Ajeno" },
   ]).returning();
   programId = p.id;
   const [ana, beto] = await db.insert(users).values([

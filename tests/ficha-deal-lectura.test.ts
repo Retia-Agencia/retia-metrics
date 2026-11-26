@@ -61,9 +61,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = p.id;
-  const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "500" }).returning();
+  const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
   otroPrograma = q.id;
   const [c] = await db
     .insert(cohorts)
@@ -71,7 +71,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
@@ -401,11 +400,11 @@ describe("bloques puros de la ficha", () => {
 describe("opcionesDeFicha", () => {
   it("ofrece cohortes no cerradas y limita el destino a futuras distintas de la actual", async () => {
     const [c2, c3] = await db.insert(cohorts).values([
-      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
-      { programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
+      { programId, codigo: "C2", metaCupos: 10, fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
+      { programId, codigo: "C3", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
       // Cerrada porque su ventana ya pasó (ADR 0137 punto 5), no porque alguien la cerrara a mano.
-      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31" },
-      { programId: otroPrograma, codigo: "C5", metaCupos: 10, precioUsd: "500", fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31" },
+      { programId, codigo: "C4", metaCupos: 10, fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31" },
+      { programId: otroPrograma, codigo: "C5", metaCupos: 10, fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31" },
     ]).returning();
     await db.update(deals).set({ cohortId: c2.id }).where(eq(deals.id, dealId));
 

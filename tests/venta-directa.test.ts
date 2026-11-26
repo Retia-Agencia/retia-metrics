@@ -46,20 +46,18 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: `venta-directa-${secuencia}`,
     nombre: `Venta directa ${secuencia}`,
-    ticketUsd: "149",
   }).returning();
   programId = programa.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo: `C-${secuencia}`,
     metaCupos: 10,
-    precioUsd: "149",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
   }).returning();
   cohortId = cohorte.id;
-  await skuVirtualDePrueba(db, cohortId);
+  await skuVirtualDePrueba(db, cohortId, "149");
   plataformaId = (await db.insert(plataformasPago).values({ nombre: `Hotmart ${secuencia}` }).returning())[0].id;
   closerId = (await db.insert(users).values({ email: `closer-${secuencia}@retia.co`, rol: "closer" }).returning())[0].id;
   gerenteId = (await db.insert(users).values({ email: `gerente-${secuencia}@retia.co`, rol: "gerente" }).returning())[0].id;

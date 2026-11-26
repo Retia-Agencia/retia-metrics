@@ -1,18 +1,16 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { textoComisionPrograma } from "@/components/dashboard/operacion";
-import { editarPrograma } from "@/lib/catalogo/programas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
-import { esViolacionCheck } from "@/lib/db/errores";
 import { hoyEnBogota } from "@/lib/format";
 import {
   abonos,
-  changeLog,
   dealLineas,
   dealEtapaHistorial,
   deals,
   leads,
+  cohorts,
   programs,
   skus,
   users,
@@ -28,6 +26,7 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programId: string;
+let cohortId: string;
 let gerente: string;
 let closer: string;
 let secuencia = 0;
@@ -45,9 +44,10 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   programId = p.id;
+  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10 }).returning())[0].id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
   const [u] = await db
@@ -71,6 +71,7 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
     .values({
       leadId: lead.id,
       programId,
+      cohortId,
       etapa: "atendido",
       ownerUserId: closer,
       valorVendidoUsd,
@@ -80,8 +81,8 @@ async function dealAtendido(valorVendidoUsd: string | null = "1000") {
 }
 
 async function vender(porcentaje: string | null, valor = "1000") {
-  await db.update(programs).set({ comisionPorcentaje: porcentaje }).where(eq(programs.id, programId));
-  // D9: el % es del SKU; el del programa solo es el valor por defecto con que nace.
+  // D9: el % es del SKU.
+  await skuVirtualDePrueba(db, cohortId, "1000", porcentaje);
   await db.update(skus).set({ comisionPorcentaje: porcentaje }).where(eq(skus.programId, programId));
   const dealId = await dealAtendido(valor);
   await abonoDePrueba(db, { dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
@@ -117,7 +118,7 @@ describe("porcentaje del SKU congelado en la línea", () => {
     const primera = await vender("10.04");
     expect((await lineaDelDeal(primera.id)).comisionPorcentaje).toBe("10.04");
 
-    await db.update(programs).set({ comisionPorcentaje: "6.67" }).where(eq(programs.id, programId));
+    await db.update(skus).set({ comisionPorcentaje: "6.67" }).where(eq(skus.programId, programId));
     const sinCambiar = await lineaDelDeal(primera.id);
     expect(sinCambiar.comisionPorcentaje).toBe("10.04");
     expect(comisionDeDeal(sinCambiar.valorVendidoUsd, sinCambiar.comisionPorcentaje)).toBe(100.4);
@@ -129,7 +130,7 @@ describe("porcentaje del SKU congelado en la línea", () => {
 
   it("salir de venta y volver no pisa el porcentaje congelado", async () => {
     const vendido = await vender("10.04");
-    await db.update(programs).set({ comisionPorcentaje: "6.67" }).where(eq(programs.id, programId));
+    await db.update(skus).set({ comisionPorcentaje: "6.67" }).where(eq(skus.programId, programId));
     await db
       .update(abonos)
       .set({ anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "corrección" })
@@ -189,35 +190,5 @@ describe("comision del comparativo", () => {
       comisionUsd: 100,
       ventasSinComision: 0,
     });
-  });
-});
-
-describe("porcentaje editable del programa", () => {
-  const entrada = (comisionPorcentaje: string) => ({
-    nombre: "Programa A",
-    slug: "programa-a",
-    ticketUsd: "1000.00",
-    comisionPorcentaje,
-  });
-
-  it("escribe change_log y convierte vacío en null", async () => {
-    await editarPrograma(db, gerente, programId, entrada("10.04"));
-    const rastro = await db
-      .select()
-      .from(changeLog)
-      .where(and(eq(changeLog.registroId, programId), eq(changeLog.campo, "comisionPorcentaje")));
-    expect(rastro).toHaveLength(1);
-    expect(rastro[0].userId).toBe(gerente);
-
-    await editarPrograma(db, gerente, programId, entrada(""));
-    const [programa] = await db.select().from(programs).where(eq(programs.id, programId));
-    expect(programa.comisionPorcentaje).toBeNull();
-  });
-
-  it("rechaza más de dos decimales, más de 100 y el CHECK rechaza negativos", async () => {
-    await expect(editarPrograma(db, gerente, programId, entrada("10.041"))).rejects.toMatchObject({ status: 400 });
-    await expect(editarPrograma(db, gerente, programId, entrada("100.01"))).rejects.toMatchObject({ status: 400 });
-    const negativo = db.update(programs).set({ comisionPorcentaje: "-1" }).where(eq(programs.id, programId));
-    await expect(negativo).rejects.toSatisfy(esViolacionCheck);
   });
 });

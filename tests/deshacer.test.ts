@@ -31,7 +31,7 @@ let developer: string;
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "deshacer", nombre: "Deshacer", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "deshacer", nombre: "Deshacer" }).returning();
   programId = programa.id;
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@correo.co" }).returning();
   leadId = lead.id;
@@ -468,10 +468,10 @@ describe("deshacer cambios", () => {
   it("restaura la cohorte por el dominio y deja todas sus escrituras ligadas a la reversión", async () => {
     const [activa, futura] = await db.insert(cohorts).values([
       {
-        programId, codigo: "ACT", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-15",
+        programId, codigo: "ACT", metaCupos: 10, fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-15",
       },
       {
-        programId, codigo: "FUT", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2027-01-15", fechaInicioClases: "2027-02-01",
+        programId, codigo: "FUT", metaCupos: 10, fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2027-01-15", fechaInicioClases: "2027-02-01",
       },
     ]).returning();
     const [skuActiva, skuFutura] = await Promise.all([activa, futura].map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
@@ -495,7 +495,7 @@ describe("deshacer cambios", () => {
 
   it("valida la fecha límite anterior antes de restaurarla", async () => {
     const [cohorte] = await db.insert(cohorts).values({
-      programId, codigo: "LIM", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-15", fechaInicioClases: "2026-11-20",
+      programId, codigo: "LIM", metaCupos: 10, fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-15", fechaInicioClases: "2026-11-20",
     }).returning();
     const dealId = await deal();
     await db.update(deals).set({ cohortId: cohorte.id, fechaLimitePago: "2026-12-01" }).where(eq(deals.id, dealId));

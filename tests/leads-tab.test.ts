@@ -30,8 +30,8 @@ beforeEach(async () => {
   const [p, q] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" },
     ])
     .returning();
   programId = p.id;
@@ -127,7 +127,6 @@ describe("leadsDelPrograma", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "orden",
       nombre: "Orden",
-      ticketUsd: "1000",
     }).returning();
     await db.insert(leads).values([
       {
@@ -180,7 +179,6 @@ describe("leadsDelPrograma", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "paginado",
       nombre: "Paginado",
-      ticketUsd: "1000",
     }).returning();
     await db.insert(leads).values(Array.from({ length: LEADS_POR_PAGINA + 2 }, (_, indice) => ({
       fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,

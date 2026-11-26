@@ -30,8 +30,8 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   const [a] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "operacion-a", nombre: "Operación A", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "operacion-b", nombre: "Operación B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "operacion-a", nombre: "Operación A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "operacion-b", nombre: "Operación B" },
   ]).returning();
   programaA = a.id;
   const [closer, otro, gerente, cs, paid] = await db.insert(users).values([
@@ -56,7 +56,6 @@ beforeEach(async () => {
     programId: programaA,
     codigo: "A1",
     metaCupos: 10,
-    precioUsd: "797",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-12-01",
     fechaInicioClases: "2026-12-02",
@@ -218,7 +217,7 @@ describe("herramientas MCP de operación", () => {
 
   it("omitir cohorte equivale a pedir todas y un ciclo explícito sigue filtrando", async () => {
     const [otra] = await db.insert(cohorts).values({
-      programId: programaA, codigo: "A0", metaCupos: 10, precioUsd: "797",
+      programId: programaA, codigo: "A0", metaCupos: 10,
       fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-01", fechaInicioClases: "2026-08-02", }).returning();
     const [persona] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "otra-cohorte@retia.test", nombre: "Otra cohorte" }).returning();
     await db.insert(deals).values({ programId: programaA, leadId: persona.id, cohortId: otra.id, ownerUserId: closerId, etapa: "contactado" });

@@ -78,7 +78,7 @@ beforeEach(async () => {
   holder.db = db;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
     .returning();
   programId = p.id;
   await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });

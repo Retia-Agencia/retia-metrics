@@ -68,7 +68,7 @@ describe("el reporte contra la base", () => {
   afterAll(async () => cerrar());
 
   async function sembrar() {
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p-a", nombre: "Programa A", ticketUsd: "797" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p-a", nombre: "Programa A" }).returning();
     const [closer] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer", nombre: "Jerónimo", closerId: "Jero" }).returning();
     const venta = async (correo: string, dia: string, valor: string, nombre: string) => {
       const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: correo, nombre }).returning();

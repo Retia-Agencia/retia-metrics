@@ -28,8 +28,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "envios", nombre: "Envíos", ticketUsd: "100" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "envios-otro", nombre: "Otro", ticketUsd: "100" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "envios", nombre: "Envíos" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "envios-otro", nombre: "Otro" },
   ]).returning();
   programId = programas[0].id;
   const fuentes = await db.insert(sources).values([

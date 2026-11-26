@@ -43,7 +43,6 @@ async function crearPrograma(slug: string, opciones: { cohorte?: boolean; objeti
     ...PROGRAMA_DE_PRUEBA,
     slug,
     nombre: slug,
-    ticketUsd: "1000",
   }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
   const [cuenta] = await db.insert(cuentasPublicitarias).values({
@@ -68,7 +67,6 @@ async function crearPrograma(slug: string, opciones: { cohorte?: boolean; objeti
       programId: programa.id,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-31",
       fechaInicioClases: "2026-11-01",

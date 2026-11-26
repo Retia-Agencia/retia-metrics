@@ -33,11 +33,11 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
   afterAll(async () => cerrar());
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "evidencia", nombre: "Evidencia", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "evidencia", nombre: "Evidencia" }).returning();
     programId = p.id;
     [{ id: fuenteId }] = await db.insert(sources).values({ programId, nombre: "Fuente" }).returning();
     const cohorte = (codigo: string) => ({
-      programId, codigo, metaCupos: 10, precioUsd: "1000", fechaInicioVentas: INICIO,
+      programId, codigo, metaCupos: 10, fechaInicioVentas: INICIO,
       fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", });
     [{ id: c1 }] = await db.insert(cohorts).values(cohorte("C1")).returning();
     [{ id: c2 }] = await db.insert(cohorts).values({ ...cohorte("C2"), fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", fechaInicioClases: "2026-10-01" }).returning();

@@ -91,7 +91,7 @@ beforeEach(async () => {
   secuencia = 0;
   const [programa] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "ticket-134", nombre: "Ticket 134", ticketUsd: "999" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "ticket-134", nombre: "Ticket 134" })
     .returning();
   programId = programa.id;
   const [cohorte] = await db
@@ -100,14 +100,13 @@ beforeEach(async () => {
       programId,
       codigo: "C2",
       metaCupos: 30,
-      precioUsd: "797",
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-31",
     })
     .returning();
   cohortId = cohorte.id;
-  await skuVirtualDePrueba(db, cohortId);
+  await skuVirtualDePrueba(db, cohortId, "797");
   const [closer] = await db
     .insert(users)
     .values({ email: "closer-134@retia.co", rol: "closer", closerId: "Closer 134" })
@@ -152,7 +151,7 @@ describe("ticket 134 — cohorte y descuento", () => {
     expect(linea.valorVendidoUsd).toBe("697.00");
     expect(descuentoDeDeal(linea.precioListaUsd, linea.valorVendidoUsd)).toEqual({ usd: 100, porcentaje: 100 / 797 });
 
-    await db.update(cohorts).set({ precioUsd: "897" }).where(eq(cohorts.id, cohortId));
+    await db.update(skus).set({ precioListaUsd: "897" }).where(eq(skus.cohortId, cohortId));
     expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, deal.id)))[0].valorVendidoUsd).toBe("697.00");
   });
 
@@ -268,13 +267,12 @@ describe("ticket 134 — cohorte y descuento", () => {
         programId,
         codigo: "C3",
         metaCupos: 30,
-        precioUsd: "897",
         fechaInicioClases: "2027-01-15",
         fechaInicioVentas: "2026-11-01",
         fechaCierreVentas: "2999-12-31",
       })
       .returning();
-    await skuVirtualDePrueba(db, futura.id);
+    await skuVirtualDePrueba(db, futura.id, "897");
     const deal = await dealDirecto("atendido", { valorVendidoUsd: "697" });
     await lineaConCupoDePrueba(db, deal.id);
 

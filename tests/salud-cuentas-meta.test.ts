@@ -71,8 +71,8 @@ describe("diagnostico de una cuenta de Meta", () => {
 describe("salud de cuentas de Meta", () => {
   it("lee solo cuentas activas de los programas pedidos, agrupa y conserva fallos", async () => {
     const [pedido, otro] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "pedido", nombre: "Pedido", ticketUsd: "1000.00" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000.00" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "pedido", nombre: "Pedido" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" },
     ]).returning();
     await db.insert(cuentasPublicitarias).values([
       { idMeta: "sana", programId: pedido.id, nombre: "Sana", moneda: "COP", zonaHoraria: "America/Bogota" },

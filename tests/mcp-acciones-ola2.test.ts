@@ -43,8 +43,8 @@ beforeEach(async () => {
   grain.programarLectura.mockClear();
   await vaciar();
   const [programa, otro] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "ola-2", nombre: "Ola 2", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "ola-2-otro", nombre: "Ola 2 otro", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "ola-2", nombre: "Ola 2" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "ola-2-otro", nombre: "Ola 2 otro" },
   ]).returning();
   programId = programa.id; otroProgramId = otro.id;
   const [closer, otroCloser, developer] = await db.insert(users).values([
@@ -62,7 +62,7 @@ beforeEach(async () => {
   token = (await emitirTokenPersonal(db, { userId: closerId, actorId: closerId, nombre: "Ola 2", scope: "escritura" })).valor;
   [plataformaId, otraPlataformaId] = (await db.insert(plataformasPago).values([{ nombre: "Wompi ola 2" }, { nombre: "PayPal ola 2" }]).returning()).map((x) => x.id);
   await db.insert(plataformasPrograma).values([{ programId, plataformaId }, { programId, plataformaId: otraPlataformaId }]);
-  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "O2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31" }).returning())[0].id;
+  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "O2", metaCupos: 10, fechaInicioClases: "2027-01-01", fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31" }).returning())[0].id;
   await skuVirtualDePrueba(db, cohorteId);
 });
 

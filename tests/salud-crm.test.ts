@@ -131,7 +131,7 @@ beforeEach(async () => {
   sesionHolder.rol = null;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
     .returning();
   programId = p.id;
   const [f] = await db

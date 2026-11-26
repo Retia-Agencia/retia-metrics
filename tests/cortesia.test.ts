@@ -37,8 +37,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "cortesias",
     nombre: "Cortesías",
-    ticketUsd: "1000",
-    comisionPorcentaje: "10",
   }).returning();
   programId = programa.id;
   gerente = (await db.insert(users).values({ email: "gerente@retia.test", rol: "gerente" }).returning())[0].id;
@@ -47,7 +45,6 @@ beforeEach(async () => {
     programId,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-30",

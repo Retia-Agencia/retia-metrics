@@ -59,16 +59,16 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   const [q] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" })
     .returning();
   programa = p.id;
   otroPrograma = q.id;
   const [cohorte] = await db.insert(cohorts).values({
-    programId: programa, codigo: "C1", metaCupos: 10, precioUsd: "1000",
+    programId: programa, codigo: "C1", metaCupos: 10,
     fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-07-01",
     fechaCierreVentas: "2026-08-31", }).returning();
   cohortId = cohorte.id;

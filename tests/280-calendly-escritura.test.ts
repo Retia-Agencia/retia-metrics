@@ -42,7 +42,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "p-280",
     nombre: "P 280",
-    ticketUsd: "1000",
     calendlyUrl: "https://calendly.com/retia/round-robin",
   }).returning();
   programId = programa.id;

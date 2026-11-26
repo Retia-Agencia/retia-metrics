@@ -82,7 +82,7 @@ beforeEach(async () => {
   cookieVista = undefined;
   consultas = 0;
   auth.mockReset();
-  const [p] = await baseReal.db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await baseReal.db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programaId = p.id;
   const [g] = await baseReal.db.insert(users).values({ email: "g@retia.co", rol: "gerente" }).returning();
   gerenteId = g.id;
@@ -109,7 +109,7 @@ describe("identidad por request", () => {
   it("(a) dentro de una server action no hay memoria: la lectura posterior a la escritura ve el dato nuevo", async () => {
     esAccion = true;
     const { programasVisibles } = await import("@/lib/auth/alcance");
-    const [otro] = await baseReal.db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" }).returning();
+    const [otro] = await baseReal.db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     expect((await programasVisibles(gerenteId, "gerente")).map((x) => x.slug)).toEqual(["p", "q"]);
     // La accion acota el alcance del gerente y relee en el mismo request.
     await baseReal.db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: otro.id });

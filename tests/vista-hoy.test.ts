@@ -112,8 +112,8 @@ describe("la caja de hoy por origen (252)", () => {
   afterAll(async () => cerrar());
 
   async function sembrar() {
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797" }).returning();
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" }).returning();
     const deal = async (programId: string, correo: string, vendidoEl: string) => {
       const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
       const [d] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "ganado_parcial", valorVendidoUsd: "797", ownerUserId: await duenoDePrueba(db, programId) }).returning();
@@ -171,7 +171,7 @@ describe("la caja de hoy por origen (252)", () => {
   });
 
   it("sin abonos hoy la caja es 0 en la moneda del programa (D-3), no un vacío", async () => {
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío", ticketUsd: "797" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío" }).returning();
     expect(await cajaDelDiaPorOrigen({ programId: programa.id, hoy: HOY }, db)).toEqual([
       { moneda: "USD", total: 0, deVentasDeHoy: 0, deVentasAnteriores: 0 },
     ]);
@@ -183,7 +183,6 @@ describe("la caja de hoy por origen (252)", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "equivalencia",
       nombre: "Equivalencia",
-      ticketUsd: "797",
     }).returning();
     const anterior = await armarVistaDelDashboard({
       programId: programa.id,
@@ -206,13 +205,11 @@ describe("la caja de hoy por origen (252)", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "dia-armado",
       nombre: "Día armado",
-      ticketUsd: "797",
     }).returning();
     const [cohorteActiva] = await db.insert(cohorts).values({
       programId: programa.id,
       codigo: "C10",
       metaCupos: 10,
-      precioUsd: "797",
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-10-12",
       fechaCierreVentas: "2026-10-16",
@@ -261,7 +258,6 @@ describe("la caja de hoy por origen (252)", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "reagendadas",
       nombre: "Reagendadas",
-      ticketUsd: "797",
     }).returning();
     const [gerente] = await db.insert(users).values({ email: "anula@retia.co", rol: "gerente" }).returning();
     await db.insert(calls).values([
@@ -287,7 +283,6 @@ describe("la caja de hoy por origen (252)", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "agendas-creadas",
       nombre: "Agendas creadas",
-      ticketUsd: "797",
     }).returning();
     await db.insert(calls).values([
       {
@@ -323,8 +318,8 @@ describe("la caja de hoy por origen (252)", () => {
   it("registros cuenta completos y parciales sin completar del día y coincide con su lista", async () => {
     const dia = "2026-10-14";
     const [programa, otroPrograma] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "registros", nombre: "Registros", ticketUsd: "797" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "registros-otro", nombre: "Registros otro", ticketUsd: "797" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "registros", nombre: "Registros" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "registros-otro", nombre: "Registros otro" },
     ]).returning();
     const [fuente, fuenteAjena] = await db.insert(sources).values([
       { programId: programa.id, nombre: "Typeform" },
@@ -372,8 +367,8 @@ describe("367: citas vivas y canceladas aparte", () => {
 
   it("la cifra, todas las filas y el desglose conservan vigencia y programa", async () => {
     const [programa, otro] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "citas-vivas", nombre: "Citas vivas", ticketUsd: "797" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "citas-ajenas", nombre: "Citas ajenas", ticketUsd: "1500" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "citas-vivas", nombre: "Citas vivas" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "citas-ajenas", nombre: "Citas ajenas" },
     ]).returning();
     const [gerente] = await db.insert(users).values({ email: "gerente-citas@retia.co", rol: "gerente" }).returning();
     const [leadCancelado] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "cancelado@retia.co" }).returning();

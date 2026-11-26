@@ -32,14 +32,13 @@ beforeEach(async () => {
   await vaciar();
   const [programa] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-a", nombre: "Objetivos A", ticketUsd: "1000.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-a", nombre: "Objetivos A" })
     .returning();
   programId = programa.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo: "A-1",
     metaCupos: 70,
-    precioUsd: "1000.00",
   }).returning();
   cohortId = cohorte.id;
   const [usuario] = await db.insert(users).values({ email: "objetivos@retia.test", rol: "gerente" }).returning();
@@ -84,7 +83,7 @@ describe("objetivos de la cohorte", () => {
   it("pauta limitada a otro programa no toca objetivos de este (ADR 0094)", async () => {
     const [otro] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B", ticketUsd: "1000.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B" })
       .returning();
     const [usuario] = await db.insert(users).values({ email: "pauta@retia.test", rol: "paid_trafficker" }).returning();
     await db.insert(usuariosProgramasAlcance).values({ userId: usuario.id, programId: otro.id });
@@ -200,13 +199,12 @@ describe("objetivos de la cohorte", () => {
     await crearObjetivo(db, actor(), cupos("paid", 36));
     const [programaB] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B", ticketUsd: "1000.00" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B" })
       .returning();
     const [ajena] = await db.insert(cohorts).values({
       programId: programaB.id,
       codigo: "B-1",
       metaCupos: 70,
-      precioUsd: "1000.00",
     }).returning();
     await expect(copiarObjetivos(db, actor(), {
       desdeCohorteId: cohortId,
@@ -217,7 +215,6 @@ describe("objetivos de la cohorte", () => {
       programId,
       codigo: "A-2",
       metaCupos: 70,
-      precioUsd: "1000.00",
     }).returning();
     await copiarObjetivos(db, actor(), { desdeCohorteId: cohortId, haciaCohorteId: destino.id });
     const copiadas = await db.select().from(objetivos).where(eq(objetivos.cohortId, destino.id));

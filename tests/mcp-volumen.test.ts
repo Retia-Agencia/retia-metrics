@@ -44,8 +44,8 @@ describe.skipIf(!medir)("herramientas MCP a 10x del volumen actual", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const programas = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "mcp-volumen-a", nombre: "MCP Volumen A", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "mcp-volumen-b", nombre: "MCP Volumen B", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "mcp-volumen-a", nombre: "MCP Volumen A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "mcp-volumen-b", nombre: "MCP Volumen B" },
     ]).returning();
     const fuentes = await db.insert(sources).values([
       { programId: programas[0].id, nombre: "Fuente A" },

@@ -46,12 +46,10 @@ async function main() {
     {
       slug: "comunicarte",
       nombre: "Comunicarte",
-      ticketUsd: "797.00",
     },
     {
       slug: "tactical-investor",
       nombre: "Tactical Investor",
-      ticketUsd: "1500.00",
     },
   ];
 
@@ -72,22 +70,22 @@ async function main() {
   // ── Cohortes ──────────────────────────────────────────────────
   const defsCohortes = [
     {
-      programa: "comunicarte", codigo: "C1", metaCupos: 30, precioUsd: "697.00",
+      programa: "comunicarte", codigo: "C1", metaCupos: 30,
       fechaInicioClases: "2026-08-11", fechaInicioVentas: null, fechaCierreVentas: "2026-08-11",
       notas: "Cerro con 30 compradores. Lead a venta 2,64%, invitado a venta 21,5%.",
     },
     {
-      programa: "comunicarte", codigo: "C2", metaCupos: 50, precioUsd: "797.00",
+      programa: "comunicarte", codigo: "C2", metaCupos: 50,
       fechaInicioClases: "2026-09-22", fechaInicioVentas: "2026-08-14", fechaCierreVentas: "2026-09-21",
       notas: "Precio subio de 697 a 797 el 13-ago. Se respeta el anterior a quien ya lo tenia cotizado.",
     },
     {
-      programa: "tactical-investor", codigo: "C1", metaCupos: 30, precioUsd: "1500.00",
+      programa: "tactical-investor", codigo: "C1", metaCupos: 30,
       fechaInicioClases: "2026-08-18", fechaInicioVentas: null, fechaCierreVentas: "2026-08-18",
       notas: "31 matriculados sobre meta de 30, pero solo 17 pasaron por el registro de llamadas.",
     },
     {
-      programa: "tactical-investor", codigo: "C2", metaCupos: 50, precioUsd: "1500.00",
+      programa: "tactical-investor", codigo: "C2", metaCupos: 50,
       fechaInicioClases: "2026-09-29", fechaInicioVentas: "2026-08-19", fechaCierreVentas: "2026-09-29",
       notas: "Meta de 50 cerrados por el equipo. Lo que entre por webinar es adicional.",
     },

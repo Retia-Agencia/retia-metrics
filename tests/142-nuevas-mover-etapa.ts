@@ -22,7 +22,7 @@ const actor = (): Actor => ({ tipo: "usuario", userId: closer, rol: "closer", op
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = p.id;
   const [u] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer" }).returning();
   closer = u.id;
@@ -90,7 +90,7 @@ describe("estado compuesto e historial", () => {
 
 describe("pendientes y Próxima Cohorte", () => {
   async function cohortes() {
-    const base = { programId, metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" };
+    const base = { programId, metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" };
     const [origen, destino] = await db.insert(cohorts).values([
       { ...base, codigo: "O", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
       { ...base, codigo: "D", fechaInicioVentas: "2026-10-01" },

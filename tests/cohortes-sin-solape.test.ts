@@ -28,8 +28,8 @@ afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "sin-solape-a", nombre: "A" },
-    { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "sin-solape-b", nombre: "B" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "sin-solape-a", nombre: "A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "sin-solape-b", nombre: "B" },
   ]).returning();
   programaA = a.id;
   programaB = b.id;
@@ -39,7 +39,7 @@ beforeEach(async () => {
 
 function cohorte(programId: string, codigo: string, inicio: string | null, cierre: string | null): EntradaCohorte {
   return {
-    programId, codigo, metaCupos: 10, precioUsd: "100", fechaInicioClases: null, fechaInicioVentas: inicio, fechaCierreVentas: cierre,
+    programId, codigo, metaCupos: 10, fechaInicioClases: null, fechaInicioVentas: inicio, fechaCierreVentas: cierre,
   };
 }
 
@@ -74,7 +74,7 @@ describe("meta de leads por dia por defecto", () => {
     const creada = await crearCohorte(db, actorId, cohorte(programaA, "C1", null, null));
     expect(creada.metaLeadsDia).toBe(META_LEADS_DIA_POR_DEFECTO);
     const [fila] = await db.insert((await import("@/lib/db/schema")).cohorts)
-      .values({ programId: programaB, codigo: "X", metaCupos: 1, precioUsd: "1" }).returning();
+      .values({ programId: programaB, codigo: "X", metaCupos: 1 }).returning();
     expect(fila.metaLeadsDia).toBe(META_LEADS_DIA_POR_DEFECTO);
   });
 

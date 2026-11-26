@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { cohorts, deals, enlacesPago, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -28,8 +28,8 @@ beforeEach(async () => {
   const [programa, otroPrograma] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "students-pagos", nombre: "Students pagos", ticketUsd: "1200" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro-students-pagos", nombre: "Otro", ticketUsd: "900" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "students-pagos", nombre: "Students pagos" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro-students-pagos", nombre: "Otro" },
     ])
     .returning();
   programId = programa.id;
@@ -42,7 +42,6 @@ beforeEach(async () => {
         programId,
         codigo: "P-1",
         metaCupos: 10,
-        precioUsd: "1200",
         fechaInicioVentas: "2026-10-01",
         fechaCierreVentas: "2026-10-31",
         fechaInicioClases: "2026-11-10",
@@ -51,7 +50,6 @@ beforeEach(async () => {
         programId: otroProgramaId,
         codigo: "Q-1",
         metaCupos: 10,
-        precioUsd: "900",
         fechaInicioVentas: "2026-10-01",
         fechaCierreVentas: "2026-10-31",
         fechaInicioClases: "2026-11-10",
@@ -59,6 +57,8 @@ beforeEach(async () => {
     ])
     .returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohorte.id, "1200");
+  await skuVirtualDePrueba(db, otraCohorte.id, "900");
   otraCohortId = otraCohorte.id;
 
   const [registrador, anulador] = await db

@@ -31,7 +31,6 @@ describe("381: embudo comercial", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "embudo-comercial",
       nombre: "Embudo comercial",
-      ticketUsd: "1000",
     }).returning();
     programId = programa.id;
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Formulario" }).returning();

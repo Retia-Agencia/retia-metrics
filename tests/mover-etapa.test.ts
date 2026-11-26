@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import {
@@ -13,6 +13,7 @@ import {
   leads,
   motivos,
   programs,
+  skus,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -64,7 +65,7 @@ beforeEach(async () => {
   // El ticket entrega solo schema.ts; la sesión central genera la migración. La base de
   // prueba necesita temporalmente el valor para ejercer el motor nuevo.
   await db.execute(sql`ALTER TYPE tipo_motivo ADD VALUE IF NOT EXISTS 'correccion'`);
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = p.id;
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co" }).returning();
   leadId = l.id;
@@ -618,7 +619,7 @@ describe("el motivo", () => {
 
 describe("los hechos salen de la base", () => {
   it("Proxima Cohorte usa la cohorte DESTINO (columna aparte), no muda cohort_id (punto 1)", async () => {
-    const base = { programId, metaCupos: 30, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
+    const base = { programId, metaCupos: 30, fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
     const [origen] = await db
       .insert(cohorts)
       .values({ ...base, codigo: "C3", fechaInicioVentas: "2026-09-01" })
@@ -645,16 +646,16 @@ describe("los hechos salen de la base", () => {
   });
 
   it("la cohorte destino tiene que ser de OTRO estado igual, del mismo programa y distinta al origen (puntos 1 y 6)", async () => {
-    const base = { programId, metaCupos: 30, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
+    const base = { programId, metaCupos: 30, fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-25" };
     const [origen] = await db
       .insert(cohorts)
       .values({ ...base, codigo: "C3", fechaInicioVentas: "2026-09-01" })
       .returning();
     // Cohorte de OTRO programa: el programa es frontera (ADR 0043).
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otro.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
+      .values({ programId: otro.id, codigo: "Q1", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
 
     const dealId = await nuevoDeal("contactado", { ownerUserId: closer, cohortId: origen.id });
@@ -704,9 +705,11 @@ describe("los hechos salen de la base", () => {
   });
 
   it("vende aunque el SKU no tenga % de comisión: la línea queda sin % y la venta se marca sin comisión (D9)", async () => {
-    // El SKU virtual de prueba nace con el % del programa; sin él, nace sin %.
-    await db.update(programs).set({ comisionPorcentaje: null }).where(eq(programs.id, programId));
-    const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
+    // El SKU virtual de prueba nace con %; aquí lo dejamos sin él (la comisión vive en el SKU).
+    const [ciclo] = await db.insert(cohorts).values({ programId, codigo: "C-SIN-PCT", metaCupos: 10 }).returning();
+    await skuVirtualDePrueba(db, ciclo.id);
+    await db.update(skus).set({ comisionPorcentaje: null }).where(eq(skus.cohortId, ciclo.id));
+    const dealId = await nuevoDeal("atendido", { ownerUserId: closer, cohortId: ciclo.id });
     await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "500" });
 
     await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
@@ -750,7 +753,6 @@ describe("los hechos salen de la base", () => {
         programId,
         codigo: "Activa",
         metaCupos: 10,
-        precioUsd: "1000",
         fechaInicioClases: "2026-11-01",
         fechaInicioVentas: "2026-09-01",
         fechaCierreVentas: "2026-10-31",
@@ -911,7 +913,7 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
   });
 
   it("el programa es frontera: no se abre un deal sobre un lead de otro programa", async () => {
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     const e = await rechazo(abrirDeal(db, { leadId, programId: otro.id, etapa: "registrado", actor: sistema }));
     expect(e.status).toBe(422);
     expect(await db.select().from(deals)).toEqual([]);

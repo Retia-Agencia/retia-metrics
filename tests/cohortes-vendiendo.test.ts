@@ -26,8 +26,8 @@ beforeEach(async () => {
   const [programa, otroPrograma] = await db
     .insert(programs)
     .values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "principal", nombre: "Principal", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "principal", nombre: "Principal" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" },
     ])
     .returning();
   programId = programa.id;
@@ -55,7 +55,6 @@ async function crearCohorte({
       programId: programa,
       codigo,
       metaCupos: 20,
-      precioUsd: "1000",
       fechaInicioClases: "2026-07-01",
       fechaInicioVentas: inicio,
       fechaCierreVentas: cierre,
@@ -107,7 +106,6 @@ describe("cohortesVendiendo", () => {
       programId,
       codigo: "PorDefinir",
       metaCupos: 20,
-      precioUsd: "1000",
       fechaInicioClases: null,
       fechaInicioVentas: null,
       fechaCierreVentas: null,
@@ -119,7 +117,6 @@ describe("cohortesVendiendo", () => {
       programId,
       codigo: "SinCierre",
       metaCupos: 20,
-      precioUsd: "1000",
       fechaInicioClases: null,
       fechaInicioVentas: "2026-06-01",
       fechaCierreVentas: null,

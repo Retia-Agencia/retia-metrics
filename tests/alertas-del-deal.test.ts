@@ -28,7 +28,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "p",
     nombre: "P",
-    ticketUsd: "1000",
     diasSinActividad: 3,
   }).returning();
   programId = programa.id;
@@ -36,7 +35,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "q",
     nombre: "Q",
-    ticketUsd: "800",
   }).returning();
   otroProgramId = otro.id;
   const [usuario] = await db.insert(users).values({

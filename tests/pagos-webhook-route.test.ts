@@ -16,12 +16,12 @@ describe("POST /api/webhooks/pagos/[fuente]", () => {
   beforeAll(async () => ({ db, vaciar, cerrar } = await crearBaseReutilizable()));
   beforeEach(async () => {
     await vaciar(); holder.db = db;
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "webhook-pagos", nombre: "Webhook Pagos", ticketUsd: "149" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "webhook-pagos", nombre: "Webhook Pagos" }).returning();
     const [integracion] = await db.insert(integraciones).values({ programId: programa.id, tipo: "hotmart", secretos: { hottok: HOTTOK } }).returning();
     integracionId = integracion.id;
     const [hotmart] = await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Hotmart"));
     await db.insert(enlacesPago).values({ programId: programa.id, plataformaId: hotmart.id, nombre: "Oferta", monto: "149", moneda: "USD", url: "https://pay.hotmart.com/X?off=n82b9jqz" });
-    const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "P7", metaCupos: 20, precioUsd: "149", fechaInicioClases: "2010-01-01", fechaInicioVentas: "2008-01-01", fechaCierreVentas: "2011-01-01" }).returning();
+    const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "P7", metaCupos: 20, fechaInicioClases: "2010-01-01", fechaInicioVentas: "2008-01-01", fechaCierreVentas: "2011-01-01" }).returning();
     await skuVirtualDePrueba(db, cohorte.id);
   });
   afterAll(async () => { holder.db = null; await cerrar(); });

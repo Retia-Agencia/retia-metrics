@@ -35,7 +35,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   holder.db = db;
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff" }).returning();
   await sembrarIntegracion(db, programa.id, "calendly", { token: "token", claveFirma: CLAVE });
   programId = programa.id;
   const [owner] = await db.insert(users).values({ email: "setter@retia.co", rol: "closer" }).returning();

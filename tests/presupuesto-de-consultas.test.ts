@@ -103,7 +103,6 @@ async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
       ...PROGRAMA_DE_PRUEBA,
       slug: `presupuesto-${indice + 1}`,
       nombre: `Presupuesto ${indice + 1}`,
-      ticketUsd: "1000.00",
     })),
   ).returning();
   const programasSembrados = programasInsertados.map(({ id, slug }) => ({ id, slug }));

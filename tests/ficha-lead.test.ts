@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { calls, cohorts, dealLineas, deals, leadContactos, leads, productos, programs, skus, sources, submissions, users } from "@/lib/db/schema";
+import { calls, cohorts, dealLineas, deals, leadContactos, leads, programs, skus, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   camposDelEnvio,
@@ -141,15 +141,15 @@ describe("fichaDeLead (PGlite)", () => {
 
   beforeEach(async () => {
     await vaciar();
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
     programId = p.id;
-    const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "500" }).returning();
+    const [q] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     otroPrograma = q.id;
     const [u] = await db.insert(users).values({ email: "maru@retia.co", rol: "closer", closerId: "Maru", nombre: "Maru" }).returning();
     closer = u.id;
     const [c] = await db
       .insert(cohorts)
-      .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" })
+      .values({ programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" })
       .returning();
     const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
     leadId = l.id;
@@ -275,18 +275,13 @@ describe("fichaDeLead (PGlite)", () => {
 
   it("muestra cada línea vigente de compra, nueva primero, sin cruzar programas", async () => {
     const [ciclo, cicloAjeno] = await Promise.all([
-      db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10, precioUsd: "300" }).returning().then(([x]) => x),
-      db.insert(cohorts).values({ programId: otroPrograma, codigo: "C3", metaCupos: 10, precioUsd: "900" }).returning().then(([x]) => x),
+      db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 10 }).returning().then(([x]) => x),
+      db.insert(cohorts).values({ programId: otroPrograma, codigo: "C3", metaCupos: 10 }).returning().then(([x]) => x),
     ]);
-    const [virtual, uno, ajeno] = await db.insert(productos).values([
-      { programId, nombre: "Virtual C3", slug: "virtual-c3" },
-      { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3" },
-      { programId: otroPrograma, nombre: "Ajeno C3", slug: "ajeno-c3" },
-    ]).returning();
     const [skuVirtual, skuUno, skuAjeno] = await db.insert(skus).values([
-      { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: ciclo.id, codigo: "VIRTUAL-C3", precioListaUsd: "200" },
-      { programId, nombre: uno.nombre, slug: uno.slug, productoId: uno.id, cohortId: ciclo.id, codigo: "UNO-C3", precioListaUsd: "100" },
-      { programId: otroPrograma, nombre: ajeno.nombre, slug: ajeno.slug, productoId: ajeno.id, cohortId: cicloAjeno.id, codigo: "AJENO-C3", precioListaUsd: "900" },
+      { programId, nombre: "Virtual C3", slug: "virtual-c3", cohortId: ciclo.id, codigo: "VIRTUAL-C3", precioListaUsd: "200" },
+      { programId, nombre: "Uno a uno C3", slug: "uno-a-uno-c3", cohortId: ciclo.id, codigo: "UNO-C3", precioListaUsd: "100" },
+      { programId: otroPrograma, nombre: "Ajeno C3", slug: "ajeno-c3", cohortId: cicloAjeno.id, codigo: "AJENO-C3", precioListaUsd: "900" },
     ]).returning();
     const [leadAjeno] = await db.insert(leads).values({ programId: otroPrograma, emailNormalizado: "ajeno@correo.co", entrada: "crm" }).returning();
     const [dealAjeno] = await db.insert(deals).values({ programId: otroPrograma, leadId: leadAjeno.id, etapa: "registrado" }).returning();

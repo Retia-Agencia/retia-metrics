@@ -75,8 +75,8 @@ describe("138: deals creados contra agendas, contra la base", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     [programaA, programaB] = (await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-a", nombre: "A" },
-      { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-b", nombre: "B" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "prueba-a", nombre: "A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "prueba-b", nombre: "B" },
     ]).returning()).map((p) => p.id);
     const [owner] = await db.insert(users).values({ email: "ana@example.test", rol: "closer", closerId: "Ana" }).returning();
     const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Formulario" }).returning();

@@ -22,7 +22,7 @@ async function evento(input: { token?: string; dataset?: string; eventTime?: Dat
   let programId = input.programId;
   if (!programId) {
     const [programa] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: `envio-${secuencia}`, nombre: `Envío ${secuencia}`, ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: `envio-${secuencia}`, nombre: `Envío ${secuencia}`,
     }).returning();
     programId = programa.id;
     await db.insert(integraciones).values({

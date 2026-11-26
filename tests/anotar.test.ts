@@ -46,7 +46,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "anotar",
     nombre: "Anotar",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   const [actual, destino] = await db.insert(cohorts).values([
@@ -54,7 +53,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
@@ -63,7 +61,6 @@ beforeEach(async () => {
       programId,
       codigo: "C2",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2027-02-01",
       fechaInicioVentas: "2027-01-01",
       fechaCierreVentas: "2027-01-31",
@@ -221,13 +218,11 @@ describe("anotar", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "anotar-ajeno",
       nombre: "Anotar ajeno",
-      ticketUsd: "1500",
     }).returning();
     const [ajena] = await db.insert(cohorts).values({
       programId: programaAjeno.id,
       codigo: "A1",
       metaCupos: 10,
-      precioUsd: "1500",
     }).returning();
     await expect(anotar(db, actor(), {
       dealId: deal.id,
@@ -238,7 +233,6 @@ describe("anotar", () => {
       programId,
       codigo: "C0",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-08-01",
       fechaInicioVentas: "2026-07-01",
       fechaCierreVentas: "2026-07-31",

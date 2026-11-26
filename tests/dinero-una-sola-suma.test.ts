@@ -29,7 +29,6 @@ describe("ticket 393: una sola suma del dinero vendido", () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "dinero-393",
       nombre: "Dinero 393",
-      ticketUsd: "1500",
     }).returning();
     const ownerUserId = await duenoDePrueba(db, programa.id);
     const ids: string[] = [];

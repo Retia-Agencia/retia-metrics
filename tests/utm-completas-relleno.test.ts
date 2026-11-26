@@ -32,7 +32,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prog-a", nombre: "A", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "prog-a", nombre: "A" }).returning();
   const [f] = await db.insert(sources).values({ programId: p.id, nombre: "Typeform" }).returning();
   sourceId = f.id;
 });

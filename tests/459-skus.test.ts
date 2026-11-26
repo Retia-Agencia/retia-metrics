@@ -63,7 +63,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     nombre: "Tactical Investor",
     slug: "tactical-investor",
-    ticketUsd: "797",
   }).returning();
   programId = programa.id;
 });
@@ -72,7 +71,7 @@ afterAll(async () => cerrar());
 
 describe("ticket 459 — catálogo de SKUs", () => {
   it("rechaza que un closer forje Predeterminado y no mueve la base", async () => {
-    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C4", metaCupos: 10, precioUsd: "797" }).returning();
+    const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C4", metaCupos: 10 }).returning();
     const [sku] = await db.insert(skus).values({ programId, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "TACTICAL-VIRTUAL-C4", precioListaUsd: "797", cuentaComoCupo: true, predeterminado: false }).returning();
     auth.mockResolvedValue({ user: { id: crypto.randomUUID(), email: "closer@example.test", rol: "closer", closerId: "Closer" } });
     const { editarSkuAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
@@ -103,20 +102,17 @@ describe("ticket 459 — catálogo de SKUs", () => {
       fechaInicioVentas: "2027-01-01",
       fechaCierreVentas: "2027-01-31",
       metaCupos: 30,
-      precioUsd: "797.00",
     });
 
     const [otra] = await db.insert(programs).values({
       ...PROGRAMA_DE_PRUEBA,
       nombre: "Otro programa",
       slug: "otro-programa",
-      ticketUsd: "500",
     }).returning();
     await db.insert(cohorts).values({
       programId: otra.id,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "500",
       fechaInicioVentas: "2027-03-01",
       fechaCierreVentas: "2027-03-31",
     });
@@ -124,7 +120,6 @@ describe("ticket 459 — catálogo de SKUs", () => {
       programId,
       codigo: "C5",
       metaCupos: 10,
-      precioUsd: "900",
       fechaInicioVentas: "2027-03-01",
       fechaCierreVentas: "2027-03-31",
     });

@@ -42,7 +42,7 @@ afterAll(async () => cerrar());
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p-289", nombre: "P 289", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p-289", nombre: "P 289" }).returning();
   programId = p.id;
   await sembrarIntegracion(db, programId, "calendly", { token: "token-289", claveFirma: "firma-289" });
   const [u] = await db.insert(users).values({ email: "nico@retia.co", nombre: "Nico", rol: "closer" }).returning();
@@ -81,7 +81,7 @@ describe("guardarRoundRobin", () => {
 
   it("captura la violación única entre programas como 409", async () => {
     // Otro programa ya tiene RR como su round robin.
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-289", nombre: "Otro", ticketUsd: "797", calendlyEventType: RR }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-289", nombre: "Otro", calendlyEventType: RR }).returning();
     expect(otro.calendlyEventType).toBe(RR);
     const error = await guardarRoundRobin(db, actorId, programId, { calendlyUrl: URL_RR, orgCompartida: false }, { fetch: fetchResuelveRR() }).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);

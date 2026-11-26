@@ -57,7 +57,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
     .returning();
   programId = p.id;
   const [c] = await db
@@ -66,7 +66,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-10-01",
       fechaCierreVentas: "2026-09-30",
     })

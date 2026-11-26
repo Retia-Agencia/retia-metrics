@@ -30,8 +30,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "serie-a", nombre: "Serie A", ticketUsd: "100" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "serie-b", nombre: "Serie B", ticketUsd: "100" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "serie-a", nombre: "Serie A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "serie-b", nombre: "Serie B" },
   ]).returning();
   [programId, otroPrograma] = programas.map((p) => p.id);
   const cuentas = await db.insert(users).values([
@@ -40,11 +40,11 @@ beforeEach(async () => {
   ]).returning();
   [ana, beto] = cuentas.map((u) => u.id);
   const [cohorte] = await db.insert(cohorts).values({
-    programId, codigo: "SERIE", metaCupos: 22, precioUsd: "100",
+    programId, codigo: "SERIE", metaCupos: 22,
     fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
     fechaInicioClases: "2026-11-01", }).returning();
   cohortId = cohorte.id;
-  await skuVirtualDePrueba(db, cohortId);
+  await skuVirtualDePrueba(db, cohortId, "100");
   contador = 0;
 });
 afterAll(async () => cerrar());
@@ -150,9 +150,10 @@ it("respeta el closer como las tarjetas: dueño en ventas y registrador en caja,
 
 it("la cohorte elegida filtra A y B con su propia cohorte, y su meta es cupos por precio", async () => {
   const [otra] = await db.insert(cohorts).values({
-    programId, codigo: "ANTES", metaCupos: 10, precioUsd: "50",
+    programId, codigo: "ANTES", metaCupos: 10,
     fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31",
     fechaInicioClases: "2026-09-01", }).returning();
+  await skuVirtualDePrueba(db, otra.id, "50");
   await venta({ dia: "2026-10-02", valor: "100" });
   const deAntes = await venta({ dia: "2026-08-05", valor: "50" });
   await db.update(deals).set({ cohortId: otra.id }).where(eq(deals.id, deAntes));

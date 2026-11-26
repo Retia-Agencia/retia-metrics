@@ -35,13 +35,6 @@ import { hoyEnBogota } from "@/lib/format";
 /** id de una cohorte: uuid o error de validacion (400). */
 const esquemaId = z.string().uuid("El identificador no es válido.");
 
-/** Un monto en USD/COP como texto: entero o con hasta dos decimales. */
-const monto = (etiqueta: string) =>
-  z
-    .string()
-    .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, `${etiqueta} debe ser un monto (por ejemplo 797 o 797.00).`);
-
 /** Una fecha ISO `YYYY-MM-DD`. */
 const fechaIso = (etiqueta: string) =>
   z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, `${etiqueta} debe tener formato AAAA-MM-DD.`);
@@ -61,7 +54,6 @@ export const esquemaCohorte = z.object({
     .nullable()
     .optional()
     .transform((v) => (v === undefined ? META_LEADS_DIA_POR_DEFECTO : v)),
-  precioUsd: monto("El precio"),
   /**
    * Inicio de clases. Nullable solo mientras la cohorte es FUTURA y queda "por definir"
    * (ticket 227): Gerencia la crea antes de saber la fecha. OBLIGATORIO para una cohorte
@@ -265,7 +257,6 @@ export async function editarVentanaDeCohorte(
     return editarCohorte(db, actorId, objetivoId, {
       programId: actual.programId,
       codigo: actual.codigo,
-      precioUsd: String(actual.precioUsd),
       ...datos,
     });
   });

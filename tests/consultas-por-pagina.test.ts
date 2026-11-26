@@ -216,7 +216,6 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, vari
     ...PROGRAMA_DE_PRUEBA,
     slug: `pagina-${indice + 1}`,
     nombre: `Pagina ${indice + 1}`,
-    ticketUsd: "1000.00",
   }))).returning();
   const [closer] = await db.insert(users).values({
     email: "closer-paginas@retia.test", nombre: "Closer paginas", rol: "closer", closerId: "Closer paginas",
@@ -270,7 +269,6 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, vari
       programId: programas[0]!.id,
       codigo: `VAR-${indice + 1}`,
       metaCupos: 10,
-      precioUsd: "1000.00",
       // Ventanas de venta distintas: la base prohíbe que se solapen dentro de un programa (0122).
       fechaInicioVentas: `2026-0${indice + 4}-01`,
       fechaCierreVentas: `2026-0${indice + 4}-20`,

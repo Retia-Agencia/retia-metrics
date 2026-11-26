@@ -37,7 +37,6 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "respaldo",
     nombre: "ComunicArte",
-    ticketUsd: "1000",
   }).returning();
   programId = programa.id;
   const [actor] = await db.insert(users).values({ email: "actor@retia.co", rol: "closer" }).returning();
@@ -46,7 +45,6 @@ beforeEach(async () => {
     programId,
     codigo: "C3",
     metaCupos: 10,
-    precioUsd: "1000",
   }).returning();
   cohortId = cohorte.id;
   const [lead] = await db.insert(leads).values({
@@ -115,7 +113,6 @@ describe("respaldo de comprobantes", () => {
       programId,
       codigo: "C4",
       metaCupos: 10,
-      precioUsd: "1000",
     }).returning();
     await db.update(deals).set({ cohortId: otra.id }).where(eq(deals.id, dealId));
     expect((await respaldarComprobantes(db, almacen, espejo, "raiz", AHORA)).movidos).toBe(1);

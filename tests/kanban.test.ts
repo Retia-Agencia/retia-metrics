@@ -9,7 +9,6 @@ import {
   leadContactos,
   leads,
   programs,
-  productos,
   skus,
   sources,
   submissions,
@@ -59,7 +58,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
     .returning();
   programId = p.id;
   const [s] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
@@ -70,7 +69,6 @@ beforeEach(async () => {
       programId,
       codigo: "C1",
       metaCupos: 10,
-      precioUsd: "1000",
       fechaInicioClases: "2026-11-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-11-14",
@@ -373,7 +371,6 @@ describe("tableroKanban", () => {
         programId,
         codigo: "C2",
         metaCupos: 5,
-        precioUsd: "1000",
         fechaInicioClases: "2026-12-15",
         fechaCierreVentas: "2026-12-01",
       })
@@ -386,15 +383,11 @@ describe("tableroKanban", () => {
 
   it("filtra por SKU vigente, nombre y ciclo sin aplicar la cohorte activa por defecto", async () => {
     const [otroCiclo] = await db.insert(cohorts)
-      .values({ programId, codigo: "C2", metaCupos: 5, precioUsd: "1000" })
+      .values({ programId, codigo: "C2", metaCupos: 5 })
       .returning();
-    const [virtual, intensivo] = await db.insert(productos).values([
-      { programId, slug: "virtual", nombre: "Virtual" },
-      { programId, slug: "intensivo", nombre: "Intensivo" },
-    ]).returning();
     const [sku1, sku2] = await db.insert(skus).values([
-      { programId, productoId: virtual.id, slug: "virtual", nombre: "Virtual", cohortId, codigo: "virtual_c1", precioListaUsd: "1000" },
-      { programId, productoId: intensivo.id, slug: "intensivo", nombre: "Intensivo", cohortId: otroCiclo.id, codigo: "intensivo_c2", precioListaUsd: "1000", activo: false },
+      { programId, slug: "virtual", nombre: "Virtual", cohortId, codigo: "virtual_c1", precioListaUsd: "1000" },
+      { programId, slug: "intensivo", nombre: "Intensivo", cohortId: otroCiclo.id, codigo: "intensivo_c2", precioListaUsd: "1000", activo: false },
     ]).returning();
     const primero = await deal({ etapa: "contactado", valorVendido: null });
     const segundo = await deal({ etapa: "contactado", cohort: otroCiclo.id, valorVendido: null });
@@ -421,7 +414,7 @@ describe("tableroKanban", () => {
     expect(await ids({})).toEqual([primero, segundo, conLineaAnulada, sinLineas].sort());
     expect(await ids({ cohorte: otroCiclo.id })).toEqual([segundo, conLineaAnulada].sort());
     expect(await ids({ sku: sku1.id })).toEqual([primero]);
-    expect(await ids({ nombre_sku: virtual.slug })).toEqual([primero]);
+    expect(await ids({ nombre_sku: "virtual" })).toEqual([primero]);
     expect(await ids({ sku: "sin" })).toEqual([conLineaAnulada, sinLineas].sort());
 
     const pagina = await paginaDelTablero(db, programId, alcance, parsearFiltros({ sku: sku1.id }, HOY), { limite: 1, offset: 0 }, HOY);
@@ -432,7 +425,7 @@ describe("tableroKanban", () => {
     await db.insert(dealLineas).values({ ...linea, dealId: futuro, skuId: sku2.id });
     expect((await leer({ cohorte: cohortId, sku: sku2.id })).enProximaCohorte.map((t) => t.dealId)).toEqual([futuro]);
     expect((await leer({ cohorte: cohortId, sku: sku1.id })).enProximaCohorte).toEqual([]);
-    expect((await leer({ cohorte: cohortId, nombre_sku: virtual.slug })).enProximaCohorte).toEqual([]);
+    expect((await leer({ cohorte: cohortId, nombre_sku: "virtual" })).enProximaCohorte).toEqual([]);
   });
 
   it("aviso: compromiso verbal con fecha limite pasada", async () => {

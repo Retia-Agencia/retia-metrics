@@ -22,7 +22,7 @@ describe("rellenar closer de llamadas de Calendly", () => {
     await vaciar();
     const [programa] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "relleno", nombre: "Relleno", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "relleno", nombre: "Relleno" })
       .returning();
     programId = programa.id;
     const [closer] = await db.insert(users).values({ email: "host@retia.co", rol: "closer" }).returning();

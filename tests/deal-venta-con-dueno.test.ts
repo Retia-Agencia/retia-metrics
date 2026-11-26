@@ -17,7 +17,7 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "check-dueno", nombre: "Check dueno", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "check-dueno", nombre: "Check dueno" }).returning();
   programId = p.id;
   const [c] = await db.insert(users).values({ email: "closer-dueno@retiagrowth.com", rol: "closer" }).returning();
   const [g] = await db.insert(users).values({ email: "gerente-dueno@retiagrowth.com", rol: "gerente" }).returning();

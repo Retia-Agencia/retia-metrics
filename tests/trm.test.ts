@@ -46,7 +46,7 @@ describe("TRM oficial", () => {
       vigenteDesde: "2026-10-08", vigenteHasta: "2026-10-08", pesosPorDolar: "3238.88", fuente: "prueba",
     });
     const [programa] = await db.insert(programs).values({
-      ...PROGRAMA_DE_PRUEBA, slug: "trm", nombre: "TRM", ticketUsd: "1000",
+      ...PROGRAMA_DE_PRUEBA, slug: "trm", nombre: "TRM",
     }).returning();
     await db.insert(gastoPauta).values({
       programId: programa.id, fecha: "2026-10-02", monto: "1000", moneda: "COP", origen: "manual", area: "paid",

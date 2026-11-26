@@ -94,8 +94,8 @@ async function lead(dia: string, utmId: string | null, venta = false) {
 beforeEach(async () => {
   await vaciar();
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "por-cuenta", nombre: "Por cuenta", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "otro-por-cuenta", nombre: "Otro", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "por-cuenta", nombre: "Por cuenta" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "otro-por-cuenta", nombre: "Otro" },
   ]).returning();
   programId = programas[0].id;
   otroProgramId = programas[1].id;

@@ -31,15 +31,14 @@ beforeEach(async () => {
   await vaciar();
   secuencia = 0;
   const [programa, ajeno] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "conjunto", nombre: "Conjunto", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "conjunto-ajeno", nombre: "Ajeno", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "conjunto", nombre: "Conjunto" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "conjunto-ajeno", nombre: "Ajeno" },
   ]).returning();
   programId = programa.id;
   const [cohorte] = await db.insert(cohorts).values({
     programId,
     codigo: "C1",
     metaCupos: 20,
-    precioUsd: "1000",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: rango.desde,
     fechaCierreVentas: "2026-11-30",

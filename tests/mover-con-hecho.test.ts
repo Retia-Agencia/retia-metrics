@@ -34,13 +34,11 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "mover-con-hecho",
     nombre: "Mover con hecho",
-    ticketUsd: "1000",
   }).returning())[0].id;
   cohortId = (await db.insert(cohorts).values({
     programId,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "1000",
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-30",

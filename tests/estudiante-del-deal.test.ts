@@ -45,9 +45,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = p.id;
-  const base = { programId, metaCupos: 10, precioUsd: "1000" };
+  const base = { programId, metaCupos: 10 };
   const [a] = await db
     .insert(cohorts)
     .values({ ...base, codigo: "Agosto", fechaInicioClases: "2026-08-15", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-10" })
@@ -153,7 +153,7 @@ describe("marcarOnboarded", () => {
     await db.insert(miembrosPrograma).values({ userId: customerSuccess.id, programId });
     const [otroPrograma] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-programa", nombre: "Otro programa", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-programa", nombre: "Otro programa" })
       .returning();
     const dealId = await nuevoDeal("ganado_parcial", {}, otroPrograma.id);
 
@@ -233,10 +233,10 @@ describe("cambiarCohorte", () => {
     const dealId = await nuevoDeal("ganado_parcial");
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: agosto, motivo: "x" }))).status).toBe(422);
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: septiembre, motivo: "x" }))).status).toBe(422);
-    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
+      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: ajena.id, motivo: "x" }))).status).toBe(422);
     expect((await fila(dealId)).cohortId).toBe(septiembre);
@@ -280,7 +280,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
     await nuevoDeal("atendido");
     await nuevoDeal("cierre_perdido");
     await nuevoDeal("ganado_parcial", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
-    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     await nuevoDeal("ganado_parcial", { cohortId: null,}, otroProg.id);
 
     const lista = await estudiantesDe(db, programId);
@@ -290,10 +290,10 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
 
   it("una cohorte de otro programa no devuelve a nadie del programa pedido", async () => {
     await nuevoDeal("ganado_parcial");
-    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
+      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     expect(await estudiantesDe(db, programId, { cohortId: ajena.id })).toHaveLength(0);
   });

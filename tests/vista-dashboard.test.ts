@@ -1,4 +1,4 @@
-import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -41,7 +41,7 @@ beforeEach(async () => {
   await vaciar();
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   programaA = p.id;
 }, 60_000);
@@ -131,7 +131,6 @@ describe("el preset que sale es el que de verdad se uso", () => {
       programId: programaA,
       codigo: "C2",
       metaCupos: 30,
-      precioUsd: "797.00",
       fechaInicioClases: "2026-09-22",
       fechaInicioVentas: "2026-08-14",
       fechaCierreVentas: "2026-09-21",
@@ -172,8 +171,8 @@ describe("el selector de closer", () => {
 
 it("la anterior es del mismo programa y A nuevo alimenta las consultas existentes", async () => {
   await sembrarDosClosers();
-  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500.00" }).returning();
-  const base = { metaCupos: 30, precioUsd: "797.00" };
+  const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" }).returning();
+  const base = { metaCupos: 30 };
   await db.insert(cohorts).values([
     { ...base, programId: programaA, codigo: "C2", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
     { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
@@ -197,11 +196,11 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     programId: programaA,
     codigo: "DIN",
     metaCupos: 10,
-    precioUsd: "100",
     fechaInicioClases: "2026-10-01",
     fechaInicioVentas: HOY,
     fechaCierreVentas: "2026-09-30",
   }).returning();
+  await skuVirtualDePrueba(db, cohorte.id, "100", "10");
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programaA,
@@ -210,7 +209,6 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     cohortId: cohorte.id,
     etapa: "ganado_parcial",
     valorVendidoUsd: "80",
-    comisionPorcentaje: "10",
     fechaLimitePago: "2026-09-01",
   }).returning();
   const [leadSinSaldo] = await db

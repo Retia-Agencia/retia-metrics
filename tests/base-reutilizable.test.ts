@@ -48,7 +48,7 @@ describe("crearBaseReutilizable", () => {
   it("restaura todas las tablas y sus semillas de forma idempotente", async () => {
     const [programa] = await reutilizable.db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa" })
       .returning();
     await reutilizable.db.insert(sources).values({ programId: programa.id, nombre: "Typeform" });
     await reutilizable.db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "ana@correo.co" });

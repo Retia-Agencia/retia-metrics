@@ -33,10 +33,10 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   const [c] = await db
     .insert(cohorts)
-    .values({ programId: p.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
+    .values({ programId: p.id, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-10-01", fechaCierreVentas: "2026-09-30" })
     .returning();
   await skuVirtualDePrueba(db, c.id);
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();

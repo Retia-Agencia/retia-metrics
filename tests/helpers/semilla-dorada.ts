@@ -57,8 +57,8 @@ const bogota = (dia: string, hora = "11:00") => new Date(`${dia}T${hora}:00-05:0
 
 export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   const [pa, pb] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-a", nombre: "Dorado A", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-b", nombre: "Dorado B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-a", nombre: "Dorado A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "dorado-b", nombre: "Dorado B" },
   ]).returning();
 
   const [gerente, closer] = await db.insert(users).values([
@@ -71,10 +71,10 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   ]);
 
   const [c1, c2, c3, cb] = await db.insert(cohorts).values([
-    { programId: pa.id, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-09-01", fechaCierreVentas: "2026-10-10" },
-    { programId: pa.id, codigo: "C2", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-11-15", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-10-31" },
-    { programId: pa.id, codigo: "C3", metaCupos: 20, precioUsd: "1000", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-20" },
-    { programId: pb.id, codigo: "B1", metaCupos: 20, precioUsd: "1500", fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30" },
+    { programId: pa.id, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-09-01", fechaCierreVentas: "2026-10-10" },
+    { programId: pa.id, codigo: "C2", metaCupos: 20, fechaInicioClases: "2026-11-15", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-10-31" },
+    { programId: pa.id, codigo: "C3", metaCupos: 20, fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-20" },
+    { programId: pb.id, codigo: "B1", metaCupos: 20, fechaInicioClases: "2026-12-15", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30" },
   ]).returning();
   await Promise.all([c1, c2, c3, cb].map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
 
@@ -109,7 +109,6 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
       huellaMigracion: v.huellaMigracion ?? null,
       etapa: v.etapa,
       valorVendidoUsd: v.valor,
-      comisionPorcentaje: "10.00",
       cortesia: v.cortesia ?? false,
       anuladoEn: v.anulado ? bogota("2026-10-23", "09:00") : null,
       anuladoPor: v.anulado ? gerente.id : null,

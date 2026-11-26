@@ -19,7 +19,7 @@ describe("% de show por cita en Hub › Hoy", () => {
   it("se separa del % por deal y cada conteo coincide con su lista", async () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "dos-citas@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "atendido" }).returning();
     // Un deal con dos citas el mismo día: por deal es 1 de 1 con show; por cita, 1 de 2.
@@ -42,7 +42,7 @@ describe("% de show por cita en Hub › Hoy", () => {
   it("una cita que todavía no llega no cuenta en el denominador", async () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T10:00:00-05:00`);
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "tarde@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([
@@ -56,7 +56,7 @@ describe("% de show por cita en Hub › Hoy", () => {
   it("una cancelada no entra al denominador y una cita sin marcar es un dato que falta (378, ADR 0115 N3)", async () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "mezcla@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([
@@ -80,7 +80,7 @@ describe("% de show por cita en Hub › Hoy", () => {
   it("si ninguna cita debida tiene resultado, el porcentaje no es 0,0 %: es null", async () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
-    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "sin-marcar@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([

@@ -28,12 +28,12 @@ describe("leadsQueCasan (búsqueda centralizada de leads)", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" })
       .returning();
     programId = p.id;
     const [p2] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p2", nombre: "P2", ticketUsd: "1000" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "p2", nombre: "P2" })
       .returning();
     otroProgramId = p2.id;
   });

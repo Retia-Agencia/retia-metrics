@@ -17,7 +17,7 @@ describe("costoPorAgendaDelCrm", () => {
   afterAll(async () => cerrar());
 
   async function programa(slug: string) {
-    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug, ticketUsd: "1000" }).returning();
+    const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug, nombre: slug }).returning();
     const [fuente] = await db.insert(sources).values({ programId: p.id, nombre: `Fuente ${slug}` }).returning();
     const [cuenta] = await db.insert(cuentasPublicitarias).values({
       programId: p.id, idMeta: `cuenta-${slug}`, nombre: "Cuenta", moneda: "COP", zonaHoraria: "America/Bogota",

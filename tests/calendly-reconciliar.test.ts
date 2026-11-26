@@ -19,7 +19,7 @@ let sourceId: string;
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte", ticketUsd: "797" }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "Comunicarte" }).returning();
   programId = programa.id;
   const [fuente] = await db.insert(sources).values({ programId, nombre: "Formulario" }).returning();
   sourceId = fuente.id;
@@ -139,7 +139,7 @@ describe("reconciliarCalendly", () => {
 
   it("la frontera de programa impide que el mismo UUID cruce", async () => {
     const caso = await escenario({ uuid: "uuid-frontera", llamada: false });
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" }).returning();
     const [llamada] = await db.insert(calls).values({ programId: otro.id, origen: "calendly", resultado: "agendada", huellaFila: "calendly:uuid-frontera" }).returning();
     await reconciliarCalendly(db, otro.id);
     expect((await db.select().from(calls).where(eq(calls.id, llamada.id)))[0].dealId).toBeNull();

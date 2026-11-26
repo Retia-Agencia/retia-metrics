@@ -153,7 +153,6 @@ export async function crearSku(db: Db, actorId: string, input: EntradaSku, orige
           codigo: codigoCohorte,
           metaCupos: ventana.metaCupos,
           metaLeadsDia: ventana.metaLeadsDia,
-          precioUsd: decimal(datos.precioListaUsd),
           fechaInicioVentas: ventana.fechaInicioVentas,
           fechaCierreVentas: ventana.fechaCierreVentas,
         };

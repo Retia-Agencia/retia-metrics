@@ -59,11 +59,11 @@ async function vender(programId: string, cohortId: string, email: string, dia: s
 
 beforeEach(async () => {
   await vaciar();
-  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" }).returning();
-  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1500.00" }).returning();
+  const [a] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" }).returning();
+  const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro" }).returning();
   programaA = a.id;
   otroPrograma = b.id;
-  const base = { metaCupos: 50, precioUsd: "797.00" };
+  const base = { metaCupos: 50 };
   const filas = await db.insert(cohorts).values([
     { ...base, programId: programaA, codigo: "C2", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
     { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },

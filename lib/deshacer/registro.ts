@@ -186,7 +186,6 @@ export const registroDeals = {
   cohorteDestinoId: restaurar(deals, "deals", "cohorteDestinoId"),
   cohorteDestinoTexto: restaurar(deals, "deals", "cohorteDestinoTexto"),
   valorVendidoUsd: sistema,
-  comisionPorcentaje: sistema,
   cortesia: restaurar(deals, "deals", "cortesia"),
   creadoPor: identidad,
   anuladoEn: anulacion, anuladoPor: anulacion, motivoAnulacion: anulacion,

@@ -141,7 +141,7 @@ beforeEach(async () => {
   await vaciar();
   holder.db = db;
 
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" }).returning();
   programId = p.id;
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma costura" }).returning())[0].id;
   await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });
@@ -153,14 +153,13 @@ beforeEach(async () => {
       programId,
       codigo: "Octubre",
       metaCupos: 10,
-      precioUsd: "1500",
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
     })
     .returning();
   // ADR 0140: el deal que nace del webhook recibe los SKUs predeterminados; sin ellos nacería Sin SKU.
-  const virtual = await skuVirtualDePrueba(db, cohorte.id);
+  const virtual = await skuVirtualDePrueba(db, cohorte.id, "1500");
   await db.update(skus).set({ predeterminado: true }).where(eq(skus.id, virtual.id));
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();

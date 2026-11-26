@@ -84,14 +84,12 @@ beforeEach(async () => {
       ...PROGRAMA_DE_PRUEBA,
       slug: "a",
       nombre: "A",
-      ticketUsd: "797",
-      comisionPorcentaje: "10.04",
     })
     .returning();
   programaA = pa.id;
   const [pb] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B" })
     .returning();
   programaB = pb.id;
   await sembrarIntegracion(db, programaA, "calendly", { token: TOKEN_A, claveFirma: FIRMA_A });
@@ -111,7 +109,6 @@ beforeEach(async () => {
       programId: programaA,
       codigo: "A-C1",
       metaCupos: 20,
-      precioUsd: "797",
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
@@ -120,7 +117,6 @@ beforeEach(async () => {
       programId: programaB,
       codigo: "B-C1",
       metaCupos: 10,
-      precioUsd: "1500",
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
@@ -304,17 +300,17 @@ describe("forjar la escritura desde un closer con membresía", () => {
     expect(await bitacora()).toBe(antes);
   });
 
-  it("editar la comisión del programa se rechaza y la base no se mueve", async () => {
+  it("editar el programa se rechaza y la base no se mueve", async () => {
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
     const { editarProgramaAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
     const antes = await bitacora();
     const r = await editarProgramaAccion(
       programaA,
-      { nombre: "A", slug: "a", ticketUsd: "797", comisionPorcentaje: "50" },
+      { nombre: "Otro nombre", slug: "a" },
     );
     expect(r.ok).toBe(false);
     const [p] = await db.select().from(programs).where(eq(programs.id, programaA));
-    expect(p.comisionPorcentaje).toBe("10.04");
+    expect(p.nombre).toBe("A");
     expect(await bitacora()).toBe(antes);
   });
 });

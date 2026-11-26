@@ -30,8 +30,8 @@ beforeEach(async () => {
   await vaciar();
   process.env.AUTH_URL = "http://localhost:3000";
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "visible-a", nombre: "Visible A", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "fuera-b", nombre: "Fuera B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "visible-a", nombre: "Visible A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "fuera-b", nombre: "Fuera B" },
   ]).returning();
   programaA = a.id;
   programaB = b.id;

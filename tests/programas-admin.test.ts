@@ -101,7 +101,6 @@ async function conectarCalendlyCompleto(base: Db, actorId: string, programId: st
 const programaValido = {
   nombre: "Programa Alfa",
   slug: "programa-alfa",
-  ticketUsd: "797.00",
   webUrl: "https://retia.co/alfa",
   calendlyUrl: "https://calendly.com/retia/alfa",
 };
@@ -161,7 +160,6 @@ describe("esquema de programa", () => {
     const datos = esquemaPrograma.parse({
       nombre: "Sin urls",
       slug: "sin-urls",
-      ticketUsd: "100",
       webUrl: "",
       calendlyUrl: "",
     });
@@ -400,7 +398,6 @@ describe("desactivar y reactivar programa", () => {
       codigo: "C1",
       metaCupos: 30,
       metaLeadsDia: 10,
-      precioUsd: "797.00",
       fechaInicioClases: "2026-08-11",
       fechaInicioVentas: "2026-08-11",
       fechaCierreVentas: "2026-08-11",
@@ -450,7 +447,6 @@ const cohorteBase = {
   codigo: "C1",
   metaCupos: 30,
   metaLeadsDia: 12,
-  precioUsd: "797.00",
   fechaInicioClases: "2026-08-11",
   fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
@@ -576,7 +572,7 @@ describe("activar un programa (ADR 0057, enmendado por el 0068 y el 0095)", () =
   it("un programa nace inactivo por default; la reja de activación vive en el catálogo", async () => {
     const [p] = await db
       .insert(programs)
-      .values({ slug: "default", nombre: "Default", ticketUsd: "100" })
+      .values({ slug: "default", nombre: "Default" })
       .returning();
     expect(p!.activo).toBe(false);
     await expect(reactivarPrograma(db, gerenteId, p!.id)).rejects.toMatchObject({ status: 422 });

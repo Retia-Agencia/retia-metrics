@@ -36,8 +36,8 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   const [a, b] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" },
   ]).returning();
   programaA = a.id;
   programaB = b.id;
@@ -73,7 +73,6 @@ beforeEach(async () => {
       ownerUserId: closerId,
       etapa: "ganado_parcial",
       valorVendidoUsd: "797",
-      comisionPorcentaje: "10",
       anuladoEn: anulada ? new Date("2026-11-05T12:00:00-05:00") : null,
       anuladoPor: anulada ? gerenteId : null,
       motivoAnulacion: anulada ? "Corrección de prueba" : null,

@@ -174,7 +174,7 @@ beforeEach(async () => {
   holder.db = db;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical" })
     .returning();
   programId = p.id;
   await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });
@@ -342,7 +342,6 @@ describe("caso 5 — la cita no está vigente o Calendly falla: Calificado, lead
       .values({
         slug: "sin-token",
         nombre: "Sin token",
-        ticketUsd: "1500",
         activo: false,
         plantillaLead: PROGRAMA_DE_PRUEBA.plantillaLead,
       })
@@ -573,7 +572,7 @@ describe("caso 8 — mismo correo, mayúsculas/espacios y frontera de programa",
 
     const [otro] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "C", ticketUsd: "797" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "comunicarte", nombre: "C" })
       .returning();
     const [fuenteOtro] = await db
       .insert(sources)
@@ -646,7 +645,6 @@ describe("Dapta", () => {
         ...PROGRAMA_DE_PRUEBA,
         slug: "dapta-otro",
         nombre: "Dapta Otro",
-        ticketUsd: "1500",
       })
       .returning();
     const fuenteOtro = await fuenteDapta(otro.id);

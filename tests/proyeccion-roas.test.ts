@@ -14,7 +14,7 @@ import { calcularProyeccionDeRoas, confirmarProyecciones, guardarProyeccionDelDi
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
-import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
+import { lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -35,10 +35,11 @@ beforeAll(async () => { ({ db, cerrar, vaciar } = await crearBaseReutilizable())
 beforeEach(async () => {
   await vaciar();
   sostener.db = db;
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proy", nombre: "Proy", ticketUsd: "797", muestraMinimaConversion: 10 }).returning())[0].id;
-  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proy", nombre: "Otro", ticketUsd: "1500", muestraMinimaConversion: 10 }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "proy", nombre: "Proy", muestraMinimaConversion: 10 }).returning())[0].id;
+  otroProgramId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proy", nombre: "Otro", muestraMinimaConversion: 10 }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
-  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "797" }).returning())[0].id;
+  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10 }).returning())[0].id;
+  await skuVirtualDePrueba(db, cohorteId, "797");
   andrea = (await db.insert(users).values({ email: "andrea@proy.test", rol: "closer", closerId: "Andrea" }).returning())[0].id;
   maru = (await db.insert(users).values({ email: "maru@proy.test", rol: "closer", closerId: "Maru" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({ programId, idMeta: "cuenta-proy", nombre: "Cuenta", moneda: "USD", zonaHoraria: "America/Bogota" }).returning())[0];

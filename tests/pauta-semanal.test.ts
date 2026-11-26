@@ -42,8 +42,8 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "pauta-semanal", nombre: "Pauta semanal", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "otro-pauta-semanal", nombre: "Otro", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "pauta-semanal", nombre: "Pauta semanal" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "otro-pauta-semanal", nombre: "Otro" },
   ]).returning();
   programId = programas[0].id;
   otroProgramId = programas[1].id;

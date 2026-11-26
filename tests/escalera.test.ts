@@ -95,8 +95,8 @@ async function sembrar(s: Siembra): Promise<string> {
 beforeEach(async () => {
   await vaciar();
   const [p, q] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "100", cortePagoRapidoDias: 3 },
-    { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "100" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", cortePagoRapidoDias: 3 },
+    { ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" },
   ]).returning();
   programId = p.id;
   otroPrograma = q.id;

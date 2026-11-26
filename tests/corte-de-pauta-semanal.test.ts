@@ -50,7 +50,7 @@ beforeAll(async () => {
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "dorado-pauta", nombre: "Dorado Pauta", ticketUsd: "1000" }).returning())[0].id;
+  programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "dorado-pauta", nombre: "Dorado Pauta" }).returning())[0].id;
   base.programId = programId;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
   const cuenta = (await db.insert(cuentasPublicitarias).values({
@@ -260,7 +260,7 @@ describe("Ver solo en la tabla de Pauta", () => {
 
   it("el CSV aplica un corte válido e ignora un nivel incorrecto, un UUID ajeno y parámetros repetidos", async () => {
     await sembrarFueraDeLaCampana();
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "ajeno-csv", nombre: "Ajeno", ticketUsd: "1000" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "ajeno-csv", nombre: "Ajeno" }).returning();
     const [cuentaAjena] = await db.insert(cuentasPublicitarias).values({
       programId: otro.id, idMeta: "ajena-csv", nombre: "Ajena", moneda: "COP", zonaHoraria: "America/Bogota",
     }).returning();

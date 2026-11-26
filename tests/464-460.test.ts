@@ -16,12 +16,12 @@ let programId: string, closerId: string, plataformaId: string, c1: string, c2: s
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
-  [programId] = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tickets-460-464", nombre: "Tickets 460 y 464", ticketUsd: "100" }).returning()).map((x) => x.id);
+  [programId] = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tickets-460-464", nombre: "Tickets 460 y 464" }).returning()).map((x) => x.id);
   [closerId] = (await db.insert(users).values({ email: "closer-464@test.local", rol: "closer", closerId: "C464" }).returning()).map((x) => x.id);
   [plataformaId] = (await db.insert(plataformasPago).values({ nombre: "Banco 464" }).returning()).map((x) => x.id);
   const cohortes = await db.insert(cohorts).values([
-    { programId, codigo: "C1", metaCupos: 10, precioUsd: "100" },
-    { programId, codigo: "C2", metaCupos: 10, precioUsd: "200" },
+    { programId, codigo: "C1", metaCupos: 10 },
+    { programId, codigo: "C2", metaCupos: 10 },
   ]).returning();
   c1 = cohortes[0].id; c2 = cohortes[1].id;
 });
@@ -115,8 +115,8 @@ describe("tickets 464 y 460", () => {
   });
 
   it("el backfill de la 0158 marca el SKU con cupo del ciclo que vende hoy y el deal nace con la misma línea de antes", async () => {
-    const [vigente] = await db.insert(cohorts).values({ programId, codigo: "C8", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31" }).returning();
-    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, precioUsd: "100", fechaInicioVentas: "1999-01-01", fechaCierreVentas: "1999-02-01" }).returning();
+    const [vigente] = await db.insert(cohorts).values({ programId, codigo: "C8", metaCupos: 10, fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31" }).returning();
+    const [cerrada] = await db.insert(cohorts).values({ programId, codigo: "C7", metaCupos: 10, fechaInicioVentas: "1999-01-01", fechaCierreVentas: "1999-02-01" }).returning();
     const hoy = await sku("HOY", vigente.id);
     const sinCupo = await sku("SIN-CUPO", vigente.id, { cuentaComoCupo: false });
     const inactivo = await sku("INACTIVO", vigente.id, { activo: false });

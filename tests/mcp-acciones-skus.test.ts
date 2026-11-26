@@ -40,8 +40,8 @@ afterAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const [programa, otro] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "skus-a", nombre: "SKUs A", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "skus-b", nombre: "SKUs B", ticketUsd: "1000" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "skus-a", nombre: "SKUs A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "skus-b", nombre: "SKUs B" },
   ]).returning();
   programId = programa.id;
   otroProgramId = otro.id;
@@ -72,11 +72,11 @@ beforeEach(async () => {
   tokens.paid = await emitir(paid, "Paid");
 
   cohorteId = (await db.insert(cohorts).values({
-    programId, codigo: "C1", metaCupos: 10, precioUsd: "797",
+    programId, codigo: "C1", metaCupos: 10,
     fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31",
   }).returning())[0].id;
   const otraCohorte = (await db.insert(cohorts).values({
-    programId: otroProgramId, codigo: "C1", metaCupos: 10, precioUsd: "500",
+    programId: otroProgramId, codigo: "C1", metaCupos: 10,
     fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31",
   }).returning())[0].id;
   [skuBaseId, skuExtraId, skuAjenoId] = (await db.insert(skus).values([

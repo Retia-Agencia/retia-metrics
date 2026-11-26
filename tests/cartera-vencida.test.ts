@@ -31,11 +31,11 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P" }).returning();
   programId = p.id;
   const [c] = await db
     .insert(cohorts)
-    .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-10" })
+    .values({ programId, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-10" })
     .returning();
   cohortId = c.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
@@ -119,7 +119,7 @@ describe("carteraVencida", () => {
   });
 
   it("el programa es frontera: la cartera de uno no incluye los deals del otro", async () => {
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q" }).returning();
     await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-01", cohortId: null, valorVendidoUsd: "1500.00" }, otro.id);
     await deal("ganado_parcial", "100", { fechaLimitePago: "2026-10-01" });
     const r = await carteraVencida(db, programId, HOY);

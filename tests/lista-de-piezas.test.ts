@@ -40,8 +40,8 @@ async function pieza(o: Partial<typeof piezas.$inferInsert> & { creadorId: strin
 
 beforeEach(async () => {
   await vaciar();
-  const [pa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A", ticketUsd: "797" }).returning();
-  const [pb] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" }).returning();
+  const [pa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "a", nombre: "A" }).returning();
+  const [pb] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B" }).returning();
   const [r, h] = await db.insert(tiposPieza).values([{ nombre: "Reel" }, { nombre: "Historia" }]).returning();
   tipoReel = r.id;
   tipoHistoria = h.id;

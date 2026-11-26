@@ -40,8 +40,8 @@ conPostgres("mcp_lectura contra Postgres real: el agente no escapa de su rol ni 
     // Lo que hace la sesión padre fuera de la migración: dar LOGIN y contraseña al rol (aquí, una de prueba).
     await admin.query(`alter role mcp_lectura_login login password '${clave}'`);
     const [a, b] = await dbAdmin.insert(schema.programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "pg-a", nombre: "PG A", ticketUsd: "797" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "pg-b", nombre: "PG B", ticketUsd: "797" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "pg-a", nombre: "PG A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "pg-b", nombre: "PG B" },
     ]).returning();
     programaA = a.id;
     programaB = b.id;

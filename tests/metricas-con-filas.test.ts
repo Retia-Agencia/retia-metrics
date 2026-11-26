@@ -24,8 +24,8 @@ type MetricaDelTablero = (typeof metricas)[number];
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const programas = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-a", nombre: "A" },
-    { ...PROGRAMA_DE_PRUEBA, ticketUsd: "100", slug: "prueba-b", nombre: "B" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "prueba-a", nombre: "A" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "prueba-b", nombre: "B" },
   ]).returning();
   [programaA, programaB] = programas.map((p) => p.id);
   const [owner] = await db.insert(users).values({ email: "test@example.test", rol: "closer", closerId: "Ana" }).returning();
@@ -226,7 +226,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
 
   beforeEach(async () => {
     ({ db: base, cerrar: cerrarBase } = await crearBaseDePrueba());
-    const [p] = await base.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "drill-a", nombre: "Drill", ticketUsd: "100" }).returning();
+    const [p] = await base.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "drill-a", nombre: "Drill" }).returning();
     prog = p.id;
   }, 60_000);
   afterEach(async () => cerrarBase());
@@ -291,8 +291,8 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
   beforeEach(async () => {
     ({ db: base, cerrar: cerrarBase } = await crearBaseDePrueba());
     const ps = await base.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "m148", nombre: "M148", ticketUsd: "100" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "m148-ajeno", nombre: "Ajeno", ticketUsd: "100" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "m148", nombre: "M148" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "m148-ajeno", nombre: "Ajeno" },
     ]).returning();
     [prog, ajeno] = ps.map((p) => p.id);
     [owner] = await base.insert(users).values({ email: "m148@retia.co", rol: "closer", closerId: "M148" }).returning();
@@ -315,8 +315,8 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
 
   it("contratado suma el valor de sus filas y cohorte acota sin incluir cortesía, anulado ni otro programa", async () => {
     const cohortes = await base.insert(cohorts).values([
-      { programId: prog, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
-      { programId: prog, codigo: "C2", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
+      { programId: prog, codigo: "C1", metaCupos: 10, fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
+      { programId: prog, codigo: "C2", metaCupos: 10, fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
     ]).returning();
     await vender(prog, { cohortId: cohortes[0].id, valorVendidoUsd: "80" });
     await vender(prog, { cohortId: cohortes[1].id, valorVendidoUsd: "70" });

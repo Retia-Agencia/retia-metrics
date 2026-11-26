@@ -154,14 +154,14 @@ describe("419 E-2: paridad cifra = lista en Dinero", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const [a, b] = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "e419-d", nombre: "D", ticketUsd: "1500" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "e419-ajeno", nombre: "Ajeno", ticketUsd: "1500" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-d", nombre: "D" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "e419-ajeno", nombre: "Ajeno" },
     ]).returning();
     programId = a.id;
     const [closer] = await db.insert(users).values({ email: "c@e419d.test", rol: "closer", closerId: "C419" }).returning();
     [c5, c6] = (await db.insert(cohorts).values([
-      { programId, codigo: "C5", metaCupos: 10, precioUsd: "1500" },
-      { programId, codigo: "C6", metaCupos: 10, precioUsd: "1500" },
+      { programId, codigo: "C5", metaCupos: 10 },
+      { programId, codigo: "C6", metaCupos: 10 },
     ]).returning()).map((x) => x.id);
 
     let n = 0;

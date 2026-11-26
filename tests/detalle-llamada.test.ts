@@ -24,8 +24,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   const [programa, otroPrograma] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "detalle", nombre: "Detalle", ticketUsd: "1000" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "detalle-otro", nombre: "Detalle otro", ticketUsd: "1200" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "detalle", nombre: "Detalle" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "detalle-otro", nombre: "Detalle otro" },
   ]).returning();
   programId = programa.id;
   otroProgramId = otroPrograma.id;

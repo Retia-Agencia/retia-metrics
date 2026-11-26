@@ -17,8 +17,8 @@ describe.skipIf(!medir)("capa de hechos a 10x del volumen actual", () => {
   beforeAll(async () => {
     ({ db, cerrar } = await crearBaseReutilizable());
     const programas = await db.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "volumen-a", nombre: "Volumen A", ticketUsd: "1000" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "volumen-b", nombre: "Volumen B", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "volumen-a", nombre: "Volumen A" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "volumen-b", nombre: "Volumen B" },
     ]).returning();
     programId = programas[0].id;
     const fuentes = await db.insert(sources).values([

@@ -23,13 +23,13 @@ beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 beforeEach(async () => {
   await vaciar();
   const [programa, otroPrograma] = await db.insert(programs).values([
-    { ...PROGRAMA_DE_PRUEBA, slug: "paginado", nombre: "Paginado", ticketUsd: "797" },
-    { ...PROGRAMA_DE_PRUEBA, slug: "paginado-otro", nombre: "Otro", ticketUsd: "1500" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "paginado", nombre: "Paginado" },
+    { ...PROGRAMA_DE_PRUEBA, slug: "paginado-otro", nombre: "Otro" },
   ]).returning();
   programId = programa.id;
   const [c1, c2] = await db.insert(cohorts).values([
-    { programId, codigo: "C1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-12-01", fechaInicioClases: "2026-12-02" },
-    { programId, codigo: "C2", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-09-01", fechaInicioClases: "2026-09-02" },
+    { programId, codigo: "C1", metaCupos: 10, fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-12-01", fechaInicioClases: "2026-12-02" },
+    { programId, codigo: "C2", metaCupos: 10, fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-09-01", fechaInicioClases: "2026-09-02" },
   ]).returning();
   cohorte1 = c1.id;
   cohorte2 = c2.id;

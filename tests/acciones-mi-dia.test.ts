@@ -111,13 +111,13 @@ beforeEach(async () => {
 
   const [a] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A" })
     .returning();
   programaA = a.id;
 
   const [b] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500.00" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B" })
     .returning();
   programaB = b.id;
 
@@ -130,7 +130,6 @@ beforeEach(async () => {
     programId: programaA,
     codigo: "C1",
     metaCupos: 10,
-    precioUsd: "797",
     fechaInicioClases: "2026-10-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-09-30",
