@@ -25,6 +25,7 @@ Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 | [contratos.md](docs/agents/contratos.md) | Antes de tocar un contrato o una consulta del Hub. |
 | [feedback-loops.md](docs/agents/feedback-loops.md) | Antes de escribir código o tests y al verificar un cambio. |
 | [convenciones.md](docs/agents/convenciones.md) | Antes de escribir código o tests. |
+| [tests.md](docs/agents/tests.md) | Antes de crear, cambiar o borrar un test. |
 
 ## Restricciones no-negociables
 
@@ -61,6 +62,7 @@ Uso restringido: no hay ninguna vista publica y no existe el auto-registro.
 - Un centinela no es dato; cada fuente declara su vacío y evita contaminar dedup y fechas. (detalle: docs/agents/restricciones.md#centinelas)
 - Toda operación sobre el set completo se procesa por lotes para caber en una función de Vercel. (detalle: docs/agents/restricciones.md#sync-en-lotes)
 - Diseña para la escala real; si crece diez veces, revisa la lectura completa. (detalle: docs/agents/restricciones.md#escala-real)
+- Un test entra solo si nombra el bug que atrapa, nadie más lo atrapa y vive en el nivel más barato; cada comportamiento tiene un solo test dueño. (detalle: docs/agents/restricciones.md#contrato-de-tests)
 
 ## Detalle operativo
 
