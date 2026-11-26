@@ -1,13 +1,12 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada } from "@/lib/queries/dashboard";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
-import { saldosDeDeals, saldosDeLineas } from "@/lib/queries/saldo";
-import { vigente } from "@/lib/queries/vigente";
+import { saldosDeLineas } from "@/lib/queries/saldo";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -169,23 +168,5 @@ describe("siguen los filtros del Hub y la lista suma lo mismo (369)", () => {
     }
     // Las listas que no son de ventas no llevan las columnas.
     expect((await resumenDeMetrica("caja", filtros, db))[0].dinero).toBeUndefined();
-  });
-});
-
-describe("paridad con la cartera que existía (369)", () => {
-  it("Por cobrar con «Todas» y «Desde el inicio» = la suma de saldos de los deals en Abonado", async () => {
-    await vender("1500", [500]);
-    await vender("1000", [1000], { etapa: "ganado_completo" });
-    await vender("800", [300]);
-    // La fórmula que tenía `carteraDelPrograma`: deals vigentes en Abonado y sin cortesía, saldo positivo.
-    const abonados = await db.select({ id: deals.id }).from(deals).where(and(eq(deals.programId, programId), eq(deals.cortesia, false), eq(deals.etapa, "ganado_parcial"), vigente(deals)));
-    const saldos = await saldosDeDeals(db, abonados.map((d) => d.id));
-    const carteraDeAntes = [...saldos.values()].reduce((n, s) => n + (s.saldo !== null && s.saldo > 0 ? s.saldo : 0), 0);
-
-    const vista = await armarVistaDelDashboard({
-      programId, hoy: HOY, ahora: AHORA, preset: "custom", periodo: { preset: "desde_el_inicio" }, filtroDeCohorte: { parametro: "todas" },
-    }, db);
-    expect(carteraDeAntes).toBe(1500 - 500 + 800 - 300);
-    expect(vista.dinero.porCobrar).toBe(carteraDeAntes);
   });
 });

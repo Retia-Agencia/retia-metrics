@@ -1,5 +1,5 @@
 import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, embudoDelRango, leadsDelRango, sinResultadoDelRango } from "@/lib/queries/dashboard";
@@ -217,31 +217,36 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
   });
 });
 
+// Los dos describe siguientes reusan la base del archivo: cada test siembra SU programa (slug propio), y
+// toda consulta filtra por programa, así que no se ven entre sí ni con la siembra de arriba. Antes cada
+// test levantaba una base nueva (4 arranques de PGlite) para probar lo mismo.
+let secuenciaDePrograma = 0;
+async function programaNuevo(prefijo: string) {
+  secuenciaDePrograma += 1;
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: `${prefijo}-${secuenciaDePrograma}`, nombre: prefijo, ticketUsd: "100" }).returning();
+  return p.id;
+}
+
 describe("ticket 167: el drill-down de la lista por clave de closer", () => {
-  let base: Db;
-  let cerrarBase: () => Promise<void>;
   let prog: string;
   const r = { desde: "2026-10-01", hasta: "2026-10-02" };
   const h = "2026-10-02";
 
   beforeEach(async () => {
-    ({ db: base, cerrar: cerrarBase } = await crearBaseDePrueba());
-    const [p] = await base.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "drill-a", nombre: "Drill", ticketUsd: "100" }).returning();
-    prog = p.id;
-  }, 60_000);
-  afterEach(async () => cerrarBase());
+    prog = await programaNuevo("drill");
+  });
 
   it("(d) un closer SIN closer_id abre su lista por su users.id y el total es su cifra", async () => {
-    const [closer] = await base.insert(users).values({ email: "sinid@d.co", rol: "closer", closerId: null }).returning();
-    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "l@d.co" }).returning();
-    const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial" }).returning();
-    await abonoDePrueba(base, [
+    const [closer] = await db.insert(users).values({ email: "sinid@d.co", rol: "closer", closerId: null }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "l@d.co" }).returning();
+    const [deal] = await db.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial" }).returning();
+    await abonoDePrueba(db, [
       { dealId: deal.id, programId: prog, registradoPorUserId: closer.id, fecha: h, monto: "100", moneda: "USD" },
       // Un abono de OTRO registrador para comprobar que el filtro no lo trae.
       { dealId: deal.id, programId: prog, closerId: "Otro", fecha: h, monto: "50", moneda: "USD" },
     ]);
 
-    const cifra = await cajaRecaudada({ programId: prog, rango: r, claveCloser: closer.id }, base);
+    const cifra = await cajaRecaudada({ programId: prog, rango: r, claveCloser: closer.id }, db);
     expect(cifra).toEqual([{ moneda: "USD", total: 100 }]);
 
     // El href de la cifra lleva el codigo opaco de la CLAVE (su users.id).
@@ -251,27 +256,27 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
     expect(busqueda.closer).toBe(codigo);
     expect(href).not.toContain(closer.id);
 
-    const vista = await vistaDeLista({ programId: prog, metrica: "caja", busqueda, hoy: h, codigoCloser: codigo, pagina: 1 }, base);
+    const vista = await vistaDeLista({ programId: prog, metrica: "caja", busqueda, hoy: h, codigoCloser: codigo, pagina: 1 }, db);
     expect(vista?.claveCloser).toBe(closer.id);
     expect(vista?.lista.subtotal.caja).toEqual([{ moneda: "USD", total: 100 }]);
   });
 
   it("(e) un closer historico (texto, sin cuenta) abre la lista de su caja desde la fila del resumen", async () => {
     // Un abono historico sin FK y sin usuario: solo el texto "Caro" (las llamadas ya no guardan texto, 401 M10).
-    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "caro@e.co" }).returning();
-    const [dueno] = await base.insert(users).values({ email: "dueno@e.co", rol: "closer", closerId: "Dueno" }).returning();
-    const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: dueno.id, etapa: "ganado_parcial" }).returning();
-    await abonoDePrueba(base, { dealId: deal.id, programId: prog, closerId: "Caro", fecha: h, monto: "100", moneda: "USD" });
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "caro@e.co" }).returning();
+    const [dueno] = await db.insert(users).values({ email: "dueno@e.co", rol: "closer", closerId: "Dueno" }).returning();
+    const [deal] = await db.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: dueno.id, etapa: "ganado_parcial" }).returning();
+    await abonoDePrueba(db, { dealId: deal.id, programId: prog, closerId: "Caro", fecha: h, monto: "100", moneda: "USD" });
 
     // Su clave es historica. La fila del resumen la expone en `claveCloser`.
-    const [resumen] = await resumenDeMetrica("caja", { programId: prog, rango: r, hoy: h }, base);
+    const [resumen] = await resumenDeMetrica("caja", { programId: prog, rango: r, hoy: h }, db);
     const grupo = resumen.grupos.find((g) => g.closer === "Caro");
     expect(grupo?.claveCloser).toBe(claveHistorica("Caro"));
 
     const codigo = codigoDeCloser(claveHistorica("Caro"));
     const vista = await vistaDeLista(
       { programId: prog, metrica: "caja", busqueda: { periodo: "custom", a_desde: r.desde, a_hasta: r.hasta }, hoy: h, codigoCloser: codigo, pagina: 1 },
-      base,
+      db,
     );
     expect(vista?.claveCloser).toBe(claveHistorica("Caro"));
     expect(vista?.lista.subtotal.caja).toEqual([{ moneda: "USD", total: 100 }]);
@@ -279,8 +284,6 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
 });
 
 describe("ticket 148: listas de contratado y sin resultado", () => {
-  let base: Db;
-  let cerrarBase: () => Promise<void>;
   let prog: string;
   let ajeno: string;
   let owner: typeof users.$inferSelect;
@@ -289,32 +292,26 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
   let secuencia = 0;
 
   beforeEach(async () => {
-    ({ db: base, cerrar: cerrarBase } = await crearBaseDePrueba());
-    const ps = await base.insert(programs).values([
-      { ...PROGRAMA_DE_PRUEBA, slug: "m148", nombre: "M148", ticketUsd: "100" },
-      { ...PROGRAMA_DE_PRUEBA, slug: "m148-ajeno", nombre: "Ajeno", ticketUsd: "100" },
-    ]).returning();
-    [prog, ajeno] = ps.map((p) => p.id);
-    [owner] = await base.insert(users).values({ email: "m148@retia.co", rol: "closer", closerId: "M148" }).returning();
-  }, 60_000);
-  afterEach(async () => cerrarBase());
+    [prog, ajeno] = [await programaNuevo("m148"), await programaNuevo("m148-ajeno")];
+    [owner] = await db.insert(users).values({ email: `m148-${secuenciaDePrograma}@retia.co`, rol: "closer", closerId: `M148-${secuenciaDePrograma}` }).returning();
+  });
 
   async function deal(programId: string, extra: Record<string, unknown> = {}) {
     secuencia += 1;
-    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `m148-${secuencia}@retia.co` }).returning();
-    const [fila] = await base.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, ...extra } as never).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `m148-${secuencia}@retia.co` }).returning();
+    const [fila] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, ...extra } as never).returning();
     return fila;
   }
 
   async function vender(programId: string, extra: Record<string, unknown> = {}) {
     const fila = await deal(programId, { etapa: "ganado_parcial", valorVendidoUsd: "80", ...extra });
-    if (!fila.cortesia && fila.valorVendidoUsd !== null) await lineaConCupoDePrueba(base, fila.id);
-    await base.insert(dealEtapaHistorial).values({ dealId: fila.id, a: "ganado_parcial", fecha: new Date("2026-10-02T10:00:00-05:00") });
+    if (!fila.cortesia && fila.valorVendidoUsd !== null) await lineaConCupoDePrueba(db, fila.id);
+    await db.insert(dealEtapaHistorial).values({ dealId: fila.id, a: "ganado_parcial", fecha: new Date("2026-10-02T10:00:00-05:00") });
     return fila;
   }
 
   it("contratado suma el valor de sus filas y cohorte acota sin incluir cortesía, anulado ni otro programa", async () => {
-    const cohortes = await base.insert(cohorts).values([
+    const cohortes = await db.insert(cohorts).values([
       { programId: prog, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
       { programId: prog, codigo: "C2", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
     ]).returning();
@@ -325,13 +322,13 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
     await vender(prog, { valorVendidoUsd: "500", anuladoEn: ahora, anuladoPor: owner.id, motivoAnulacion: "Error de prueba" });
 
     const filtros = { programId: prog, rango: r, hoy: "2026-10-04", ahora };
-    const [lista] = await listaDeMetrica("contratado", filtros, 1, base);
+    const [lista] = await listaDeMetrica("contratado", filtros, 1, db);
     // Misma fecha de venta: el desempate es por id (uuid aleatorio), asi que el orden no se fija.
     expect(lista.filas.map((fila) => fila.monto ?? 0).sort((a, b) => a - b)).toEqual([70, 80]);
     expect(lista.subtotal.caja).toEqual([{ moneda: "USD", total: 150 }]);
     const ids = lista.filas.flatMap((fila) => fila.dealId ? [fila.dealId] : []);
-    expect(lista.subtotal.caja[0]?.total).toBe((await dineroDeVentas(base, ids)).vendido);
-    const [porCohorte] = await listaDeMetrica("contratado", { ...filtros, cohorteId: cohortes[0].id }, 1, base);
+    expect(lista.subtotal.caja[0]?.total).toBe((await dineroDeVentas(db, ids)).vendido);
+    const [porCohorte] = await listaDeMetrica("contratado", { ...filtros, cohorteId: cohortes[0].id }, 1, db);
     expect(porCohorte.filas.map((fila) => fila.monto)).toEqual([80]);
     const href = urlDeLista({ slug: "m148", metrica: "contratado", periodo: { preset: "custom", a: r, b: null }, origen: "/p/m148/hub", cohorteId: cohortes[0].id });
     expect(new URL(href, "https://retia.test").searchParams.get("cohorte")).toBe(cohortes[0].id);
@@ -342,7 +339,7 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
     const cerrado = await deal(prog, { etapa: "ganado_completo" });
     const pasado = new Date("2026-10-04T10:00:00-05:00");
     const futuro = new Date("2026-10-04T14:00:00-05:00");
-    await base.insert(calls).values([
+    await db.insert(calls).values([
       { programId: prog, dealId: abierto.id, fechaAgenda: pasado, resultado: "agendada" },
       { programId: prog, dealId: abierto.id, fechaAgenda: futuro, resultado: "agendada" },
       { programId: prog, dealId: abierto.id, fechaAgenda: pasado, resultado: "show" },
@@ -355,9 +352,9 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
     await deal(prog, { etapa: "ganado_parcial", valorVendidoUsd: "100", anuladoEn: ahora, anuladoPor: owner.id, motivoAnulacion: "Error de prueba" });
 
     const filtros = { programId: prog, rango: r, hoy: "2026-10-04", ahora };
-    const [sinResultado] = await listaDeMetrica("sin_resultado", filtros, 1, base);
+    const [sinResultado] = await listaDeMetrica("sin_resultado", filtros, 1, db);
     expect(sinResultado.subtotal.cantidad).toBe(1);
     expect(sinResultado.filas).toHaveLength(1);
-    expect(await sinResultadoDelRango({ programId: prog, rango: r }, ahora, base)).toBe(sinResultado.filas.length);
+    expect(await sinResultadoDelRango({ programId: prog, rango: r }, ahora, db)).toBe(sinResultado.filas.length);
   });
 });
