@@ -62,7 +62,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
 - **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada PR y en cada push a `main`.
   Desde el 25-nov `npm test` va en 6 shards (`--shard=i/6`, un runner cada uno) y typecheck, lint y build en
   otro job: en un solo job la suite llegó a 462 s y se cortó en los 480 s. El checkpoint es verde solo si
-  los 7 jobs lo son.
+  los 8 jobs lo son (typecheck y lint en un runner, build en otro, desde el 26-nov).
   Sin proteccion de `main` (Mani, 28-sep): es alarma, no reja; si queda en rojo, se arregla primero.
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
