@@ -1,4 +1,3 @@
-import { Enlace } from "@/components/enlace";
 import type { ReactElement } from "react";
 import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
@@ -18,6 +17,7 @@ import { TabNotificaciones } from "@/components/mi-espacio/tab-notificaciones";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
+import { TabMiDia } from "@/components/mi-espacio/tab-mi-dia";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { ETIQUETA_MCP_SCOPE, MCP_SCOPES } from "@/lib/mcp/token";
@@ -45,12 +45,12 @@ function uno(value: string | string[] | undefined): string | undefined {
  *    `lib/mi-espacio/secciones.ts` (nunca `rol === "..."`, ADR 0025).
  *
  * Quién ve qué, por capacidad:
- *  - `trabajaLeads` (closer, setter): Necesita atención y Mis métricas,
- *    con selector de programa y, sin membresías, el mensaje A-04. El Calendly y ese mensaje
+ *  - `trabajaLeads` (closer, setter): Mi día, Notificaciones y Métricas, siguiendo el
+ *    programa del sidebar y, sin membresías, el mensaje A-04. El Calendly y ese mensaje
  *    SOLO aplican a quien trabaja leads.
  *  - `manejaPauta` sin administrar ni trabajar leads (paid trafficker): Canales. Sin
  *    selector de programa ni mensaje de membresías.
- *  - `esAdministrador` sin trabajar leads (gerente): Por decidir, con selector de programa.
+ *  - `esAdministrador` sin trabajar leads (gerente): Por decidir, por programa.
  *  - El developer: ve las secciones de su ROL DE VISTA; en vista `todo` (acceso total) no
  *    hay secciones propias, así que se muestra el mensaje que lo explica y ofrece "Ver como
  *    closer". Se decide con `esAccesoTotal` del rol REAL (`requireSesionReal`), nunca con
@@ -91,7 +91,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const secciones = seccionesDeRol(sujeto);
   const seccion = seccionPedida(sujeto, uno(query.tab));
   const programaPedido = uno(query.programa);
-  const preferido = seccion?.usaSelectorDePrograma ? await programaPreferidoDeCookie() : null;
+  const preferido = seccion?.porPrograma ? await programaPreferidoDeCookie() : null;
   // El developer en vista `todo` recibe el mensaje del dueño ANTES de leer membresías y tabs
   // (más abajo): el cargador no lee nada de eso para él, igual que la página antes del 447.
   const esDuenoEnTodo = esAccesoTotal(rol);
@@ -208,27 +208,22 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // Sus enlaces de captacion (086), de los mismos programas: calculados, nunca guardados.
   const enlaces = datos.enlaces;
 
-  // Selector de programa solo para las secciones que lo usan. El programa es frontera: un
+  // Programa del sidebar para las secciones por programa. El programa es frontera: un
   // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el ultimo
   // visible recordado o el primero.
   let programa: { id: string; slug: string; nombre: string } | null = null;
-  const visibles = datos.visibles;
-  if (seccion.usaSelectorDePrograma) {
+  if (seccion.porPrograma) {
     programa = datos.programa;
-    if (!programa && !(seccion.id === "metricas" && programaPedido === "todos" && visibles.length > 0)) notFound();
+    if (!programa) notFound();
   }
 
   return (
     <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
       <div className="space-y-6">
         <div className="space-y-4">
-          <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? null} />
-          {seccion.usaSelectorDePrograma ? (
-            <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
-          ) : null}
+          <TabsDeMiEspacio secciones={secciones} actual={seccion.id} slug={programa?.slug ?? programaPedido ?? null} />
 
-          {Seccion({ seccion, programa, perfil, calendly, enlaces, deSeccion: datos.deSeccion })}
-          {conexionesIa}
+          {Seccion({ seccion, programa, perfil, calendly, enlaces, deSeccion: datos.deSeccion, conexionesIa })}
         </div>
       </div>
     </PageShell>
@@ -268,7 +263,7 @@ function bloqueConexionesIa(datos: DatosDeMiEspacio, rolReal: unknown) {
 
 /**
  * El elemento de la sección elegida (función, no componente, a propósito: así el árbol de
- * la página contiene el elemento real de la tab —`<TabAtencion/>`, `<TabCanales/>`…— y no
+ * la página contiene el elemento real de la tab —`<TabMiDia/>`, `<TabCanales/>`…— y no
  * un envoltorio opaco). Las de programa reciben el programa ya resuelto. Info recibe el
  * perfil, el Calendly por programa y los enlaces de captación ya armados por la página.
  */
@@ -279,6 +274,7 @@ function Seccion({
   calendly,
   enlaces,
   deSeccion,
+  conexionesIa,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
@@ -286,6 +282,7 @@ function Seccion({
   calendly: ReactElement | null;
   enlaces: EnlaceVista[];
   deSeccion: DatosDeMiEspacio["deSeccion"];
+  conexionesIa: ReactElement | null;
 }): ReactElement | null {
   switch (seccion.id) {
     case "info":
@@ -297,8 +294,13 @@ function Seccion({
           {perfil}
           {calendly}
           <EnlacesDeCaptacion enlaces={enlaces} />
+          {conexionesIa}
         </div>
       );
+    case "mi-dia":
+      return programa && deSeccion?.id === "mi-dia"
+        ? <TabMiDia slug={programa.slug} datos={deSeccion.datos} />
+        : null;
     case "notificaciones":
       // Lo que te toca HOY, por tipo, con las tarjetas de tus deals (ticket 222).
       return programa && deSeccion?.id === "notificaciones"
@@ -331,48 +333,5 @@ function bloqueCalendly(membresias: DatosDeMiEspacio["membresias"], datos: Datos
       cuentas={cuentas}
       accion={asignarMiCalendlyAccion}
     />
-  );
-}
-
-/** El selector de programa de Mi espacio: enlaces, conserva la tab actual. */
-function SelectorDePrograma({
-  programas,
-  actual,
-  tab,
-  busqueda,
-}: {
-  programas: readonly { slug: string; nombre: string }[];
-  actual: string;
-  tab: string;
-  busqueda: Record<string, string | string[] | undefined>;
-}) {
-  if (programas.length <= 1 && tab !== "metricas") return null;
-  const href = (programa: string) => {
-    const q = new URLSearchParams();
-    for (const [clave, valor] of Object.entries(busqueda)) if (typeof valor === "string") q.set(clave, valor);
-    q.set("programa", programa);
-    q.set("tab", tab);
-    return `/mi-espacio?${q}`;
-  };
-  const opciones = tab === "metricas"
-    ? [...programas, { slug: "todos", nombre: "Todos" }]
-    : programas;
-  return (
-    <nav className="flex flex-wrap gap-2" aria-label="Programa">
-      {opciones.map((p) => (
-        <Enlace precarga="navegacion"
-          key={p.slug}
-          href={href(p.slug)}
-          aria-current={p.slug === actual ? "page" : undefined}
-          className={
-            p.slug === actual
-              ? "rounded-lg bg-marca-suave px-3 py-1.5 text-sm font-medium text-marca"
-              : "rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
-          }
-        >
-          {p.nombre}
-        </Enlace>
-      ))}
-    </nav>
   );
 }

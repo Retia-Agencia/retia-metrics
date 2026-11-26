@@ -126,6 +126,14 @@ export function rutaAlCambiarDePrograma(
   if (pathname === RUTA_HUB_TODOS || pathname.startsWith(`${RUTA_HUB_TODOS}/`)) {
     return conSeccion(rutaDePrograma(nuevoSlug));
   }
+  if (pathname === "/mi-espacio") {
+    const params = new URLSearchParams({ programa: nuevoSlug });
+    for (const clave of ["tab", "rango", "conf", "orden", "dir"] as const) {
+      const valor = query?.get(clave);
+      if (valor) params.set(clave, valor);
+    }
+    return `/mi-espacio?${params.toString()}`;
+  }
   return rutaDePrograma(nuevoSlug);
 }
 

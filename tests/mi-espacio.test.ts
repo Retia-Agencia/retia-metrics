@@ -61,6 +61,7 @@ vi.mock("@/lib/queries/programas", () => ({ programasActivos }));
 vi.mock("@/lib/atribucion/captacion-del-closer", () => ({ enlacesDeCaptacion: async () => [] }));
 
 // Los datos de cada tab se prueban en sus propios tests; aquí solo importa la rama.
+vi.mock("@/lib/mi-espacio/datos-mi-dia", () => ({ cargarDatosDeMiDia: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-notificaciones", () => ({ cargarDatosDeNotificaciones: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-metricas", () => ({ cargarDatosDeMetricas: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-canales", () => ({ cargarDatosDeCanales: async () => ({}) }));
@@ -266,24 +267,24 @@ describe("/mi-espacio (ticket 172)", () => {
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
   });
 
-  it("un closer que forja ?tab=deals cae en Necesita atención", async () => {
+  it("un closer que forja ?tab=deals cae en Mi día", async () => {
     membresiasConCalendlyDe.mockResolvedValue([
       { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar({ tab: "deals" });
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(true);
   });
 
-  it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Necesita atención", async () => {
+  it("un closer que forja ?tab=por-decidir tampoco la ve: cae en Mi día", async () => {
     membresiasConCalendlyDe.mockResolvedValue([
       { id: "m-a", userId: "u-closer", usuario: "Nicolás", emailUsuario: "nico@x.co", programId: "p-a", calendlyEmail: null },
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar({ tab: "por-decidir" });
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(true);
   });
 
   it("Mis métricas usa el closer de la sesión efectiva, no uno de la URL", async () => {
@@ -317,7 +318,7 @@ describe("/mi-espacio (ticket 172)", () => {
     ]);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(true);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(true);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 
