@@ -296,7 +296,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   el `change_log`: **no hay que acordarse de registrar, no hay forma de crear la fila sin que
   quede registrada.** El "quien" lo da `actorDelScript()` de `scripts/actor.ts`
   (`SCRIPT_ACTOR_EMAIL`), en UN solo lugar, y el script **se niega a arrancar sin el**. Excepciones
-  nombradas, no un permiso general: sembrar una base VACIA (`seed:datos`) y el acceso de
+  nombradas, no un permiso general: el diálogo de mover puede crear o reactivar motivos mediante
+  el molde con el actor que mueve el deal; sembrar una base VACIA (`seed:datos`) y el acceso de
   emergencia (`npm run usuarios`), que existe justo para cuando no hay administrador con quien
   actuar. 🩸 Salio de los 5 enlaces de PayPal cargados en `production` el 18-sep: `change_log` de
   `enlaces_pago` quedo en **0**. **Omitir un rastro no lanza ningun error**, y dentro de tres
@@ -312,8 +313,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **El Deal es el objeto central, y `sales` ya no existe (ADR 0037).** Una venta es un deal en
   **Abonado o Completo**, nunca un deal a secas: contar todos los deals infla las ventas y **no
   lanza ningun error**. `deal.etapa` es un `pgEnum` porque el codigo decide con ella (embudo,
-  Students, cartera, movimientos automaticos): son **once** etapas desde el 24-sep (Seguimiento entra
-  con el ticket 043). `lead.estado` es texto y nadie decide con el: la etapa de entrada la decide
+  Students, cartera, movimientos automaticos): son **doce** etapas; `A futuro` sigue siendo abierta.
+  `lead.estado` es texto y nadie decide con el: la etapa de entrada la decide
   `etapaDeEntrada` con la agenda y la calidad (`lead_quality`); D4 la cierra el ADR 0069 (el 0054 está retirado).
   **`deals.etapa` no se escribe a mano desde ninguna parte**: el unico camino es `moverEtapa()`
   (etapa 2), que valida y escribe `deal_etapa_historial`.
@@ -357,3 +358,11 @@ que hay que re-pensar el diseno:
 - **Escala real hoy: ~3.000 filas por hoja, dos programas, 5 usuarios concurrentes.** No es un
   sistema de alto trafico y no hay que disenarlo como si lo fuera. Si el volumen se multiplica
   por diez, revisar la estrategia de lectura completa de la hoja.
+
+<a id="contrato-de-tests"></a>
+- **Contrato de tests (Mani, 25-nov-2026).** Todo test nuevo declara en el PR "falla si ___" y pasa los cinco
+  filtros de `docs/agents/tests.md`: atrapa un bug con nombre, nadie más lo atrapa (typecheck, lint, base u
+  otro test), vive en el nivel más barato que lo ve, prueba por la puerta pública y sobrevive a un refactor sin
+  cambio de comportamiento. Cada comportamiento tiene un solo test dueño; los duplicados, las migraciones de
+  datos ya aplicadas en producción y los textos de UI que no son contrato se borran. Ningún shard del CI pasa
+  de 4 min de `npm test`. Origen: 4.975 tests y ~16 min de CPU por corrida sin medida de qué protegen.

@@ -14,11 +14,11 @@ import {
 } from "@/lib/deals/etapas";
 
 describe("etapas 30X", () => {
-  it("expone las once etapas, sus nombres y el orden del Kanban", () => {
-    expect(ETAPAS).toHaveLength(11);
+  it("expone las doce etapas, sus nombres y el orden del Kanban", () => {
+    expect(ETAPAS).toHaveLength(12);
     expect(ETAPAS_EN_ORDEN).toEqual([
       "potencial", "registrado", "en_gestion", "contactado", "calificado", "agendado",
-      "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+      "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
     ]);
     expect(ETAPAS_DE_SETTEO).toEqual(["potencial", "registrado", "en_gestion", "contactado", "calificado"]);
     expect(NOMBRE_DE_ETAPA.ganado_completo).toBe("Ganado Pagado Completo");
@@ -29,7 +29,7 @@ describe("etapas 30X", () => {
     expect(new Set(TRANSICIONES.map((t) => t.id))).toEqual(new Set([
       "S1", "S2", "S3",
       "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14",
-      "RETRO", "P", "R", "A1", "A2",
+      "RETRO", "F", "RF", "P", "R", "A1", "A2",
     ]));
     for (const t of TRANSICIONES) expect(transicion(t.de, t.a), `${t.id}: ${t.de} → ${t.a}`).toEqual(t);
     expect(new Set(TRANSICIONES.map((t) => `${t.de}>${t.a}`)).size).toBe(TRANSICIONES.length);

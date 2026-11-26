@@ -1,3 +1,4 @@
+/** Precio de referencia y descuento por línea: meta USD, ticket perdido, proyección ROAS y descuento con precios congelados. Es base porque lee cohortes, SKUs y líneas. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { cohorts, dealLineas, deals, leads, programs, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -86,7 +87,7 @@ function perdida(precioUsd: number | null) {
   }).motivosDePerdida[0]!;
 }
 
-describe("ticket 461 — precio de referencia y descuento por línea", () => {
+describe("precio de referencia y descuento por línea", () => {
   it("con un SKU de cupo conserva meta USD, ticket perdido y proyección ROAS", async () => {
     const cohorte = await ciclo("C1", "797");
     await db.insert(skus).values({

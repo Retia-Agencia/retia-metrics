@@ -153,7 +153,7 @@ const PAGINAS = {
   "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 54, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
-    tope: 33, // +1 (ADR 0137 punto 8): las líneas normalizadas se leen en lote; el costo no crece con deals.
+    tope: 38, // +5 (Mi día, Fase 2a): los pendientes leen el universo del closer una vez (tablero, fechas, abonos, llamadas, Calendly); el costo no crece con deals.
     escalaConProgramas: false,
     cargar: (db, sembrado) => cargarDatosDeMiEspacio(db, {
       userId: sembrado.closerId,

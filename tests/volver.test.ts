@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   accionDeVolver,
@@ -184,43 +182,5 @@ describe("origenDeLaPagina", () => {
     ).toBe("/p/x/leads?calidad=high&pagina=2");
     expect(origenDeLaPagina("/p/x/deals", { canal: ["a", "b"] })).toBe("/p/x/deals?canal=a&canal=b");
     expect(origenDeLaPagina("/p/x/inbox", {})).toBe("/p/x/inbox");
-  });
-});
-
-describe("guardian: nadie concatena desde a mano", () => {
-  // Recorre app/ y components/ y falla si encuentra `desde=` o `?desde` fuera de este modulo.
-  const raiz = join(__dirname, "..");
-  const permitido = join("lib", "navegacion", "volver.ts");
-
-  function archivos(dir: string): string[] {
-    const salida: string[] = [];
-    for (const nombre of readdirSync(dir)) {
-      const ruta = join(dir, nombre);
-      if (statSync(ruta).isDirectory()) {
-        if (nombre === "node_modules" || nombre === ".next") continue;
-        salida.push(...archivos(ruta));
-      } else if (/\.(ts|tsx)$/.test(nombre)) {
-        salida.push(ruta);
-      }
-    }
-    return salida;
-  }
-
-  it("no hay `desde=` ni `?desde` en app/ ni components/", () => {
-    const sospechosos: string[] = [];
-    for (const dir of [join(raiz, "app"), join(raiz, "components")]) {
-      for (const ruta of archivos(dir)) {
-        const texto = readFileSync(ruta, "utf8");
-        if (texto.includes("desde=") || texto.includes("?desde")) {
-          sospechosos.push(ruta.slice(raiz.length + 1));
-        }
-      }
-    }
-    expect(sospechosos, `Usa enlaceConVuelta en vez de concatenar: ${sospechosos.join(", ")}`).toEqual([]);
-  });
-
-  it("el unico lugar que arma `desde=` es lib/navegacion/volver.ts", () => {
-    const texto = readFileSync(join(raiz, permitido), "utf8");
-    expect(texto).toContain("desde=");
   });
 });

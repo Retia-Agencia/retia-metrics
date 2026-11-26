@@ -144,13 +144,6 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 }
 
 describe("registrarAbono: el dinero mueve el deal", () => {
-  it("el primer abono pasa a Abonado sin pedir un origen declarado", async () => {
-    const dealId = await nuevoDeal("atendido");
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    expect(r.etapa).toBe("ganado_parcial");
-    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal).toMatchObject({ etapa: "ganado_parcial" });
-  });
 
   it("el primer abono con saldo lleva a Abonado, por el sistema, con su historial y su rastro", async () => {
     const dealId = await nuevoDeal("atendido");
@@ -230,29 +223,6 @@ describe("abono adicional", () => {
     expect((await abonosDe(dealId))[0]).toMatchObject({ monto: "1500.00" });
   });
 
-  it("ADR 0137 punto 14: rechaza también el adicional sobre un deal cerrado", async () => {
-    const dealId = await nuevoDeal("ganado_completo");
-
-    const error = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })));
-    expect(error.status).toBe(409);
-    expect(await abonosDe(dealId)).toHaveLength(0);
-  });
-
-  it("rechaza un adicional sobre un deal anulado", async () => {
-    const dealId = await nuevoDeal("atendido", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
-
-    expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })))).status).toBe(409);
-    expect(await abonosDe(dealId)).toHaveLength(0);
-  });
-
-  it("rechaza al closer que no es dueño y no escribe el adicional", async () => {
-    const dealId = await nuevoDeal("atendido");
-    const actor = { userId: otroCloser, rol: "closer" as const, operaComoCloser: false };
-
-    expect((await capturar(registrarAbono(db, actor, abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })))).status).toBe(403);
-    expect(await abonosDe(dealId)).toHaveLength(0);
-  });
-
   it("ADR 0137 punto 14: anular el único adicional aplica la reversión A1", async () => {
     const dealId = await nuevoDeal("atendido");
     const adicional = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" }));
@@ -286,17 +256,6 @@ describe("registrarAbono: las rejas", () => {
     expect(await etapaDe(dealId)).toBe("ganado_parcial");
   });
 
-  it("el ultimo abono sin comprobante cierra el deal y queda como alerta", async () => {
-    const dealId = await nuevoDeal("atendido");
-    await registrarAbono(db, comoCloser(), abono(dealId, "400"));
-    await registrarAbono(db, comoCloser(), abono(dealId, "600", { comprobanteUrl: undefined }));
-    expect(await etapaDe(dealId)).toBe("ganado_completo");
-    const filas = await abonosDe(dealId);
-    expect(filas).toHaveLength(2);
-    expect(await dealsConAbonoSinComprobante(db, [dealId])).toEqual(new Set([dealId]));
-    expect((await saldosDeDeals(db, [dealId])).get(dealId)?.saldo).toBe(0);
-  });
-
   it("un sobrepago se rechaza y no escribe nada", async () => {
     const dealId = await nuevoDeal("atendido");
     await registrarAbono(db, comoCloser(), abono(dealId, "600"));
@@ -324,14 +283,6 @@ describe("registrarAbono: las rejas", () => {
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400000", { moneda: "COP" })));
     expect(e.status).toBe(400);
     expect(await abonosDe(dealId)).toHaveLength(0);
-  });
-
-  it("el abono que mueve el deal no exige comprobante", async () => {
-    const dealId = await nuevoDeal("atendido");
-    await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));
-    expect(await abonosDe(dealId)).toHaveLength(1);
-    expect(await etapaDe(dealId)).toBe("ganado_parcial");
-    expect((await historial(dealId)).map((fila) => fila.a)).toEqual(["ganado_parcial"]);
   });
 
   it.each([

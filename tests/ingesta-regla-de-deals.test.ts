@@ -1,7 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import path from "node:path";
 import { and, eq, sql } from "drizzle-orm";
 import {
   calls,
@@ -27,7 +24,6 @@ import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { registrarLlamadaDeCalendly } from "@/lib/calendly/colgar-llamada";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
-import { sinComentarios } from "./helpers/codigo-fuente";
 
 
 /**
@@ -69,10 +65,6 @@ describe("etapaDeEntrada: la tabla del ADR 0069, fila por fila", () => {
 
   it.each(["Low", "Mid", null, ""])("completo %s sin agenda: Registrado (ningún envío se descarta)", (q) => {
     expect(etapaDeEntrada(hechos(false, false, q))).toBe("registrado");
-  });
-
-  it.each(["Low", null])("parcial %s sin agenda: Potencial", (q) => {
-    expect(etapaDeEntrada(hechos(true, false, q))).toBe("potencial");
   });
 
   it("la calidad se compara sin mayúsculas ni espacios", () => {
@@ -907,56 +899,5 @@ describe("la nota del sistema en el deal (migración 0032)", () => {
       .values({ dealId: deal.id, tipo: "contacto", canal: "whatsapp", userId: null })
       .then(() => null, (e: unknown) => e);
     expect(esViolacionCheck(error)).toBe(true);
-  });
-});
-
-// ─────────────── guardián: una sola lista de "desde qué etapas una cita mueve a Agendado" ───────────────
-//
-// La pregunta —hallazgo A1 del ticket 114— estaba copiada en tres módulos y la de la
-// ingesta ya había divergido (1/2/9 en vez de 1/2/3/9/11). La respuesta vive UNA vez en
-// `lib/deals/etapas.ts` (`unaCitaMueveAAgendado`) y los tres la importan.
-// Este guardián falla si alguno vuelve a declarar su propia lista.
-describe("guardián: la lista de etapas que una cita mueve a Agendado no se re-declara", () => {
-  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-  const CONSUMIDORES = [
-    path.join("lib", "deals", "llamadas.ts"),
-    path.join("lib", "calendly", "colgar-llamada.ts"),
-    path.join("lib", "ingesta", "regla-de-deals.ts"),
-  ];
-  const NOMBRE_VIEJO = "ETAPAS_QUE_AVANZAN_A_AGENDADO";
-  const NOMBRE_UNICO = "unaCitaMueveAAgendado";
-
-  it.each(CONSUMIDORES)("%s ya no define su propia lista y usa la única", (rel) => {
-    const codigo = sinComentarios(fs.readFileSync(path.join(RAIZ, rel), "utf8"));
-    // El nombre local viejo no debe aparecer en ningún lado (ni declaración ni uso).
-    expect(codigo).not.toContain(NOMBRE_VIEJO);
-    // Y ninguno vuelve a declarar la función; la importa.
-    expect(new RegExp(`function\\s+${NOMBRE_UNICO}\\b`).test(codigo)).toBe(false);
-    // La referencia a la lista única sigue ahí (si no, no vigila nada).
-    expect(codigo).toContain(NOMBRE_UNICO);
-  });
-
-  it("la única lista vive en lib/deals/etapas.ts, exportada", () => {
-    const codigo = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "etapas.ts"), "utf8"));
-    expect(new RegExp(`export\\s+function\\s+${NOMBRE_UNICO}\\b`).test(codigo)).toBe(true);
-  });
-});
-
-// ─────────────── guardián: RESULTADOS_FALLIDOS vive en un solo módulo ───────────────
-//
-// Hallazgo A3 del ticket 114: estaba copiada en `mover-etapa.ts` y en `llamadas.ts`. La
-// definición única vive en `mover-etapa.ts` (el motor la lee para `llamada_fallida`) y
-// `llamadas.ts` la re-exporta para no romper a quien la importa desde ahí.
-describe("guardián: RESULTADOS_FALLIDOS se declara una sola vez", () => {
-  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-
-  it("solo lib/deals/mover-etapa.ts declara la lista con sus valores", () => {
-    const motor = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "mover-etapa.ts"), "utf8"));
-    const llamadas = sinComentarios(fs.readFileSync(path.join(RAIZ, "lib", "deals", "llamadas.ts"), "utf8"));
-    const declaracion = /const\s+RESULTADOS_FALLIDOS\s*=\s*\[/;
-    expect(declaracion.test(motor)).toBe(true);
-    // llamadas.ts NO vuelve a declararla (solo la importa y re-exporta).
-    expect(declaracion.test(llamadas)).toBe(false);
-    expect(llamadas).toContain("RESULTADOS_FALLIDOS");
   });
 });

@@ -1,3 +1,4 @@
+/** Catálogo de SKUs: rol en servidor (solo gerencia escribe), atomicidad cohorte+SKU y ventana que choca. Es base porque verifica que nada queda escrito a medias. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { cohorts, programs, skus, users } from "@/lib/db/schema";
@@ -70,7 +71,7 @@ beforeEach(async () => {
 
 afterAll(async () => cerrar());
 
-describe("ticket 459 — catálogo de SKUs", () => {
+describe("catálogo de SKUs: solo gerencia lo escribe y una ventana que choca no deja nada a medias", () => {
   it("rechaza que un closer forje Predeterminado y no mueve la base", async () => {
     const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C4", metaCupos: 10, precioUsd: "797" }).returning();
     const [sku] = await db.insert(skus).values({ programId, nombre: "Virtual", slug: "virtual", cohortId: cohorte.id, codigo: "TACTICAL-VIRTUAL-C4", precioListaUsd: "797", cuentaComoCupo: true, predeterminado: false }).returning();

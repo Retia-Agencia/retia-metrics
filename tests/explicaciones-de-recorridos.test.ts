@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
 import {
   cifrasDeAuditoria,
   cifrasDeCaminos,
@@ -104,16 +103,6 @@ const clavesFijas = [
 ] as const;
 
 describe("explicaciones de los recorridos de Comercial", () => {
-  it("mantiene puros el catálogo y el constructor de explicaciones", () => {
-    for (const archivo of ["lib/metricas/explicacion.ts", "lib/escalones.ts"]) {
-      const importsDeValor = readFileSync(archivo, "utf8")
-        .split(";")
-        .map((sentencia) => sentencia.trim())
-        .filter((sentencia) => /^import\s+(?!type\b)/.test(sentencia));
-      expect(importsDeValor.filter((sentencia) => /@\/lib\/(db|queries)(?:\/|\")/.test(sentencia)), archivo).toEqual([]);
-    }
-  });
-
   it("empareja cada escalón y grupo con la variable de su mismo nombre", () => {
     const explicaciones = explicacionesDeRecorridos();
     for (const clave of ESCALONES) {

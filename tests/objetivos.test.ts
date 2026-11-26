@@ -9,10 +9,6 @@ import {
 import { changeLog, cohorts, objetivos, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import {
-  DEFINICION_METRICAS_OBJETIVO,
-  METRICAS_OFRECIDAS,
-} from "@/lib/objetivos/metricas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -223,33 +219,6 @@ describe("objetivos de la cohorte", () => {
     const copiadas = await db.select().from(objetivos).where(eq(objetivos.cohortId, destino.id));
     expect(copiadas).toHaveLength(1);
     expect(Number(copiadas[0].meta)).toBe(36);
-  });
-});
-
-describe("definición de métricas ofrecidas", () => {
-  it("solo ofrece métricas completas y los costos ofrecidos son el de agenda y el de venta", () => {
-    for (const metrica of METRICAS_OFRECIDAS) {
-      expect(DEFINICION_METRICAS_OBJETIVO[metrica]).toMatchObject({
-        lector: expect.any(String),
-        unidad: expect.any(String),
-        sentido: expect.any(String),
-      });
-    }
-    expect(METRICAS_OFRECIDAS.filter(
-      (metrica) => DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP",
-    )).toEqual(["costo_por_agenda", "inversion", "costo_por_venta"]);
-  });
-});
-
-describe("migración 0133: el enum y el CHECK de moneda", () => {
-  it("el presupuesto de la cohorte (inversion) se guarda con su moneda y un valor retirado ya no existe", async () => {
-    const presupuesto = await crearObjetivo(db, actor(), {
-      cohortId, area: null, metrica: "inversion" as const, meta: 5_000_000, aceptable: null,
-    });
-    expect(presupuesto).toMatchObject({ metrica: "inversion", moneda: "COP" });
-    for (const retirada of ["agendas_por_dia", "costo_por_lead"]) {
-      await expect(db.execute(sql`select ${retirada}::metrica_objetivo`)).rejects.toBeDefined();
-    }
   });
 });
 

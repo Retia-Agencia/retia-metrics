@@ -94,19 +94,3 @@ it("Dinero usa una sola clave con paso y forma, e ignora una unidad vieja", () =
   expect(configDeGraficaEnOrigen("/p/x/hub?g_dinero=plata,mes,acum", "dinero", base, { unidadFija: "cupos" }))
     .toEqual({ unidad: "cupos", paso: "mes", forma: "acum" });
 });
-
-it("guardián: ninguna serie del Hub escribe un número de meses ni compara por su cuenta", async () => {
-  const { readFileSync } = await import("node:fs");
-  const archivos = [
-    "lib/queries/series-dinero.ts",
-    "lib/series-pasos.ts",
-    "components/dashboard/graficas-de-dinero.tsx",
-    "components/dashboard/dinero.tsx",
-    "components/deals-contra-agendas.tsx",
-  ];
-  for (const archivo of archivos) {
-    const texto = readFileSync(archivo, "utf8");
-    expect(texto, archivo).not.toMatch(/Array\.from\(\{ length: \d+ \}|Últimos (seis|\d+) meses|moverMes\(/);
-    expect(texto, archivo).not.toContain("independientemente de “Comparar con”");
-  }
-});

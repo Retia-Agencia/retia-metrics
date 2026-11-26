@@ -1,7 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import path from "node:path";
 import { deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
@@ -71,61 +68,5 @@ describe("otrosProgramasDelCorreo (PGlite)", () => {
     await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: b, emailNormalizado: "dos@correo.co" });
     await otrosProgramasDelCorreo(db, "dos@correo.co", a);
     expect(await db.select().from(leads)).toHaveLength(2);
-  });
-});
-
-// ─────────────────────────────────────────────────────────── el guardián
-
-/**
- * Los UNICOS archivos que pueden nombrar la funcion: su definicion y la ficha del Lead. Una
- * metrica (o el dashboard) que la importe podria sumar dos programas, que es justo lo que el
- * ADR 0043 prohibe; el aviso es de pantalla, no de numero.
- */
-const PERMITIDOS = new Set([
-  path.join("lib", "queries", "otros-programas-del-correo.ts"),
-  path.join("lib", "leads", "ficha", "cargar-datos.ts"),
-  path.join("app", "(app)", "p", "[programa]", "leads", "[id]", "page.tsx"),
-  // Solo importa el TIPO para pintar el aviso; no puede llamar a la funcion.
-  path.join("components", "leads", "ficha-lead.tsx"),
-]);
-
-export function usaOtrosProgramas(codigo: string): boolean {
-  const limpio = codigo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
-  return /\botrosProgramasDelCorreo\b|otros-programas-del-correo/.test(limpio);
-}
-
-describe("guardián: otrosProgramasDelCorreo solo la usa la ficha del Lead (091)", () => {
-  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-  const DIRECTORIOS = ["lib", "app", "components", "scripts"];
-
-  function archivos(dir: string): string[] {
-    const abs = path.join(RAIZ, dir);
-    if (!fs.existsSync(abs)) return [];
-    return fs.readdirSync(abs, { withFileTypes: true }).flatMap((e) => {
-      const rel = path.join(dir, e.name);
-      if (e.isDirectory()) return archivos(rel);
-      return /\.tsx?$/.test(e.name) ? [rel] : [];
-    });
-  }
-
-  it("ningun otro modulo la nombra (ni dashboard.ts ni una consulta de metrica)", () => {
-    const hallazgos = DIRECTORIOS.flatMap(archivos).filter(
-      (rel) => !PERMITIDOS.has(rel) && usaOtrosProgramas(fs.readFileSync(path.join(RAIZ, rel), "utf8")),
-    );
-    expect(hallazgos).toEqual([]);
-  });
-
-  it("los modulos de metricas existen y no la nombran", () => {
-    for (const rel of ["lib/queries/dashboard.ts", "lib/queries/metricas-filtros.ts", "lib/queries/metricas-con-filas.ts"]) {
-      const codigo = fs.readFileSync(path.join(RAIZ, rel), "utf8");
-      expect(usaOtrosProgramas(codigo), rel).toBe(false);
-    }
-  });
-
-  it("el detector muerde la llamada y el import, y no castiga un comentario", () => {
-    expect(usaOtrosProgramas("const x = await otrosProgramasDelCorreo(db, e, p);")).toBe(true);
-    expect(usaOtrosProgramas('import { y } from "@/lib/queries/otros-programas-del-correo";')).toBe(true);
-    expect(usaOtrosProgramas("// otrosProgramasDelCorreo no se usa aqui")).toBe(false);
-    expect(usaOtrosProgramas("const otrosProgramas = 1;")).toBe(false);
   });
 });

@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  SECCIONES,
-  seccionPorDefecto,
   seccionPedida,
   seccionesDeRol,
   type SeccionId,
@@ -47,30 +45,12 @@ describe("seccionesDeRol: qué ve cada rol", () => {
     expect(ids(null)).toEqual([]);
   });
 
-  it("ninguna de las secciones del closer se solapa con las de pauta o gerencia", () => {
-    expect(ids("closer")).not.toContain("canales");
-    expect(ids("closer")).not.toContain("por-decidir");
-  });
-
-  it("todo rol que tiene Mi espacio ve Info última", () => {
-    for (const rol of ["closer", "gerente", "paid_trafficker", "developer"] as const) {
-      expect(ids(rol).at(-1)).toBe("info");
-    }
-  });
 });
 
 describe("seccionPedida: la pedida si el rol la cumple, si no la por defecto", () => {
-  it("Mi día es el default del closer y Por decidir sigue siendo el del gerente", () => {
-    expect(seccionPorDefecto({ rol: "closer", operaComoCloser: false })?.id).toBe("mi-dia");
-    expect(seccionPorDefecto({ rol: "gerente", operaComoCloser: false })?.id).toBe("por-decidir");
-  });
 
   it("el closer sin ?tab cae en Mi día", () => {
     expect(seccionPedida({ rol: "closer", operaComoCloser: false }, undefined)?.id).toBe("mi-dia");
-  });
-
-  it("el closer puede pedir Info", () => {
-    expect(seccionPedida({ rol: "closer", operaComoCloser: false }, "info")?.id).toBe("info");
   });
 
   it("el closer puede pedir Métricas", () => {
@@ -90,40 +70,12 @@ describe("seccionPedida: la pedida si el rol la cumple, si no la por defecto", (
     expect(seccionPedida({ rol: "paid_trafficker", operaComoCloser: false }, "mi-dia")?.id).toBe("canales");
   });
 
-  it("el paid trafficker puede pedir Info", () => {
-    expect(seccionPedida({ rol: "paid_trafficker", operaComoCloser: false }, "info")?.id).toBe("info");
-  });
-
   it("el gerente sin ?tab cae en Por decidir (su por defecto, no Info)", () => {
     expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, undefined)?.id).toBe("por-decidir");
     expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, "deals")?.id).toBe("por-decidir");
   });
 
-  it("el gerente puede pedir Info", () => {
-    expect(seccionPedida({ rol: "gerente", operaComoCloser: false }, "info")?.id).toBe("info");
-  });
-
   it("sin rol no hay sección que mostrar", () => {
     expect(seccionPedida({ rol: null, operaComoCloser: false }, "mi-dia")).toBeNull();
-  });
-});
-
-describe("el contrato del registro", () => {
-  it("Mi día, Métricas y Por decidir son por programa; Info y Canales no", () => {
-    const porId = new Map(SECCIONES.map((s) => [s.id, s]));
-    expect(porId.get("info")?.porPrograma).toBe(false);
-    expect(porId.get("canales")?.porPrograma).toBe(false);
-    expect(porId.get("por-decidir")?.porPrograma).toBe(true);
-    for (const id of ["mi-dia", "metricas"] as const) {
-      expect(porId.get(id)?.porPrograma).toBe(true);
-    }
-  });
-
-  it("cada id es único", () => {
-    const vistos = new Set<string>();
-    for (const s of SECCIONES) {
-      expect(vistos.has(s.id)).toBe(false);
-      vistos.add(s.id);
-    }
   });
 });

@@ -1,6 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import {
   changeLog,
@@ -287,26 +285,5 @@ describe("los enlaces de un closer", () => {
 
   it("solo de los programas con membresia activa", async () => {
     expect((await enlacesDeCaptacion(db, ajeno)).map((e) => e.programId)).toEqual([programB]);
-  });
-});
-
-describe("guardian: nadie mas escribe traido_por_user_id", () => {
-  it("solo la ingesta lo escribe (ADR 0044 punto 2)", () => {
-    const permitidos = new Set(["lib/ingesta/ingerir.ts", "lib/db/schema.ts"]);
-    const raiz = process.cwd();
-    const archivos: string[] = [];
-    const recorrer = (dir: string) => {
-      for (const nombre of readdirSync(join(raiz, dir))) {
-        const rel = `${dir}/${nombre}`;
-        if (nombre === "node_modules" || nombre.startsWith(".")) continue;
-        if (statSync(join(raiz, rel)).isDirectory()) recorrer(rel);
-        else if (/\.(ts|tsx)$/.test(nombre)) archivos.push(rel);
-      }
-    };
-    for (const d of ["lib", "app", "components", "scripts"]) recorrer(d);
-    // Escribir es `traidoPorUserId:` (un values o un set); leer es `leads.traidoPorUserId`.
-    const escritores = archivos.filter((f) => /(^|[^.\w])traidoPorUserId\s*:/.test(readFileSync(join(raiz, f), "utf8")));
-    expect(escritores.filter((f) => !permitidos.has(f))).toEqual([]);
-    expect(escritores).toContain("lib/ingesta/ingerir.ts");
   });
 });

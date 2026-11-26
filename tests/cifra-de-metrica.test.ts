@@ -8,6 +8,7 @@ import {
   textoDeCambio,
   type EntradaDeCifra,
 } from "@/lib/metricas/cifra";
+import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import { explicacionDe } from "@/lib/metricas/explicacion";
 import type { ClaveRegistrada } from "@/lib/metricas/registro";
 
@@ -150,5 +151,18 @@ describe("fórmula, comparación y evidencia", () => {
   it("una lista vacía no ofrece botón: dice que todavía no hay", () => {
     const c = armarCifra(entrada("ventas", { valor: 0, lista: { href: "/x", nombre: "ventas", total: 0, filas: [] } }));
     expect(c.explicacion.evidencia).toEqual({ href: "/x", boton: null, filas: [], nota: "Todavía no hay ventas." });
+  });
+});
+
+const HOY = "2026-10-09";
+
+describe("el contexto de cada cifra (puro)", () => {
+  it("dice cohorte, periodo y closer; 'hoy' cuando el periodo termina hoy", () => {
+    expect(contextoDeCifra({ cohorte: "C3", rango: { desde: "2026-10-01", hasta: HOY }, hoy: HOY, closer: null }))
+      .toBe("C3 · 1 oct 2026 a hoy · todos los closers");
+    expect(contextoDeCifra({ cohorte: null, rango: { desde: HOY, hasta: HOY }, hoy: HOY, closer: "Ana" }))
+      .toBe("Todas las cohortes · hoy · Ana");
+    expect(contextoDeCifra({ cohorte: null, rango: { desde: "2026-09-01", hasta: "2026-09-30" }, hoy: HOY, closer: null }))
+      .toBe("Todas las cohortes · 1 sep 2026 a 30 sep 2026 · todos los closers");
   });
 });

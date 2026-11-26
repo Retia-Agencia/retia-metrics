@@ -1,3 +1,4 @@
+/** Escritura contra Calendly: evento a agendar, API de reserva y horarios, asignación de evento personal y de membresía. Es base porque asigna y deja change_log. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import { eq } from "drizzle-orm";

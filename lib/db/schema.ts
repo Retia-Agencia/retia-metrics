@@ -73,6 +73,7 @@ export const etapaDealEnum = pgEnum("etapa_deal", [
   "ganado_parcial",
   "ganado_completo",
   "cierre_perdido",
+  "a_futuro",
 ]);
 
 /**
@@ -112,6 +113,7 @@ export const tipoMotivoEnum = pgEnum("tipo_motivo", [
   "reagenda",
   "retroceso",
   "recuperacion",
+  "a_futuro",
   "correccion",
 ]);
 

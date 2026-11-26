@@ -17,8 +17,6 @@ const EXCEPCIONES: Record<string, string> = {
   "contrato-proveedores.test.ts": "Cada caso abre y cierra bases aisladas dentro de su propio flujo.",
   "deal-etapas.test.ts": "Abre una base local dentro del caso que verifica el enum migrado.",
   "metricas-con-filas.test.ts": "Mantiene varias bases simultaneas para universos de datos independientes.",
-  "migracion-developer.test.ts": "Prueba directamente una migracion de esquema.",
-  "webhook-formularios.test.ts": "Su base por caso alimenta el holder mutable del mock del webhook.",
 };
 
 function usaBaseFresca(fuente: string): boolean {

@@ -27,20 +27,26 @@ export async function cargarDatosDeMiDia(db: Db, entrada: EntradaDeMiDia) {
   const soloSinConfirmar = uno(entrada.busqueda.conf) === "sin";
   const tipoPendiente = tipoDePendientePedido(uno(entrada.busqueda.tipo));
   const ahora = new Date();
-  const [filas, llamadasDeHoy, opciones, pendientes] = await Promise.all([
-    llamadasDelCloser(db, {
+  // El resumen cuenta TODAS las llamadas de hoy; la tabla, el rango y el filtro pedidos. Con
+  // rango "hoy" la tabla sale de la misma lectura (filtrada en memoria): una consulta, no dos.
+  const deHoy = llamadasDelCloser(db, {
+    programId: entrada.programId,
+    userId: entrada.userId,
+    rango: "hoy",
+    hoy: entrada.hoy,
+  });
+  const delRango = rango === "hoy"
+    ? deHoy.then((todas) => soloSinConfirmar ? todas.filter((fila) => fila.confirmacion !== "confirmada") : [...todas])
+    : llamadasDelCloser(db, {
       programId: entrada.programId,
       userId: entrada.userId,
       rango,
       hoy: entrada.hoy,
       soloSinConfirmar,
-    }),
-    llamadasDelCloser(db, {
-      programId: entrada.programId,
-      userId: entrada.userId,
-      rango: "hoy",
-      hoy: entrada.hoy,
-    }),
+    });
+  const [filas, llamadasDeHoy, opciones, pendientes] = await Promise.all([
+    delRango,
+    deHoy,
     opcionesDeFicha(db, entrada.programId, null, null),
     pendientesDelCloserEnPrograma(db, {
       programId: entrada.programId,

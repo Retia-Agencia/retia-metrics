@@ -14,7 +14,7 @@ export const ETAPAS: readonly EtapaDeal[] = etapaDealEnum.enumValues;
 export const PENDIENTES: readonly PendienteDeal[] = pendienteDealEnum.enumValues;
 export const ETAPAS_EN_ORDEN: readonly EtapaDeal[] = [
   "potencial", "registrado", "en_gestion", "contactado", "calificado", "agendado",
-  "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+  "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
 ];
 export const ETAPAS_DE_SETTEO: readonly EtapaDeal[] = [
   "potencial", "registrado", "en_gestion", "contactado", "calificado",
@@ -36,6 +36,7 @@ export const NOMBRE_DE_ETAPA: Readonly<Record<EtapaDeal, string>> = {
   atendido: "Atendido", compromiso_verbal: "Compromiso Verbal",
   ganado_parcial: "Ganado Pago Parcial", ganado_completo: "Ganado Pagado Completo",
   cierre_perdido: "Cierre perdido",
+  a_futuro: "A futuro",
 };
 export const NOMBRE_DE_PENDIENTE: Readonly<Record<PendienteDeal, string>> = {
   reagenda: "Por reagendar", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte",
@@ -56,7 +57,7 @@ export const NOMBRE_DE_VISTA: Readonly<Record<VistaDelTablero, string>> = {
   llamada: "Llamada", setteo: "Setteo", todo: "Todo",
 };
 /** Lo que cierra un deal sin pasar por llamada: el setter negocia y cobra por chat (E5, E6). */
-const CIERRE_SIN_LLAMADA: readonly EtapaDeal[] = ["compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"];
+const CIERRE_SIN_LLAMADA: readonly EtapaDeal[] = ["compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"];
 export const COLUMNAS_DE_VISTA: Readonly<Record<VistaDelTablero, readonly ColumnaDelTablero[]>> = {
   llamada: COLUMNAS_EN_ORDEN.slice(COLUMNAS_EN_ORDEN.indexOf("agendado")),
   setteo: [...ETAPAS_DE_SETTEO, ...CIERRE_SIN_LLAMADA],
@@ -97,12 +98,15 @@ export const FLECHA_CORRECCION: FlechaCorreccion = {
 
 /** Destinos libres de una corrección manual o de un deshacer. */
 export function destinosDeCorreccion(etapaActual: EtapaDeal): EtapaDeal[] {
-  if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(etapaActual) || etapaActual === "cierre_perdido") return [];
+  if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(etapaActual)
+    || etapaActual === "cierre_perdido"
+    || etapaActual === "a_futuro") return [];
   return ETAPAS.filter((etapa) =>
     etapa !== etapaActual
     && etapa !== "ganado_parcial"
     && etapa !== "ganado_completo"
-    && etapa !== "cierre_perdido");
+    && etapa !== "cierre_perdido"
+    && etapa !== "a_futuro");
 }
 
 type FilaEtapa = readonly [string, EtapaDeal | readonly EtapaDeal[], EtapaDeal | readonly EtapaDeal[], QuienMueve,
@@ -132,7 +136,9 @@ const FILAS_ETAPA: readonly FilaEtapa[] = [
   ["E13", "ganado_parcial", "ganado_completo", "sistema"],
   ["E14", "atendido", "atendido", "sistema", { soloConPendiente: true }],
   ["RETRO", "compromiso_verbal", ["atendido", "contactado", "calificado"], "closer", { motivo: "retroceso" }],
-  ["P", SE_PUEDEN_PERDER, "cierre_perdido", "closer", { motivo: "perdida" }],
+  ["F", [...SE_PUEDEN_PERDER, "cierre_perdido"], "a_futuro", "closer", { motivo: "a_futuro" }],
+  ["RF", "a_futuro", ["en_gestion", "agendado"], "closer", { motivo: "recuperacion" }],
+  ["P", [...SE_PUEDEN_PERDER, "a_futuro"], "cierre_perdido", "closer", { motivo: "perdida" }],
   ["R", "cierre_perdido", ["en_gestion", "agendado"], "closer", { motivo: "recuperacion" }],
   ["A1", "ganado_parcial", ["contactado", "calificado", "atendido", "compromiso_verbal"], "sistema"],
   ["A2", "ganado_completo", "ganado_parcial", "sistema"],

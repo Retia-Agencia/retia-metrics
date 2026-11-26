@@ -1,3 +1,4 @@
+/** Un ciclo nuevo hereda los umbrales del anterior (ADR 0141). Es base porque verifica filas de objetivos y su change_log. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, objetivos, programs, users } from "@/lib/db/schema";
@@ -56,7 +57,7 @@ beforeEach(async () => {
 
 afterAll(async () => cerrar());
 
-describe("ticket 465 — un ciclo nuevo hereda los umbrales del anterior (ADR 0141)", () => {
+describe("un ciclo nuevo hereda los umbrales del anterior (ADR 0141)", () => {
   it("copia costo_por_agenda con la misma meta, aceptable y moneda, y el umbral ya existe al nacer", async () => {
     await db.insert(objetivos).values([
       { cohortId: cicloAnteriorId, area: null, metrica: "costo_por_agenda", meta: "12.50", aceptable: "18.00", moneda: "COP" },

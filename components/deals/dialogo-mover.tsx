@@ -57,6 +57,7 @@ export interface DatosDialogo {
   cohorteDestinoId?: string | null;
   fechaSeguimiento?: string | null;
   motivoId?: string | null;
+  motivoLibre?: { texto: string; guardarComoOpcion: boolean };
   comentarioMotivo?: string;
   /** Comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota al mover por E1. */
   comentario?: string;
@@ -151,6 +152,7 @@ const ETIQUETA: Record<CodigoRequisito, string> = {
 
 const claseInput =
   "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const OTRO_MOTIVO = "otro_escribir";
 
 export function DialogoMover({
   abierto,
@@ -280,13 +282,18 @@ export function DialogoMover({
     && (datos.abono.comprobanteUrl.trim() || datos.abono.archivoId)
   );
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
-  const comentarioMotivoCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
+  const motivoLibreCompleto = !datos.motivoLibre || Boolean(datos.motivoLibre.texto.trim());
+  if (datos.motivoLibre && motivoLibreCompleto) {
+    requisitosQueEscribeElHecho.add("motivo");
+    cubiertos.add("motivo");
+  }
+  const comentarioMotivoCompleto = Boolean(datos.motivoLibre) || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
   const bloqueoVigente = movimiento.hecho ? null : revision?.bloqueo;
   const llamadaAunNoPuedeAtenderse = movimiento.hecho === "atendido" && llamada && !llamada.puedeMarcarAtendida;
   const listo = vigente && bloqueoVigente == null
       && Boolean(revision?.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo)))
       && destino != null && llamadaCompleta && !llamadaAunNoPuedeAtenderse
-      && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
+      && abonoCompleto && comentarioMotivoCompleto && motivoLibreCompleto && comentarioCompleto;
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -438,9 +445,14 @@ export function DialogoMover({
 
               {campo === "motivo" ? (
                 <Select
-                  value={datos.motivoId ?? null}
-                  items={motivosDeLaFlecha.map((m) => ({ value: m.id, label: m.nombre }))}
-                  onValueChange={(v: string | null) => setDatos((d) => ({ ...d, motivoId: v }))}
+                  value={datos.motivoLibre ? OTRO_MOTIVO : (datos.motivoId ?? null)}
+                  items={[
+                    ...motivosDeLaFlecha.map((m) => ({ value: m.id, label: m.nombre })),
+                    { value: OTRO_MOTIVO, label: "Otro (escribir)" },
+                  ]}
+                  onValueChange={(v: string | null) => setDatos((d) => v === OTRO_MOTIVO
+                    ? { ...d, motivoId: null, motivoLibre: { texto: "", guardarComoOpcion: false } }
+                    : { ...d, motivoId: v, motivoLibre: undefined })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Elige un motivo" />
@@ -451,11 +463,38 @@ export function DialogoMover({
                         {m.nombre}
                       </SelectItem>
                     ))}
+                    <SelectItem value={OTRO_MOTIVO}>Otro (escribir)</SelectItem>
                   </SelectContent>
                 </Select>
               ) : null}
 
-              {campo === "motivo" && flecha.tipoDeMotivo === "reagenda" ? (
+              {campo === "motivo" && datos.motivoLibre ? (
+                <div className="space-y-2">
+                  <Input
+                    value={datos.motivoLibre.texto}
+                    onChange={(e) => setDatos((d) => ({
+                      ...d,
+                      motivoLibre: { ...d.motivoLibre!, texto: e.currentTarget.value },
+                    }))}
+                    maxLength={80}
+                    required
+                    placeholder="Escribe el motivo"
+                  />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={datos.motivoLibre.guardarComoOpcion}
+                      onChange={(e) => setDatos((d) => ({
+                        ...d,
+                        motivoLibre: { ...d.motivoLibre!, guardarComoOpcion: e.currentTarget.checked },
+                      }))}
+                    />
+                    Guardar como opción para la próxima vez
+                  </label>
+                </div>
+              ) : null}
+
+              {campo === "motivo" && !datos.motivoLibre && (flecha.tipoDeMotivo === "reagenda" || motivoElegido?.pideTexto) ? (
                 <Campo etiqueta="Comentario" ayuda={motivoElegido?.pideTexto ? "Obligatorio para este motivo." : "Opcional."}>
                   <textarea className={claseTextarea} value={datos.comentarioMotivo ?? ""} onChange={(e) => setDatos((d) => ({ ...d, comentarioMotivo: e.target.value }))} rows={3} placeholder="¿Qué pasó?" />
                 </Campo>

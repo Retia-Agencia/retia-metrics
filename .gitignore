@@ -63,3 +63,7 @@ next-env.d.ts
 
 # Comprobantes del adaptador de desarrollo local
 /.archivos-locales/
+
+# Auditoría de mutación (stryker.config.mjs)
+reports/mutation/
+.stryker-tmp/

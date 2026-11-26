@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import fs from "node:fs";
-import path from "node:path";
 import { changeLog, programs, proveedorFormularioEnum, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
@@ -197,23 +195,6 @@ describe("el secreto", () => {
     },
   );
 
-  it("solo escribirSecreto actualiza la columna del secreto", () => {
-    const raiz = process.cwd();
-    const archivos: string[] = [];
-    const recorrer = (dir: string) => {
-      for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
-        const ruta = path.join(dir, entrada.name);
-        if (entrada.isDirectory()) recorrer(ruta);
-        else if (/\.(?:ts|tsx)$/.test(entrada.name)) archivos.push(ruta);
-      }
-    };
-    for (const dir of ["lib", "app", "components", "scripts"]) recorrer(path.join(raiz, dir));
-    const escritores = archivos.flatMap((archivo) => {
-      const cuantos = [...fs.readFileSync(archivo, "utf8").matchAll(/\.set\(\{\s*secretoWebhook\b/g)].length;
-      return Array.from({ length: cuantos }, () => path.relative(raiz, archivo));
-    });
-    expect(escritores).toEqual(["lib/catalogo/fuentes.ts"]);
-  });
 });
 
 describe("permisos: un closer no toca fuentes webhook", () => {

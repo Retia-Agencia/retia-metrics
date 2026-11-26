@@ -368,7 +368,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         ...(textoDestino !== undefined ? { cohorteDestinoTexto: textoDestino } : {}),
         ...(saleDeProximaCohorte ? { cohorteDestinoId: null, cohorteDestinoTexto: null } : {}),
         updatedAt: new Date(),
-        ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
+        ...(mov.a === "cierre_perdido" || mov.a === "a_futuro" ? { motivoId: mov.motivoId ?? null } : {}),
         ...(t.id === "S4" ? { ventaDirectaEn: sql`clock_timestamp()` } : {}),
       })
       .where(and(eq(deals.id, deal.id), eq(deals.etapa, de), sql`${deals.pendiente} IS NOT DISTINCT FROM ${pendienteDe}`))

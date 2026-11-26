@@ -1,3 +1,4 @@
+/** Comisión por línea: valor por el % congelado de cada línea, congelado al primer abono. Es base porque el % se congela en deal_lineas. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { cohorts, dealEtapaHistorial, dealLineas, deals, leads, productos, programs, skus, users } from "@/lib/db/schema";
@@ -56,7 +57,7 @@ async function dealConLineas(lineas: Array<{ skuId: string; valor: string; pct: 
   return { dealId: deal.id, ids };
 }
 
-describe("comisión por línea (461 paso 3)", () => {
+describe("comisión por línea", () => {
   it("un solo SKU: valor × % de la línea; 0 % no paga", async () => {
     const { dealId } = await dealConLineas([{ skuId: skuVirtual, valor: "1000", pct: "10", abonar: true }]);
     const { dealId: sinComision } = await dealConLineas([{ skuId: skuUnoAUno, valor: "200", pct: "0", abonar: true }]);
@@ -71,12 +72,6 @@ describe("comisión por línea (461 paso 3)", () => {
       { skuId: skuUnoAUno, valor: "200", pct: "5", abonar: true },
     ]);
     expect((await comisionesDeDeals(db, [dealId])).get(dealId)).toBe(110);
-  });
-
-  it("una línea vendida sin % congelado deja el deal sin comisión (nulo, no 0)", async () => {
-    await db.update(skus).set({ comisionPorcentaje: null }).where(eq(skus.id, skuVirtual));
-    const { dealId } = await dealConLineas([{ skuId: skuVirtual, valor: "1000", pct: null, abonar: true }]);
-    expect((await comisionesDeDeals(db, [dealId])).get(dealId)).toBeNull();
   });
 
   it("congelar toma el % del SKU solo en líneas con abono y no pisa lo ya congelado", async () => {

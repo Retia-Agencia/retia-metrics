@@ -1,5 +1,4 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
-import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
@@ -198,17 +197,5 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     expect(await correos("ultimo_envio", "2026-09-28")).toContain("lead@example.test");
     expect(await correos("ultimo_envio", "2026-09-29")).not.toContain("lead@example.test");
     expect(await correos("creado", "2026-09-03")).toContain("manual@example.test");
-  });
-});
-
-describe("141: la última actividad tiene UNA definición", () => {
-  it("la define solo `lib/queries/ultima-actividad.ts` y la importan el Inbox y la lista de deals", () => {
-    const leer = (ruta: string) => readFileSync(ruta, "utf8");
-    expect(leer("lib/queries/ultima-actividad.ts")).toMatch(/export async function ultimaActividadPorDeal/);
-    for (const ruta of ["lib/queries/inbox.ts", "lib/queries/kanban.ts"]) {
-      // Puede compartir el import con otros nombres, pero debe venir del módulo dueño.
-      expect(leer(ruta)).toMatch(/import \{[^}]*\bultimaActividadPorDeal\b[^}]*\} from "@\/lib\/queries\/ultima-actividad"/);
-      expect(leer(ruta)).not.toMatch(/function ultimaActividadPorDeal/);
-    }
   });
 });

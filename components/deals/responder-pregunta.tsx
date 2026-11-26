@@ -194,6 +194,7 @@ export function useResponder(
           a: destino,
           pendiente,
           motivoId: datos.motivoId ?? null,
+          motivoLibre: datos.motivoLibre,
           comentarioMotivo: datos.comentarioMotivo,
           comentario: datos.comentario,
           hecho,

@@ -45,11 +45,11 @@ function aResultado(error: unknown): { ok: false; error: string } {
 export async function agregarAccion(
   slug: string,
   nombre: string,
-  booleanos: Record<string, boolean> = {},
+  campos: Record<string, boolean | string> = {},
 ): Promise<ResultadoAccion> {
   try {
     await requireAdministracionGlobal();
-    await crearItem(db, slug, { nombre, ...booleanos });
+    await crearItem(db, slug, { nombre, ...campos });
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
   } catch (error) {

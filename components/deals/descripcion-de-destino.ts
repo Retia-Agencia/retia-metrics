@@ -21,6 +21,7 @@ export const DESCRIPCION_DE_DESTINO: Record<DestinoConDescripcion, string> = {
   compromiso_verbal: "Dijo que sí y quedó de pagar. Te pide la fecha límite.",
   ganado: "Pagó. Registra el abono, parcial o completo.",
   cierre_perdido: "No va a comprar. Te pide el motivo.",
+  a_futuro: "No compra ahora, pero puede hacerlo después. Te pide el motivo.",
 };
 
 export const DESCRIPCION_DE_CORREGIR = "Ponlo en la etapa correcta si te equivocaste.";
