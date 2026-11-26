@@ -130,6 +130,8 @@ export const CATALOGO_DE_VISTAS = {
       resultado: c("texto", "Resultado de la llamada."),
       ocurrio: c("texto", "si o no: la llamada se dio."),
       ...PERSONA,
+      confirmacion: c("texto", "Lo que marcó el closer al confirmar la cita: confirmada, no_confirmada o cancelada_segun_closer; vacía si nadie la marcó."),
+      confirmada_antes_de_la_hora: c("texto", "si o no: la cita quedó confirmada antes de su hora. Confirmar después de la hora cuenta como no. Es el criterio de «Se conectó sin confirmar»."),
     },
   },
   ventas: {

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
 import { calls, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { confirmadaAntesDeLaCitaSql } from "@/lib/deals/confirmacion-de-cita";
@@ -17,7 +18,8 @@ beforeEach(async () => vaciar());
 afterAll(async () => cerrar());
 
 describe("confirmación oportuna de una cita", () => {
-  // Falla si el predicado SQL trata mal los nulos, los estados distintos o el borde temporal de la confirmación.
+  // Falla si el predicado SQL trata mal los nulos, los estados distintos o el borde temporal de la confirmación,
+  // o si la columna de la vista del MCP (crm_definicion.citas) se separa del predicado de la app.
   it("decide bien los cuatro estados que cambian la métrica", async () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "confirmacion-paridad", nombre: "Confirmación paridad", ticketUsd: "100" }).returning();
     const [lead] = await db.insert(leads).values({
@@ -49,5 +51,10 @@ describe("confirmación oportuna de una cita", () => {
 
     expect(filas).toHaveLength(4);
     for (const fila of filas) expect(fila.valorSql).toBe(esperado.get(fila.id));
+
+    const deLaVista = (await db.execute(sql`select id_de_la_llamada as id, confirmada_antes_de_la_hora as confirmada from crm_definicion.citas`))
+      .rows as Array<{ id: string; confirmada: string }>;
+    expect(deLaVista).toHaveLength(4);
+    for (const fila of deLaVista) expect(fila.confirmada === "si").toBe(esperado.get(fila.id));
   });
 });
