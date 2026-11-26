@@ -85,6 +85,7 @@ restricción conserva su test dueño.
 
 ### Cómo se mide la calidad (no la cantidad)
 
-La cobertura de líneas no dice si un test protege: una línea ejecutada sin afirmación cuenta igual. La medida
-útil es **mutación**: cambiar el código a propósito (un `>` por `>=`, quitar un filtro) y ver si algún test
-falla. Un mutante que sobrevive es una regla sin test dueño. Se corre por módulo crítico, no en cada PR.
+La cobertura de líneas no dice si un test protege: una línea ejecutada sin afirmación cuenta igual. La prueba
+útil es mental y barata: **¿qué cambio pequeño en el código (un `>` por `>=`, quitar un filtro) pondría rojo
+este test?** Si ninguno plausible lo hace, el test no protege nada. Se descartó correr mutación automática
+(Stryker) el 25-nov: horas por módulo y cero corridas útiles frente a esta pregunta en la revisión.

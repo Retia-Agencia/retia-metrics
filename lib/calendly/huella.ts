@@ -2,7 +2,7 @@ import { sql, type SQL, type SQLWrapper } from "drizzle-orm";
 
 /**
  * La huella de una cita de Calendly en `calls.huella_fila`. Se arma y se lee aqui y en ningun otro lado:
- * el guardian de `tests/calendly-colgar-guardian.test.ts` caza el prefijo escrito a mano fuera de los escritores.
+ * la regla de lint en `eslint.config.mjs` caza el prefijo escrito a mano fuera de los escritores.
  */
 const PREFIJO = "calendly:";
 

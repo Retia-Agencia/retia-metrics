@@ -138,7 +138,7 @@ export const MONEDA_DE_CAJA = "USD";
 
 /**
  * D-3: el ÚNICO sitio que decide el vacío de la caja. Sin filas, una de la moneda del programa con 0; con filas, las mismas.
- * Cada pantalla y el MCP leen esto; ninguna inventa su propio «—», «[]» o texto (lo vigila `tests/caja-vacia-guardian.test.ts`).
+ * Cada pantalla y el MCP leen esto; ninguna inventa su propio «—», «[]» o texto (lo vigila la regla de lint en `eslint.config.mjs`).
  */
 export function cajaConMonedaDelPrograma(filas: readonly CajaPorMoneda[]): CajaPorMoneda[] {
   return filas.length === 0 ? [{ moneda: MONEDA_DE_CAJA, total: 0 }] : [...filas];
