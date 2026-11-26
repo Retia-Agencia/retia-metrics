@@ -60,7 +60,7 @@ beforeEach(async () => {
       dealId: deal.id,
       closerUserId: n % 2 ? dueno1 : dueno2,
       resultado: "agendada",
-      fechaAgenda: new Date(n === 1 ? "2026-11-19T09:00:00-05:00" : `2026-11-20T${8 + n}:00:00-05:00`),
+      fechaAgenda: new Date(n === 1 ? "2026-11-19T09:00:00-05:00" : `2026-11-20T${String(8 + n).padStart(2, "0")}:00:00-05:00`),
       emailLead: lead.emailNormalizado,
       origen: "manual",
     });
