@@ -180,7 +180,25 @@ describe("ticket 187: el grupo de citas", () => {
 describe("ticket 187: la cuenta pura", () => {
   const base = (over: Partial<CitaParaTasas>): CitaParaTasas => ({
     callId: "c", dealId: "d", claveCloser: "u1", closer: "Ana", resultado: "show",
-    instante: new Date("2026-09-22T15:00:00Z"), etapa: "atendido", ...over,
+    confirmadaAntes: false, instante: new Date("2026-09-22T15:00:00Z"), etapa: "atendido", ...over,
+  });
+
+  // Falla si la cita atributiva confirmada tarde se excluye o si las citas sin resultado dejan de reportar cobertura.
+  it("mide el show de las citas sin confirmación oportuna con la cobertura del grupo", () => {
+    const grupo = calcularTasasDelGrupo({
+      citas: [
+        base({ callId: "confirmada-antes", dealId: "confirmada-antes", confirmadaAntes: true }),
+        base({ callId: "confirmada-despues", dealId: "confirmada-despues" }),
+        base({ callId: "sin-confirmar", dealId: "sin-confirmar", resultado: "no_show" }),
+        base({ callId: "sin-resultado", dealId: "sin-resultado", resultado: "agendada" }),
+      ],
+      rango: S1,
+      hoy: HOY,
+      ahora: AHORA,
+    });
+
+    expect(grupo.tasas.razonShowSinConfirmar).toMatchObject({ valor: 1 / 2, base: 3, faltan: 1 });
+    expect(grupo.tasas.razonShowSinConfirmar.motivo).toContain("1 de 4");
   });
 
   it("un deal con varias citas cuenta una vez, en el closer de su último show", () => {

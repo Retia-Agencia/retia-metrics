@@ -20,7 +20,7 @@ function BloqueDePrograma({ vista, hoy }: { vista: VistaDeMisMetricas; hoy: stri
       <SelectorPeriodo periodo={vista.periodo} anteriorDisponible={vista.anteriorDisponible} />
       {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={`Métricas de ${vista.programa.nombre}`}>
-        {[cifras.citas, cifras.realizadas, cifras.noAsistio, cifras.ventas, cifras.cierre, cifras.sinResultado, ...cifras.entroACaja, cifras.comision].map((cifra) =>
+        {[cifras.citas, cifras.realizadas, cifras.asistencia, cifras.noAsistio, cifras.showSinConfirmar, cifras.ventas, cifras.cierre, cifras.sinResultado, ...cifras.entroACaja, cifras.comision].map((cifra) =>
           cifra ? <Cifra key={`${cifra.concepto}:${cifra.explicacion.filtros.map(([, v]) => v).join("|")}`} cifra={cifra} /> : null)}
       </section>
     </div>

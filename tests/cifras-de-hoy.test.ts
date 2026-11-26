@@ -49,12 +49,12 @@ function embudo(o: { deals?: number; conShow?: number; vendidos?: number; sinMar
   return {
     agendas: 6, canceladas: 1,
     estadosDeCitas: { porVenir: 0, sinResultado: sinMarcar, show: conShow, noShow: d - conShow, reagendadas: 0, otro: 0 },
-    reagendadas: 0, llamadasConShow: conShow, razonShow, cierres: 2, razonCierre, agendaAVenta: d === 0 ? null : vendidos / d,
+    reagendadas: 0, llamadasConShow: conShow, razonShow, razonShowSinConfirmar: razonShow, cierres: 2, razonCierre, agendaAVenta: d === 0 ? null : vendidos / d,
     pendientesDeResultado: sinMarcar,
     grupo: {
       deals: d, conShow, vendidos, pendientes: sinMarcar, sinMarcar, cobertura: universo === 0 ? null : d / universo,
       parcial: universo > 0 && sinMarcar / universo > 0.1, agendaAVenta: d === 0 ? null : vendidos / d,
-      razonShow, razonCierre, razonAgendaAVenta: razon(vendidos, d, cobertura(d)),
+      razonShow, razonShowSinConfirmar: razonShow, razonCierre, razonAgendaAVenta: razon(vendidos, d, cobertura(d)),
     },
     madurando: false,
   };

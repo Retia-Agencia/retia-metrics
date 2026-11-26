@@ -3,7 +3,8 @@ import { Pestanas, type GrupoDePestanas } from "@/components/layout/pestanas";
 import { TablaLlamadasDelDia } from "@/components/mi-espacio/tabla-llamadas-del-dia";
 import { PendientesDeMiDia } from "@/components/mi-espacio/pendientes-de-mi-dia";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num } from "@/lib/format";
+import { num, pct } from "@/lib/format";
+import { estadoDeCobertura, valorDeRazon } from "@/lib/cobertura";
 import type { DatosDeMiEspacio } from "@/lib/mi-espacio/cargar-datos";
 import type { TipoDePendiente } from "@/lib/mi-espacio/pendientes";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -47,11 +48,24 @@ export function TabMiDia({ slug, datos }: { slug: string; datos: DatosMiDia }) {
     ...(datos.tipoPendiente ? { tipo: datos.tipoPendiente } : {}),
   };
   const origen = origenDeLaPagina("/mi-espacio", busquedaOrigen);
-  const resumen = [
+  const hrefMetricas = `/mi-espacio?tab=metricas&programa=${encodeURIComponent(slug)}&periodo=este_mes`;
+  const resumen: Array<{ etiqueta: string; valor: string; parcial?: boolean; href?: string }> = [
     { etiqueta: "Llamadas hoy", valor: num(datos.resumen.llamadasHoy) },
     { etiqueta: "Confirmadas", valor: `${num(datos.resumen.confirmadas)} de ${num(datos.resumen.llamadasHoy)}` },
     { etiqueta: "Vencidos", valor: num(datos.resumen.vencidos) },
     { etiqueta: "Para hoy", valor: num(datos.resumen.paraHoy) },
+    {
+      etiqueta: "Asistencia del mes",
+      valor: valorDeRazon(datos.resumen.asistencia, pct),
+      parcial: estadoDeCobertura(datos.resumen.asistencia) === "parcial",
+      href: hrefMetricas,
+    },
+    {
+      etiqueta: "Se conectó sin confirmar",
+      valor: valorDeRazon(datos.resumen.showSinConfirmar, pct),
+      parcial: estadoDeCobertura(datos.resumen.showSinConfirmar) === "parcial",
+      href: hrefMetricas,
+    },
   ];
 
   return (
@@ -60,10 +74,21 @@ export function TabMiDia({ slug, datos }: { slug: string; datos: DatosMiDia }) {
         <h2 id="resumen-mi-dia" className="font-heading text-lg font-semibold">Resumen</h2>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {resumen.map((item) => (
-            <Card key={item.etiqueta} size="sm">
-              <CardHeader><CardTitle>{item.etiqueta}</CardTitle></CardHeader>
-              <CardContent className="cifra text-2xl font-semibold">{item.valor}</CardContent>
-            </Card>
+            item.href ? (
+              <Enlace key={item.etiqueta} precarga="navegacion" href={item.href} className="block">
+                <Card size="sm">
+                  <CardHeader><CardTitle>{item.etiqueta}</CardTitle></CardHeader>
+                  <CardContent className="cifra text-2xl font-semibold">
+                    {item.valor}{item.parcial ? <span className="ml-2 text-xs font-normal text-muted-foreground">parcial</span> : null}
+                  </CardContent>
+                </Card>
+              </Enlace>
+            ) : (
+              <Card key={item.etiqueta} size="sm">
+                <CardHeader><CardTitle>{item.etiqueta}</CardTitle></CardHeader>
+                <CardContent className="cifra text-2xl font-semibold">{item.valor}</CardContent>
+              </Card>
+            )
           ))}
         </div>
       </section>

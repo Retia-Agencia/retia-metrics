@@ -20,12 +20,12 @@ function datos(resueltos = 1, faltan = 0): DatosDeHoy {
   const cierre = resueltos ? razon(0, resueltos, cobertura) : razonVacia("Sin shows en el periodo");
   return {
     embudo: {
-      agendas: resueltos + faltan, canceladas: 0, llamadasConShow: resueltos, cierres: 3, razonShow: show, razonCierre: cierre,
+      agendas: resueltos + faltan, canceladas: 0, llamadasConShow: resueltos, cierres: 3, razonShow: show, razonShowSinConfirmar: show, razonCierre: cierre,
       agendaAVenta: resueltos ? 0 : null, pendientesDeResultado: faltan, reagendadas: 0, madurando: false,
       estadosDeCitas: { porVenir: 0, sinResultado: faltan, show: resueltos, noShow: 0, reagendadas: 0, otro: 0 },
       grupo: { deals: resueltos, conShow: resueltos, vendidos: 0, pendientes: faltan, sinMarcar: faltan,
         cobertura: resueltos / (resueltos + faltan || 1), parcial: faltan > 0, agendaAVenta: 0,
-        razonShow: show, razonCierre: cierre, razonAgendaAVenta: cierre },
+        razonShow: show, razonShowSinConfirmar: show, razonCierre: cierre, razonAgendaAVenta: cierre },
     },
     sinResultado: faltan, registros: 0, leadsDelDia: null,
     dia: { real: 3, meta: 1.3 }, semana: { real: 3, meta: 2.1 }, diasDeLaSemana: { dia: 5, total: 5 },
