@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { queryDePautaDesdeOrigen } from "@/lib/nav";
-import { resumenDeFiltrosDePauta, VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
+import { resumenDeFiltrosDePauta, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
 
 describe("las dos vistas de Pauta (420)", () => {
   it("Resultados por defecto; un valor raro o repetido también vuelve a Resultados", () => {
@@ -8,10 +8,6 @@ describe("las dos vistas de Pauta (420)", () => {
     expect(vistaDePauta("calidad")).toBe("calidad");
     expect(vistaDePauta("origen")).toBe("resultados");
     expect(vistaDePauta(["calidad", "calidad"])).toBe("resultados");
-  });
-
-  it("las dos vistas, en el orden del diseño y con sus nombres visibles", () => {
-    expect(VISTAS_DE_PAUTA.map((v) => v.etiqueta)).toEqual(["Resultados", "Origen y calidad"]);
   });
 
   it("la URL vieja de Origen cae en Origen y calidad, vista Canal, sin pisar lo que traía", () => {

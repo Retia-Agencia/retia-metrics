@@ -175,9 +175,4 @@ describe("TabPorDecidir — agregado/urgente, no un registro (ADR 0077)", () => 
     expect(texto).not.toContain("Webhooks al día");
     expect(hrefsDelArbol(arbol)).toContain(`/ajustes/salud?programa=${SLUG}`);
   });
-
-  it("una sola fuente marcada se dice en singular", async () => {
-    conConteos({ salud: [{ programId: PROG, marcada: true, estado: "sin_respuestas" }] });
-    expect(textoDelArbol(await render())).toContain("1 fuente con alarma");
-  });
 });

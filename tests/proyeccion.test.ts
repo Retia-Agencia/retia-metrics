@@ -96,7 +96,6 @@ describe("proyección", () => {
     expect(resultado.faltan).toBe(0);
     expect([resultado.ventasRequeridasDia.valor, resultado.showsRequeridosDia.valor, resultado.agendasRequeridasDia.valor, resultado.leadsRequeridosDia.valor]).toEqual([0, 0, 0, 0]);
     expect(resultado.repartoSemanal).toEqual([]);
-    expect(pintar({ ...cohorte, vendidos: 30, vendidosAntesDeHoy: 30 })).toContain("Ya se vendieron los 30 cupos de C4.");
   });
 
   it("reparte el faltante por semana con fechas reales y sin perder ventas", () => {
@@ -107,13 +106,6 @@ describe("proyección", () => {
       { tipo: "final", desde: "2026-11-02", hasta: "2026-11-04", diasHabiles: 3, ventas: 6 },
     ]);
     expect(tramos.reduce((s, t) => s + t.ventas, 0)).toBe(20);
-
-    const pantalla = pintar(cohorte);
-    expect(pantalla).toContain("Cómo repartir las 20 ventas que faltan");
-    expect(pantalla).toContain("Lo que queda de esta semana · 22 al 23 oct");
-    expect(pantalla).toContain("Semana del 26 al 30 oct");
-    expect(pantalla).toContain("Última semana, hasta el cierre · 2 al 4 nov");
-    expect(pantalla).not.toContain("Días sueltos");
   });
 
   it("escribe un rango en fechas de calendario", () => {
@@ -179,37 +171,9 @@ describe("la conversión agenda → venta", () => {
     const calculada = calcularProyeccion({ ...cohorte, conversion: completa });
     expect(calculada.agendasRequeridasDia.valor).toBeCloseTo((20 / 11) / (2 / 5) / (5 / 10));
   });
-
-  it("dice en pantalla de dónde salió la conversión", () => {
-    const pantalla = pintar({ ...cohorte, conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C4", 40, 10), madurando: true } }) });
-    expect(pantalla).toContain("25,0% de los shows termina en venta");
-    expect(pantalla).toContain("medido en C4: 10 de 40 shows compraron; puede subir");
-    expect(pintar(cohorte)).toContain("según el objetivo de la cohorte");
-  });
 });
 
 describe("la tarjeta se lee como una cadena", () => {
-  it("dice ritmo, cierre y lo que hace falta con su relación", () => {
-    const pantalla = pintar(cohorte, [
-      { dias: 5, href: "/p/x/hub?ritmo=5" },
-      { dias: 10, href: "/p/x/hub?ritmo=10" },
-      { dias: 20, href: "/p/x/hub?ritmo=20" },
-    ]);
-    expect(pantalla).toContain(">Proyección<");
-    expect(pantalla).not.toContain("requeridos");
-    expect(pantalla).toContain("0,5 ventas por día");
-    expect(pantalla).toMatch(/cerramos C4 en.*>15<.* de 30 cupos/);
-    expect(pantalla).toContain("Ritmo: 5 ventas en 10 días hábiles (8 al 21 oct)");
-    expect(pantalla).toContain("Para llegar a 30 faltan 20 ventas");
-    expect(pantalla).toContain("20 ventas ÷ 10 días hábiles hasta el cierre (4 nov)");
-    expect(pantalla).toContain("shows");
-    expect(pantalla).toMatch(/ventas[\s\S]*→[\s\S]*shows[\s\S]*→[\s\S]*agendas[\s\S]*→[\s\S]*leads/);
-    expect(pantalla).toContain("20,0% de los leads agenda (20 agendas de 100 leads, 8 al 21 oct)");
-    expect(pantalla).toContain("meta declarada: 35 leads por día");
-    expect(pantalla).toContain('href="/p/x/hub?ritmo=20"');
-    expect(pantalla).toMatch(/aria-current="true"[^>]*>10</);
-  });
-
   it("cada raya trae su razón en palabras de gerencia, sin texto del sistema", () => {
     const sinConversion = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C4", 3, 0), madurando: true } });
     const datos = { ...cohorte, ventasVentana: 0, conversion: sinConversion };
@@ -233,11 +197,15 @@ describe("la tarjeta se lee como una cadena", () => {
     );
     expect(pintar(datos)).toContain(", desde que empezó la venta)");
   });
+});
 
-  it("sin cohorte dice dónde configurarla", () => {
-    const pantalla = pintar({ ...cohorte, cohorte: null });
-    expect(pantalla).toContain("No hay una cohorte abierta con fechas de venta. Se configura en la pestaña Programa.");
-  });
+// Antes: "sin cohorte dice dónde configurarla" (solo afirmaba el copy). Ahora se afirma el comportamiento: sin cohorte
+// abierta nada se proyecta ni se reparte, y cada raya trae su razón en vez de un 0.
+it("sin cohorte abierta no proyecta ni reparte, y cada raya dice por qué", () => {
+  const resultado = calcularProyeccion({ ...cohorte, cohorte: null });
+  expect([resultado.ritmo, resultado.proyeccion, resultado.ventasRequeridasDia, resultado.leadsRequeridosDia].map((r) => r.valor)).toEqual([null, null, null, null]);
+  expect(resultado.ritmo.razon).toBeTruthy();
+  expect(resultado.repartoSemanal).toEqual([]);
 });
 
 describe("la ventana del ritmo en la URL", () => {

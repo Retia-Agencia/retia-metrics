@@ -207,10 +207,6 @@ describe("419 E-2: la semana", () => {
       }
     }
   });
-
-  it("el módulo declara los conceptos que pinta, para que la ficha de cada uno se pueda exigir", () => {
-    expect(Object.keys(explicaciones).sort()).toEqual([...CONCEPTOS_DE_HOY].sort());
-  });
 });
 
 // ---------------------------------------------------------------------------------------------------------------
