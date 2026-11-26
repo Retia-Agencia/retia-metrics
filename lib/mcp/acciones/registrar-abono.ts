@@ -19,6 +19,7 @@ const argumentos = z.object({
   concepto: z.enum(["ticket", "adicional"]),
   nota: z.string().trim().max(500).optional(),
   plataforma_id: z.string().uuid("Plataforma inválida."),
+  confirmar_sobrepago: z.boolean().optional(),
   comprobante_url: z.string({ error: MENSAJE_COMPROBANTE_MCP })
     .url("El comprobante debe ser una URL válida.").max(2000),
 }).strict();
@@ -41,6 +42,7 @@ async function ejecutar(
     concepto: objetivo.datos.concepto,
     nota: objetivo.datos.nota,
     plataformaId: objetivo.datos.plataforma_id,
+    confirmarSobrepago: objetivo.datos.confirmar_sobrepago,
     comprobanteUrl: objetivo.datos.comprobante_url,
   }, { origen: "mcp" });
 }
@@ -48,7 +50,7 @@ async function ejecutar(
 export const registrarAbonoMcp: AccionMcp<typeof argumentos> = {
   clave: "registrar_abono",
   titulo: "Registrar abono",
-  cuandoUsarla: `Cuando se recibió un pago y existe un enlace al comprobante. ${MENSAJE_COMPROBANTE_MCP}`,
+  cuandoUsarla: `Cuando se recibió un pago y existe un enlace al comprobante. confirmar_sobrepago: true registra un pago mayor al saldo de la línea; queda en la bitácora. ${MENSAJE_COMPROBANTE_MCP}`,
   argumentos,
   ejemplo: {
     deal_id: "00000000-0000-4000-8000-000000000000",

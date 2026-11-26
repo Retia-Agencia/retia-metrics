@@ -262,6 +262,7 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     plataformaId: plataformaObligatoria(),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
     archivoId: textoOpcional(id("Archivo inválido.")),
+    confirmarSobrepago: z.boolean().optional(),
   }),
 ]);
 
@@ -487,6 +488,7 @@ const esquemaAbonoAccion = z.object({
   plataformaId: plataformaObligatoria(),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
   archivoId: textoOpcional(id("Archivo inválido.")),
+  confirmarSobrepago: z.boolean().optional(),
 });
 export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 

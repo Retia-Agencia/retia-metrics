@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
+import { changeLog, cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { crearLineaSinClasificar } from "@/lib/deals/lineas";
@@ -75,6 +75,19 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
     const r = await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono(visto.toFixed(2)));
     expect(r.saldo).toBe(0);
     expect((await saldosDeDeals(db, [dealId])).get(dealId)!.saldo).toBe(0);
+  });
+
+  it("un sobrepago confirmado se registra, deja el deal en Completo y su nota en la bitácora", async () => {
+    const saldo = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
+    const resultado = await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, {
+      ...abono((saldo + 60).toFixed(2)),
+      confirmarSobrepago: true,
+    });
+
+    expect(resultado.etapa).toBe("ganado_completo");
+    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, resultado.abonoId))).toEqual(
+      expect.arrayContaining([expect.objectContaining({ tabla: "abonos", campo: "sobrepago", registroId: resultado.abonoId })]),
+    );
   });
 
   it("un abono anulado no cuenta ni para la reja ni para el saldo", async () => {

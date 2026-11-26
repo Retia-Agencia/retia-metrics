@@ -1,6 +1,6 @@
 import { and, eq, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, archivos, deals, enlacesPago, leads, users } from "@/lib/db/schema";
+import { abonos, archivos, changeLog, deals, enlacesPago, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { dejarNotaDelActor } from "@/lib/deals/nota-del-sistema";
@@ -55,7 +55,9 @@ export interface ActorDeAbono {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true });
+export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true }).extend({
+  confirmarSobrepago: z.boolean().optional().default(false),
+});
 export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono> & {
   archivo?: ArchivoVerificado;
   /** Compatibilidad de llamadores externos mientras 463 retira la columna; el escritor los ignora. */
@@ -119,8 +121,8 @@ export async function dealBloqueado(tx: Db, dealId: string): Promise<{ deal: Fil
 
 export async function exigirSaldoParaAbono(
   tx: Db,
-  entrada: { dealId: string; lineaId: string; moneda: string; monto: string | number },
-): Promise<void> {
+  entrada: { dealId: string; lineaId: string; moneda: string; monto: string | number; confirmarSobrepago?: boolean },
+): Promise<{ sobrepago: number; saldo: number }> {
   const antes = (await saldosDeLineas(tx, [entrada.dealId])).get(entrada.lineaId);
   if (antes?.moneda != null && antes.moneda !== entrada.moneda) {
     throw new ErrorDeApp(
@@ -137,12 +139,16 @@ export async function exigirSaldoParaAbono(
     );
   }
   const monto = Number(entrada.monto);
-  if (monto > antes.saldo) {
+  if (monto > antes.saldo && !entrada.confirmarSobrepago) {
     throw new ErrorDeApp(
-      `El abono (${usd(monto)}) supera el saldo de la línea (${usd(antes.saldo)}). Un sobrepago no se registra.`,
+      `El abono (${usd(monto)}) supera el saldo de la línea (${usd(antes.saldo)}). Si el pago entró así, confírmalo como sobrepago.`,
       422,
     );
   }
+  return {
+    sobrepago: monto > antes.saldo ? Math.round((monto - antes.saldo) * 100) / 100 : 0,
+    saldo: antes.saldo,
+  };
 }
 
 export async function destinoDespuesDelAbono(
@@ -229,10 +235,16 @@ export async function registrarAbono(
       const cohorteAsignada: string | null = null;
       await exigirPlataformaActiva(entrada.plataformaId, tx);
 
-      // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
-      // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
-      // cambie entre esta lectura y la escritura.
-      await exigirSaldoParaAbono(tx, { dealId: deal.id, lineaId: linea.id, moneda: entrada.moneda, monto: entrada.monto });
+      // La reja del sobrepago usa la MISMA cifra que ve el closer (`saldosDeDeals`) y exige
+      // confirmación explícita para excederla. El deal bloqueado impide que otro abono cambie
+      // el saldo entre esta lectura y la escritura.
+      const { sobrepago, saldo: saldoAntes } = await exigirSaldoParaAbono(tx, {
+        dealId: deal.id,
+        lineaId: linea.id,
+        moneda: entrada.moneda,
+        monto: entrada.monto,
+        confirmarSobrepago: entrada.confirmarSobrepago,
+      });
 
       if (archivo) {
         await exigirArchivoDelAbono(tx, actor.userId, archivo.archivoId, deal.programId, false);
@@ -259,6 +271,18 @@ export async function registrarAbono(
           origen: "app",
         },
       );
+      if (sobrepago > 0) {
+        await tx.insert(changeLog).values({
+          tabla: "abonos",
+          registroId: abonoId,
+          etiqueta: emailLead,
+          campo: "sobrepago",
+          valorAnterior: saldoAntes.toFixed(2),
+          valorNuevo: `Sobrepago confirmado de ${usd(sobrepago)} sobre un saldo de ${usd(saldoAntes)}.`,
+          origen: opciones.origen ?? "app",
+          userId: actor.userId,
+        });
+      }
       await congelarComisionDeLineas(tx, deal.id, {
         actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen,
       });

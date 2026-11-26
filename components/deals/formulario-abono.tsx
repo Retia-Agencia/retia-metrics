@@ -20,10 +20,11 @@ export interface DatosFormularioAbono {
   plataformaId: string | null;
   comprobanteUrl: string;
   archivoId: string | null;
+  confirmarSobrepago: boolean;
 }
 
 export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAbono {
-  return { lineaId: null, fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null };
+  return { lineaId: null, fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null, confirmarSobrepago: false };
 }
 
 type Plataforma = { id: string; nombre: string };
@@ -82,6 +83,10 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   const lineaElegida = vigentes.find((linea) => linea.id === datos.lineaId);
   const monto = Number(datos.monto);
   const pagoSuperaSaldo = lineaElegida?.porCobrarUsd != null && Number.isFinite(monto) && monto > lineaElegida.porCobrarUsd;
+  useEffect(() => {
+    if (datosDelPadre.confirmarSobrepago !== pagoSuperaSaldo) onChange({ ...datos, confirmarSobrepago: pagoSuperaSaldo });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagoSuperaSaldo]);
   return <>
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">¿Qué SKU está pagando?</legend>
@@ -172,7 +177,7 @@ function AjusteValorVendido({ dealId, lineaId, monto, porCobrarUsd, valorVendido
   const valor = Number(nuevoValor);
 
   return <div className="space-y-2 text-sm text-tono-alerta">
-    <p>El pago supera lo que falta por cobrar de este SKU ({usd(porCobrarUsd)}). Si el precio acordado es otro, cambia el valor vendido.</p>
+    <p>El pago supera lo que falta por cobrar de este SKU ({usd(porCobrarUsd)}): se registrará con un sobrepago de {usd(monto - porCobrarUsd)}. Si el precio acordado es otro, cambia el valor vendido.</p>
     <div className="flex items-center gap-2">
       <input
         type="number"
