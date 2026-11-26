@@ -1,3 +1,4 @@
+/** Reagendar contra Calendly e idempotencia CRM/webhook: la misma cita no se duplica llegue primero el CRM o el webhook. Es base porque verifica llamadas, deal y rastro. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import { eq } from "drizzle-orm";

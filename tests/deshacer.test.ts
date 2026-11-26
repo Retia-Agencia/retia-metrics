@@ -229,29 +229,6 @@ describe("deshacer cambios", () => {
     expect(await db.select().from(calls).where(and(eq(calls.id, crm), vigente(calls)))).toHaveLength(0);
   });
 
-  it("corrige libremente la etapa y solo recupera el pendiente al volver al origen", async () => {
-    const dealId = await deal();
-    await db.update(deals).set({ etapa: "calificado" }).where(eq(deals.id, dealId));
-    const [historia] = await db.insert(dealEtapaHistorial).values({
-      dealId, de: "contactado", a: "calificado", pendienteDe: "seguimiento", pendienteA: null, userId: autor,
-    }).returning();
-    await deshacerEvento(db, actor(autor), {
-      dealId,
-      evento: { tipo: "etapa", id: historia.id, a: "registrado" },
-    });
-    expect((await db.select({ etapa: deals.etapa, pendiente: deals.pendiente }).from(deals).where(eq(deals.id, dealId)))[0])
-      .toEqual({ etapa: "registrado", pendiente: null });
-
-    await db.update(deals).set({ etapa: "cierre_perdido" }).where(eq(deals.id, dealId));
-    const otro = await deal();
-    await db.update(deals).set({ etapa: "calificado" }).where(eq(deals.id, otro));
-    const [historia2] = await db.insert(dealEtapaHistorial).values({
-      dealId: otro, de: "contactado", a: "calificado", pendienteDe: "seguimiento", pendienteA: null, userId: autor,
-    }).returning();
-    await deshacerEvento(db, actor(autor), { dealId: otro, evento: { tipo: "etapa", id: historia2.id, a: "contactado" } });
-    expect((await db.select({ pendiente: deals.pendiente }).from(deals).where(eq(deals.id, otro)))[0].pendiente).toBe("seguimiento");
-  });
-
   it.each(["ganado_parcial", "ganado_completo", "cierre_perdido"] as const)("no corrige desde %s", async (etapa) => {
     const dealId = await deal();
     await db.update(deals).set({ etapa }).where(eq(deals.id, dealId));

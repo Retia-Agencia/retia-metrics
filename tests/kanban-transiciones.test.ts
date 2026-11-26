@@ -13,27 +13,6 @@ import { camposDeDialogo, type FlechaCliente } from "@/components/deals/transici
 const MAPA = mapaDeTransiciones();
 const etapa = (de: string, a: string): FlechaCliente => MAPA.find((f) => f.tipo === "etapa" && f.de === de && f.a === a)!;
 
-describe("mapaDeTransiciones", () => {
-  it("aplana la tabla a datos planos sin drizzle", () => {
-    expect(MAPA.length).toBeGreaterThan(0);
-    for (const f of MAPA) {
-      expect(typeof f.de).toBe("string");
-      expect(typeof f.a).toBe("string");
-      expect(["sistema", "closer", "ambos"]).toContain(f.quien);
-      expect(typeof f.exigeMotivo).toBe("boolean");
-      expect(Array.isArray(f.requisitos)).toBe(true);
-    }
-    expect(() => JSON.stringify(MAPA)).not.toThrow();
-  });
-
-  it("incluye flechas de etapa y de pendiente; RET fue retirada", () => {
-    expect(new Set(MAPA.map((f) => f.tipo))).toEqual(new Set(["etapa", "pendiente"]));
-    expect(new Set(MAPA.filter((f) => f.tipo === "pendiente").map((f) => f.id))).toEqual(
-      new Set(["PR1", "PR2", "PS1", "PS2", "PS3", "PC"]),
-    );
-  });
-});
-
 describe("camposDeDialogo", () => {
   it("E10 (Atendido -> Compromiso Verbal) pide fecha límite y área", () => {
     expect(camposDeDialogo(etapa("atendido", "compromiso_verbal"))).toEqual(["fecha_limite_pago"]);

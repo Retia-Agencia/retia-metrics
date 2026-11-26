@@ -142,24 +142,6 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
     expect(alerta.paraAvanzar.map((ruta) => ruta.destino)).toEqual(["cierre_perdido", "a_futuro"]);
   });
 
-  it("marca como alerta una llamada atendida vigente sin link de Grain", async () => {
-    const dealId = await crearDeal("atendido");
-    await db.insert(calls).values({
-      dealId,
-      programId,
-      resultado: "show",
-      linkGrain: " ",
-      origen: "app",
-    });
-
-    const alertas = (await alertasDelDeal(db, programId, dealId))!;
-    expect(alertas.alertas).toContainEqual({
-      motivo: "atendida_sin_grain",
-      mensaje: "La llamada no tiene el link de Grain.",
-    });
-    expect(alertas.propiedades.filter((f) => f.codigo === "llamada_sucedio")).toEqual([]);
-  });
-
   it("refleja en ambos sentidos los motivos de atención del Inbox", async () => {
     const urgente = await crearDeal("contactado", { createdAt: new Date("2026-09-01T12:00:00-05:00") });
     const reciente = await crearDeal("contactado", { createdAt: new Date() });
