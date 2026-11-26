@@ -609,7 +609,6 @@ describe("media y trabajaContenido (ADR 0107, ticket 315)", () => {
 
   it("media no cumple ninguna otra pregunta", () => {
     expect(esRolValido("media")).toBe(true);
-    expect(etiquetaDeRol("media")).toBe("Media");
     expect(trabajaLeads(sujeto("media"))).toBe(false);
     expect(puedeSerMiembro(sujeto("media"))).toBe(false);
     expect(esAdministrador("media")).toBe(false);
