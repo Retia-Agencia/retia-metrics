@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
-export function AvisoVersionNueva() {
+export function AvisoVersionNueva({ versionCargada }: { versionCargada: string | null }) {
   const [hayVersionNueva, setHayVersionNueva] = useState(false);
 
   useEffect(() => {
-    const versionCargada = document.documentElement.dataset.dplId;
+    // React quita data-dpl-id del <html> al hidratar; la versión llega del servidor que sirvió la página.
     if (!versionCargada) return;
 
     let vigente = true;
@@ -32,7 +32,7 @@ export function AvisoVersionNueva() {
       window.clearInterval(intervalo);
       document.removeEventListener("visibilitychange", alCambiarVisibilidad);
     };
-  }, []);
+  }, [versionCargada]);
 
   if (!hayVersionNueva) return null;
 
