@@ -51,7 +51,10 @@ const HOY = "2026-10-18";
 
 beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
 afterAll(async () => cerrar());
-beforeEach(async () => {
+
+// Los `describe` que solo LEEN siembran una vez (`beforeAll`); los que añaden personas o ventas antes de medir
+// conservan la siembra por test (`beforeEach`) para que lo añadido no contamine a los demás.
+async function sembrarBase() {
   await vaciar();
   programId = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "dorado-pauta", nombre: "Dorado Pauta", ticketUsd: "1000" }).returning())[0].id;
   sourceId = (await db.insert(sources).values({ programId, nombre: "Formulario" }).returning())[0].id;
@@ -82,7 +85,7 @@ beforeEach(async () => {
   await cita(vendida.id, "2026-10-06", "show");
   await cita(segunda.id, "2026-10-07", "show");
   await cita(tercera.id, "2026-10-07", "no_show");
-});
+}
 
 async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: string }, origen: "paid" | "organico" = "paid") {
   const lead = (await db.insert(leads).values({
@@ -121,6 +124,8 @@ const total = (v: VistaPautaSemanal, clave: ClavePautaSemanal) => fila(v, clave)
 const vista = () => cargarPautaSemanal(db, { programId, rango: SEMANA_1, hoy: HOY, cohorteId: null });
 
 describe("dorado de Pauta: la tabla semanal", () => {
+  beforeAll(sembrarBase, 60_000);
+
   it("cada fila da lo escrito a mano", async () => {
     const v = await vista();
     expect(total(v, "inversion").valor).toBe(2_800_000);
@@ -147,6 +152,8 @@ describe("dorado de Pauta: la tabla semanal", () => {
 });
 
 describe("dorado de Pauta: el numerador del ROAS a la vista (D-2)", () => {
+  beforeEach(sembrarBase, 60_000);
+
   it("ROAS = «Vendido de esta cohorte de registro» ÷ gasto en USD, en cada semana y en el Total", async () => {
     await personaDePaid("2026-10-12", { diaVenta: "2026-10-13", valor: "700" });
     const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-05", hasta: "2026-10-18" }, hoy: HOY, cohorteId: null });
@@ -171,6 +178,8 @@ describe("dorado de Pauta: el numerador del ROAS a la vista (D-2)", () => {
 });
 
 describe("dorado de Pauta: costo por venta (415)", () => {
+  beforeAll(sembrarBase, 60_000);
+
   it("es la celda Inversión entre la celda Ventas, y las muestra como sus partes", async () => {
     const v = await vista();
     expect(total(v, "cac").partes).toEqual([total(v, "inversion").valor, total(v, "ventas").valor]);
@@ -180,6 +189,17 @@ describe("dorado de Pauta: costo por venta (415)", () => {
     const claves = v.filas.map((f) => f.clave);
     expect(claves[claves.indexOf("ventas") + 1]).toBe("cac");
   });
+
+  it("con gasto y sin ventas es «—»: no hay entre qué dividir", async () => {
+    const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-05", hasta: "2026-10-07" }, hoy: HOY, cohorteId: null });
+    expect(total(v, "inversion").valor).toBe(1_200_000);
+    expect(total(v, "ventas").valor).toBe(0);
+    expect(total(v, "cac")).toEqual({ valor: null, cobertura: { estado: "sin_dato", razon: MOTIVO_SIN_VENTAS } });
+  });
+});
+
+describe("dorado de Pauta: costo por venta (415), con ventas añadidas", () => {
+  beforeEach(sembrarBase, 60_000);
 
   it("una venta de otra área no baja el costo: sigue dividiendo por la única venta de pauta", async () => {
     await personaDePaid("2026-10-05", { diaVenta: "2026-10-09", valor: "1400" }, "organico");
@@ -197,20 +217,11 @@ describe("dorado de Pauta: costo por venta (415)", () => {
     expect(total(v, "cac").valor).toBeNull();
     expect(total(v, "cac").cobertura).toEqual(total(v, "inversion").cobertura);
   });
-
-  it("con gasto y sin ventas es «—»: no hay entre qué dividir", async () => {
-    const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-05", hasta: "2026-10-07" }, hoy: HOY, cohorteId: null });
-    expect(total(v, "inversion").valor).toBe(1_200_000);
-    expect(total(v, "ventas").valor).toBe(0);
-    expect(total(v, "cac")).toEqual({ valor: null, cobertura: { estado: "sin_dato", razon: MOTIVO_SIN_VENTAS } });
-  });
-
-  it("en el CSV sale con su nombre y en pesos", async () => {
-    expect(csvDePautaSemanal(await vista())).toContain(`${VOCABULARIO_PAUTA_SEMANAL.cac},${cop(2_800_000)}`);
-  });
 });
 
 describe("dorado de Pauta: ROAS y semáforo", () => {
+  beforeAll(sembrarBase, 60_000);
+
   it("el ROAS de la tabla por campaña es el de la tabla semanal: 2", async () => {
     const roas = await cargarRoasDePauta(db, programId, SEMANA_1, HOY, new Date("2026-10-18T23:59:59-05:00"));
     expect(roas.total.roas.valor).toBe(2);
@@ -226,6 +237,8 @@ describe("dorado de Pauta: ROAS y semáforo", () => {
 });
 
 describe("dorado de Pauta: el CSV", () => {
+  beforeAll(sembrarBase, 60_000);
+
   it("trae las mismas filas y valores que la tabla, con el nombre del vocabulario", async () => {
     const csv = csvDePautaSemanal(await vista());
     // Las celdas con coma van entre comillas («USD 700,00»): se separan respetándolas.
@@ -238,5 +251,6 @@ describe("dorado de Pauta: el CSV", () => {
     expect(celdaTotal(VOCABULARIO_PAUTA_SEMANAL.roas)).toBe(`${num(2, 2)}×`);
     expect(celdaTotal(VOCABULARIO_PAUTA_SEMANAL.ctr)).toBe(pct(0.02));
     expect(celdaTotal(VOCABULARIO_PAUTA_SEMANAL.frecuencia)).toBe("—");
+    expect(celdaTotal(VOCABULARIO_PAUTA_SEMANAL.cac)).toBe(cop(2_800_000));
   });
 });

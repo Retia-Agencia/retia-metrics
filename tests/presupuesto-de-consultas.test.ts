@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { leads, programs, sources } from "@/lib/db/schema";
 import { medir, type ResumenDeCosto } from "@/lib/db/medidor";
 import type { Db } from "@/lib/db/tipos";
@@ -128,32 +128,38 @@ async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
   };
 }
 
-async function medirConProgramas(nombre: string, presupuesto: Presupuesto, cantidad: number): Promise<ResumenDeCosto> {
+// Todas las funciones solo LEEN: cada escenario (3 y 6 programas) se siembra una vez y las diez miden sobre él.
+async function medirEscenario(cantidad: number): Promise<Map<string, ResumenDeCosto>> {
   await base.vaciar();
   const sembrado = await sembrar(base.db, cantidad);
-  return (await medir(nombre, () => presupuesto.llamar(base.db, sembrado))).costo;
+  const costos = new Map<string, ResumenDeCosto>();
+  for (const [nombre, presupuesto] of Object.entries(PRESUPUESTOS) as [string, Presupuesto][]) {
+    costos.set(nombre, (await medir(nombre, () => presupuesto.llamar(base.db, sembrado))).costo);
+  }
+  return costos;
 }
 
 describe("presupuesto de consultas", () => {
+  let conTres: Map<string, ResumenDeCosto>;
+  let conSeis: Map<string, ResumenDeCosto>;
+
   beforeAll(async () => {
     base = await crearBaseReutilizable();
-  });
-
-  beforeEach(async () => {
-    await base.vaciar();
+    conTres = await medirEscenario(3);
+    conSeis = await medirEscenario(6);
   });
 
   afterAll(async () => {
     await base.cerrar();
   });
 
-  it.each(Object.entries(PRESUPUESTOS))("%s respeta el trinquete con 3 y 6 programas", async (nombre, presupuesto) => {
-    const conTres = await medirConProgramas(nombre, presupuesto, 3);
-    const conSeis = await medirConProgramas(nombre, presupuesto, 6);
+  it.each(Object.entries(PRESUPUESTOS))("%s respeta el trinquete con 3 y 6 programas", (nombre, presupuesto: Presupuesto) => {
+    const tres = conTres.get(nombre)!;
+    const seis = conSeis.get(nombre)!;
 
-    expect(conTres.consultas).toBeLessThanOrEqual(presupuesto.tope);
-    expect(conTres.identicas).toBeLessThanOrEqual(presupuesto.identicas);
-    expect(conSeis.identicas).toBeLessThanOrEqual(presupuesto.identicas);
-    expect(conSeis.consultas).toBeLessThanOrEqual(conTres.consultas);
+    expect(tres.consultas).toBeLessThanOrEqual(presupuesto.tope);
+    expect(tres.identicas).toBeLessThanOrEqual(presupuesto.identicas);
+    expect(seis.identicas).toBeLessThanOrEqual(presupuesto.identicas);
+    expect(seis.consultas).toBeLessThanOrEqual(tres.consultas);
   });
 });

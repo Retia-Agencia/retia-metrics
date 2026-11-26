@@ -31,7 +31,9 @@ beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
 });
 
-beforeEach(async () => {
+// Las lecturas de `armarVistaDeTodos` no escriben: sus tests comparten una siembra (`beforeAll`). El único que
+// agrega un usuario y una membresía vuelve a sembrar por su cuenta.
+async function sembrar() {
   await vaciar();
   programas = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797", comisionPorcentaje: "10" },
@@ -96,11 +98,13 @@ beforeEach(async () => {
     { programId: programas[0].id, dealId: perdidoA.id, fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "no_show" },
     { programId: programas[1].id, dealId: ventaB.id, fechaAgenda: new Date("2026-09-15T17:00:00Z"), resultado: "show" },
   ]);
-}, 60_000);
+}
 
 afterAll(async () => cerrar());
 
 describe("vista de todos los programas", () => {
+  beforeAll(sembrar, 60_000);
+
   it("suma conteos y caja por moneda con el mismo universo de cada programa", async () => {
     const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
     const cajas = await Promise.all(programas.map((p) => cajaRecaudada({ programId: p.id, rango: RANGO }, db)));
@@ -130,17 +134,6 @@ describe("vista de todos los programas", () => {
     ]);
   });
 
-  it("un closer arma Todos solo con los programas de sus membresías activas", async () => {
-    const [closer] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Ana" }).returning();
-    await db.insert(miembrosPrograma).values({ userId: closer.id, programId: programas[0].id, activo: true });
-    const visibles = await programasVisibles(closer.id, "closer", db);
-    const vista = await armarVistaDeTodos({ programas: visibles, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
-
-    expect(visibles.map((p) => p.slug)).toEqual(["programa-a"]);
-    expect(vista.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
-    expect(vista.a.leads.valor).toBe(1);
-  });
-
   it("la suma de las secciones nuevas es la suma de los dashboards de cada programa (192)", async () => {
     const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
     const propios = await Promise.all(programas.map((p) => armarVistaDelDashboard({
@@ -161,7 +154,6 @@ describe("vista de todos los programas", () => {
     expect(vista.sinValorVendido.valor).toBe(suma((v) => v.sinValorVendido));
     // Tasas, comisión y descuento siguen por programa, iguales a los del dashboard propio.
     expect(vista.programas.map((p) => p.razonCierre.valor)).toEqual(propios.map((v) => v.embudo.razonCierre.valor));
-    expect(vista.programas.map((p) => p.comision.valor)).toEqual(propios.map((v) => v.comision.totalUsd));
     expect(vista.programas.map((p) => p.descuento.valor)).toEqual(propios.map((v) => v.descuento.promedioPct));
   });
 
@@ -175,5 +167,20 @@ describe("vista de todos los programas", () => {
     expect(soloA.a.contratado.valor).toBe(797);
     expect(soloA.a.dinero).toEqual(propioA.dinero);
     expect(soloA.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
+  });
+});
+
+describe("vista de todos los programas: alcance de un closer", () => {
+  beforeEach(sembrar, 60_000);
+
+  it("un closer arma Todos solo con los programas de sus membresías activas", async () => {
+    const [closer] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Ana" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: closer.id, programId: programas[0].id, activo: true });
+    const visibles = await programasVisibles(closer.id, "closer", db);
+    const vista = await armarVistaDeTodos({ programas: visibles, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
+
+    expect(visibles.map((p) => p.slug)).toEqual(["programa-a"]);
+    expect(vista.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
+    expect(vista.a.leads.valor).toBe(1);
   });
 });

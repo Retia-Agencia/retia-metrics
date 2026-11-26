@@ -353,14 +353,35 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   ];
 }
 
-async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0, variedad = 0) {
+type Medida = Awaited<ReturnType<typeof medirPagina>>;
+
+// Las páginas solo LEEN, así que un escenario se siembra una vez y todas miden sobre él. Las medidas quedan
+// aquí para que los escenarios posteriores comparen contra el de 3 programas sin volver a sembrarlo.
+const medidas = new Map<string, Medida>();
+
+async function prepararEscenario(cantidad: number, dealsExtra = 0, variedad = 0): Promise<Sembrado> {
   await base.vaciar();
-  const sembrado = await sembrar(base.db, cantidad, dealsExtra, variedad);
+  return sembrar(base.db, cantidad, dealsExtra, variedad);
+}
+
+async function medirPagina(nombre: string, pagina: Pagina, sembrado: Sembrado) {
   abrirSolicitud();
   const { costo, identicas, porSentencia } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
   const cuales = identicas.slice(0, 5).map(({ sentencia, veces }) => `  ×${veces + 1} ${sentencia.slice(0, 160)}`);
   return { costo, porSentencia, cuales, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
+}
+
+async function medirYGuardar(escenario: string, nombre: string, pagina: Pagina, sembrado: Sembrado) {
+  const medida = await medirPagina(nombre, pagina, sembrado);
+  medidas.set(`${escenario}|${nombre}`, medida);
+  return medida;
+}
+
+function medidaDe(escenario: string, nombre: string): Medida {
+  const medida = medidas.get(`${escenario}|${nombre}`);
+  if (!medida) throw new Error(`Falta la medida ${escenario} de ${nombre}: los escenarios corren en orden dentro del archivo.`);
+  return medida;
 }
 
 function paginasEn(directorio: string): string[] {
@@ -378,11 +399,26 @@ afterAll(async () => {
   await base.cerrar();
 });
 
-describe("consultas por pagina", () => {
+const PAGINAS_DEL_PROGRAMA = Object.entries(PAGINAS).filter(([nombre, pagina]) =>
+  nombre.startsWith("/p/[programa]/hub") && pagina.pagina === "app/(app)/p/[programa]/hub/page.tsx");
+
+describe("consultas por pagina: 3 programas", () => {
+  let sembrado: Sembrado;
+  beforeAll(async () => { sembrado = await prepararEscenario(3); });
+
   it.each(Object.entries(PAGINAS))("%s respeta su presupuesto", async (nombre, pagina) => {
-    const conTres = await medirPagina(nombre, pagina, 3);
-    const conSeis = await medirPagina(nombre, pagina, 6);
+    const conTres = await medirYGuardar("tres", nombre, pagina, sembrado);
     expect(conTres.fallas).toEqual([]);
+  });
+});
+
+describe("consultas por pagina: 6 programas", () => {
+  let sembrado: Sembrado;
+  beforeAll(async () => { sembrado = await prepararEscenario(6); });
+
+  it.each(Object.entries(PAGINAS))("%s no crece con los programas que no son suyos", async (nombre, pagina) => {
+    const conTres = medidaDe("tres", nombre);
+    const conSeis = await medirPagina(nombre, pagina, sembrado);
     expect(conSeis.costo.identicas).toBe(0);
     if (pagina.escalaConProgramas) {
       expect(conSeis.costo.consultas).toBeGreaterThan(conTres.costo.consultas);
@@ -391,36 +427,49 @@ describe("consultas por pagina", () => {
       expect(conSeis.costo.consultas).toBe(conTres.costo.consultas);
     }
   });
+});
 
-  // N+1 por filas: con 4 deals de más en el programa, ninguna página pide una consulta más por cada uno.
+// N+1 por filas: con 4 deals de más en el programa, ninguna página pide una consulta más por cada uno.
+describe("consultas por pagina: filas de más", () => {
+  let sembrado: Sembrado;
+  beforeAll(async () => { sembrado = await prepararEscenario(3, 4); });
+
   it.each(Object.entries(PAGINAS))("%s no crece con las filas del programa", async (nombre, pagina) => {
-    const base3 = await medirPagina(nombre, pagina, 3);
-    const conFilas = await medirPagina(nombre, pagina, 3, 4);
+    const base3 = medidaDe("tres", nombre);
+    const conFilas = await medirPagina(nombre, pagina, sembrado);
     expect(conFilas.costo.consultas, `${nombre}: ${base3.costo.consultas} sin filas extra, ${conFilas.costo.consultas} con 4 deals más`)
       .toBe(base3.costo.consultas);
     expect(conFilas.costo.identicas).toBe(0);
   });
+});
 
-  it.each(Object.entries(PAGINAS).filter(([nombre, pagina]) =>
-    nombre.startsWith("/p/[programa]/hub") && pagina.pagina === "app/(app)/p/[programa]/hub/page.tsx"))(
-    "%s no crece con closers, cohortes ni campañas",
-    async (nombre, pagina) => {
-      // Con 1 contra 4: una página vacía salta ramas enteras (listas sin filas no consultan), y eso no es N+1.
-      const base3 = await medirPagina(nombre, pagina, 3, 0, 1);
-      const conVariedad = await medirPagina(nombre, pagina, 3, 0, 4);
-      // Dice QUÉ sentencias crecieron: es el dueño del N+1 que hay que quitar.
-      const crecieron = [...conVariedad.porSentencia]
-        .map(([sentencia, veces]) => ({ sentencia, mas: veces - (base3.porSentencia.get(sentencia) ?? 0) }))
-        .filter(({ mas }) => mas > 0)
-        .sort((a, b) => b.mas - a.mas)
-        .slice(0, 8)
-        .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
-      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} con variedad 1, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
-        .toBe(base3.costo.consultas);
-      expect(conVariedad.costo.identicas, `${nombre}: consultas idénticas con variedad 4\n${conVariedad.cuales.join("\n")}`).toBe(0);
-    },
-  );
+// Con 1 contra 4: una página vacía salta ramas enteras (listas sin filas no consultan), y eso no es N+1.
+describe("consultas por pagina: variedad de closers, cohortes y campañas", () => {
+  let conUno: Sembrado;
+  let conCuatro: Sembrado;
+  beforeAll(async () => {
+    conUno = await prepararEscenario(3, 0, 1);
+    for (const [nombre, pagina] of PAGINAS_DEL_PROGRAMA) await medirYGuardar("variedad1", nombre, pagina, conUno);
+    conCuatro = await prepararEscenario(3, 0, 4);
+  });
 
+  it.each(PAGINAS_DEL_PROGRAMA)("%s no crece con closers, cohortes ni campañas", async (nombre, pagina) => {
+    const base3 = medidaDe("variedad1", nombre);
+    const conVariedad = await medirPagina(nombre, pagina, conCuatro);
+    // Dice QUÉ sentencias crecieron: es el dueño del N+1 que hay que quitar.
+    const crecieron = [...conVariedad.porSentencia]
+      .map(([sentencia, veces]) => ({ sentencia, mas: veces - (base3.porSentencia.get(sentencia) ?? 0) }))
+      .filter(({ mas }) => mas > 0)
+      .sort((a, b) => b.mas - a.mas)
+      .slice(0, 8)
+      .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
+    expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} con variedad 1, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
+      .toBe(base3.costo.consultas);
+    expect(conVariedad.costo.identicas, `${nombre}: consultas idénticas con variedad 4\n${conVariedad.cuales.join("\n")}`).toBe(0);
+  });
+});
+
+describe("consultas por pagina: cobertura", () => {
   it("mantiene todas las paginas en un grupo del trinquete", () => {
     const cubiertas = new Set(Object.values(PAGINAS).map((pagina) => pagina.pagina));
     const clasificadas = new Set([...cubiertas, ...SIN_CONSULTAS]);
@@ -431,9 +480,12 @@ describe("consultas por pagina", () => {
 });
 
 describe("el guardian muerde", () => {
+  let sembrado: Sembrado;
+  beforeAll(async () => { sembrado = await prepararEscenario(3); });
+
   async function costoDe(loader: (db: Db, sembrado: Sembrado) => Promise<unknown>) {
     const pagina: Pagina = { pagina: "sintetica", tope: 99, escalaConProgramas: false, cargar: loader };
-    return medirPagina("/sintetica", pagina, 3);
+    return medirPagina("/sintetica", pagina, sembrado);
   }
 
   const lecturaReal = (db: Db, sembrado: Sembrado) => programasVisibles(sembrado.closerId, "closer", db);
