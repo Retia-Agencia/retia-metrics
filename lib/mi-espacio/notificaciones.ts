@@ -1,23 +1,20 @@
 import { and, inArray } from "drizzle-orm";
-import { calls, deals, leads } from "@/lib/db/schema";
+import { calls, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { tableroKanban, type TarjetaDeal } from "@/lib/queries/kanban";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
-import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
-import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { novedadesCalendlyDeUsuario } from "@/lib/notificaciones-calendly/notificaciones";
-import { diaDeCalendario } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { citaCuentaComoPorMarcar } from "@/lib/deals/resultados-de-llamada";
 import { fechaDeAbonoSinComprobantePorDeal } from "@/lib/deals/abono-sin-comprobante";
 
 /**
- * Las Notificaciones de Mi espacio (ticket 222): lo que le toca al closer HOY, por tipo,
- * con las MISMAS tarjetas de deal que ve en Deals. Este módulo es la ÚNICA respuesta por
- * chip: un predicado por chip que usan el conteo, la lista y (223) el circulito.
+ * Los predicados históricos de pendientes de Mi espacio, sobre las mismas tarjetas de Deal.
+ * El builder de `pendientes.ts` los proyecta sin reescribir sus reglas; `conteoSinVer`
+ * conserva aparte el contrato del distintivo del menú.
  *
  * El universo es siempre los deals de la sesión como dueño en el programa elegido
  * (`tableroKanban` con alcance `dueno`): así un deal de otro programa o de otro dueño no
@@ -25,70 +22,19 @@ import { fechaDeAbonoSinComprobantePorDeal } from "@/lib/deals/abono-sin-comprob
  * tarjeta le faltan (la fecha de seguimiento y la fecha límite de pago del deal, ambas
  * `date`, y las llamadas vigentes) salen de UNA lectura extra cada uno, por `inArray` sobre
  * los ids del universo; las llamadas pasan por `vigente(calls)` (obligatorio: lo exige el
- * guardián de vigencia). Las comparaciones de día son en Bogotá (`diaDeCalendario`).
+ * guardián de vigencia).
  */
 
-/** Los chips, en el orden en que se muestran. El primero es el que manda por defecto. */
-export const CHIPS_NOTIFICACIONES = [
-  "hoy",
-  "reagenda",
-  "seguimiento",
-  "proxima_cohorte",
-  "vencidos",
-  "sin_comprobante",
-  "sin_grain",
-  "sin_resultado",
-  "calendly",
-  "nuevos",
-  "duplicados",
-] as const;
-
-export type ChipNotificacion = (typeof CHIPS_NOTIFICACIONES)[number];
-
-export const CHIP_POR_DEFECTO: ChipNotificacion = "hoy";
-
-/** Las etiquetas en español de cada chip, para la UI. */
-export const NOMBRE_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
-  hoy: "Hoy",
-  reagenda: "Re-agenda",
-  seguimiento: "Seguimiento",
-  proxima_cohorte: "Próxima Cohorte",
-  vencidos: "Vencidos",
-  sin_comprobante: "Sin comprobante",
-  sin_grain: "Sin Grain",
-  sin_resultado: "Sin resultado",
-  calendly: "Calendly",
-  nuevos: "Nuevos",
-  duplicados: "Duplicados",
-};
-
-/**
- * Qué significa cada chip, en una línea (ticket o8-busqueda). En móvil no hay tooltip, así
- * que la descripción del chip activo se muestra como una línea tenue debajo de la barra, y
- * cada pestaña la lleva en su `title`/`descripcion`.
- */
-export const DESCRIPCION_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
-  hoy: "Tus llamadas de hoy y los seguimientos o re-agendas que vencen hoy.",
-  reagenda: "Deals con una llamada que no se hizo y hay que volver a agendar.",
-  seguimiento: "Deals con un próximo contacto puesto, por fecha.",
-  proxima_cohorte: "Leads que esperan otra cohorte; se gestionan en la pantalla Próxima cohorte.",
-  vencidos: "Seguimientos, compromisos de pago o cartera con la fecha ya pasada.",
-  sin_comprobante: "Abonos registrados que todavía no tienen comprobante. Pega el enlace o sube el archivo en el deal.",
-  sin_grain: "Llamadas que ya se hicieron y todavía no tienen el link de Grain.",
-  sin_resultado: "Citas que ya pasaron y no marcaste cómo terminaron. Márcalas: sin eso no se sabe si hubo show.",
-  calendly: "Citas nuevas, cambiadas o canceladas en Calendly.",
-  nuevos: "Deals que te asignaron y todavía no has abierto.",
-  duplicados: "Leads que hoy volvieron a llenar el formulario.",
-};
-
-/** El `?chip=` de la URL, caído a `hoy` si no es uno conocido. */
-export function chipPedido(valor: string | undefined): ChipNotificacion {
-  return CHIPS_NOTIFICACIONES.includes(valor as ChipNotificacion)
-    ? (valor as ChipNotificacion)
-    : CHIP_POR_DEFECTO;
-}
-
-export const POR_PAGINA = 24;
+/** Tipos que siguen usando los predicados históricos de Notificaciones. */
+export type ChipNotificacion =
+  | "reagenda"
+  | "seguimiento"
+  | "vencidos"
+  | "sin_comprobante"
+  | "sin_grain"
+  | "sin_resultado"
+  | "calendly"
+  | "nuevos";
 
 /** Lo extra que la tarjeta no trae: las dos fechas `date` del deal. */
 interface FechasDeDeal {
@@ -97,20 +43,10 @@ interface FechasDeDeal {
 }
 
 /** Una tarjeta ya resuelta para un chip, con la fecha que ese chip ordena y muestra. */
-export interface TarjetaNotificacion {
+interface TarjetaNotificacion {
   tarjeta: TarjetaDeal;
   /** La fecha que importa en el chip activo (día de calendario o instante), o `null`. */
   fechaClave: Date | string | null;
-}
-
-export interface ResultadoChip {
-  chip: ChipNotificacion;
-  /** El conteo total del chip (todas las páginas), igual a la longitud de la lista completa. */
-  total: number;
-  /** La página pedida (24 por página). */
-  tarjetas: TarjetaDeal[];
-  /** La fecha más próxima del chip, cuando el chip tiene fecha; para la línea de resumen. */
-  proxima: Date | string | null;
 }
 
 /** La lista completa de un chip con la fecha que ya usa Mi espacio para ordenarlo. */
@@ -124,15 +60,12 @@ interface Universo {
   tarjetas: TarjetaDeal[];
   /** Fechas `date` del deal, por dealId. */
   fechas: Map<string, FechasDeDeal>;
-  /** La primera llamada vigente de HOY (día de Bogotá) de cada deal, por dealId. */
-  llamadaDeHoy: Map<string, Date>;
   /** La llamada Show sin Grain más antigua de cada deal (ticket 226), por dealId. */
   showSinGrain: Map<string, Date>;
   /** El abono vigente sin comprobante más antiguo de cada deal (ticket 428), por dealId. */
   abonoSinComprobante: Map<string, string>;
   /** La cita pasada sin resultado más antigua de cada deal (390), por dealId: lo que el closer debe marcar. */
   citaSinResultado: Map<string, Date>;
-  hoy: string;
 }
 
 /**
@@ -144,11 +77,10 @@ function cargarUniverso(
   programId: string,
   userId: string,
   hoy: string,
-  q?: string,
   ahora?: Date,
 ): Promise<Universo> {
-  return unaVezPorSolicitud(db, claveDe("universoDeNotificaciones", programId, userId, hoy, q ?? "", ahora ?? null),
-    () => leerUniverso(db, programId, userId, hoy, q, ahora ?? new Date()));
+  return unaVezPorSolicitud(db, claveDe("universoDeNotificaciones", programId, userId, hoy, ahora ?? null),
+    () => leerUniverso(db, programId, userId, hoy, ahora ?? new Date()));
 }
 
 async function leerUniverso(
@@ -156,24 +88,16 @@ async function leerUniverso(
   programId: string,
   userId: string,
   hoy: string,
-  q: string | undefined,
   ahora: Date,
 ): Promise<Universo> {
   const alcance: AlcanceDeals = { tipo: "dueno", userId };
   const tablero = await tableroKanban(db, programId, alcance, {}, hoy);
-  // Los de Próxima Cohorte no están en ninguna columna (ADR 0104), pero su chip los lista.
-  let tarjetas = [...tablero.columnas.flatMap((c) => c.tarjetas), ...tablero.enProximaCohorte];
-
-  // Búsqueda (ticket o8-busqueda): el universo se ESTRECHA a las tarjetas cuyo lead casa
-  // (`leadsQueCasan`), así que conteos y listas reflejan la búsqueda por igual. `null` (o
-  // texto corto) = sin búsqueda, no estrecha. El programa es frontera: ya recibe su id.
-  const leadsCasan = await leadsQueCasan(db, programId, q ?? "");
-  if (leadsCasan != null) tarjetas = tarjetas.filter((t) => leadsCasan.has(t.leadId));
+  // Próxima Cohorte queda fuera de estas filas, pero sigue dentro del universo del tablero.
+  const tarjetas = [...tablero.columnas.flatMap((c) => c.tarjetas), ...tablero.enProximaCohorte];
 
   const ids = tarjetas.map((t) => t.dealId);
 
   const fechas = new Map<string, FechasDeDeal>();
-  const llamadaDeHoy = new Map<string, Date>();
   const showSinGrain = new Map<string, Date>();
   const citaSinResultado = new Map<string, Date>();
   let abonoSinComprobante = new Map<string, string>();
@@ -222,16 +146,10 @@ async function leerUniverso(
         const previa = citaSinResultado.get(c.dealId);
         if (!previa || hora < previa) citaSinResultado.set(c.dealId, hora);
       }
-      // CUALQUIER llamada vigente de hoy cuenta, no solo la última: un deal con cita hoy y
-      // otra más adelante sigue siendo de hoy.
-      const hora = c.fechaAgenda ?? c.fechaLlamada;
-      if (!c.dealId || !hora || diaDeCalendario(hora) !== hoy) continue;
-      const previo = llamadaDeHoy.get(c.dealId);
-      if (!previo || hora < previo) llamadaDeHoy.set(c.dealId, hora);
     }
   }
 
-  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, abonoSinComprobante, citaSinResultado, hoy };
+  return { tarjetas, fechas, showSinGrain, abonoSinComprobante, citaSinResultado };
 }
 
 /** ¿La tarjeta pasa el chip? Y, de pasar, ¿cuál es su fecha clave para ordenar y mostrar? */
@@ -240,28 +158,16 @@ function evaluar(
   t: TarjetaDeal,
   chip: ChipNotificacion,
   idsCalendly: Map<string, Date>,
-  idsDuplicados: Set<string>,
 ): { pasa: boolean; fechaClave: Date | string | null } {
   const fechas = u.fechas.get(t.dealId);
   const seguimiento = fechas?.fechaSeguimiento ?? null;
   const limitePago = fechas?.fechaLimitePago ?? null;
-  const llamadaHoy = u.llamadaDeHoy.get(t.dealId) ?? null;
 
   switch (chip) {
-    case "hoy": {
-      const pendienteHoy =
-        (t.pendiente === "reagenda" || t.pendiente === "seguimiento") &&
-        seguimiento != null &&
-        seguimiento === u.hoy;
-      // Orden "hoy": por la hora de la llamada y luego por la fecha de seguimiento.
-      return { pasa: llamadaHoy != null || pendienteHoy, fechaClave: llamadaHoy ?? seguimiento };
-    }
     case "reagenda":
       return { pasa: t.pendiente === "reagenda", fechaClave: seguimiento };
     case "seguimiento":
       return { pasa: t.pendiente === "seguimiento", fechaClave: seguimiento };
-    case "proxima_cohorte":
-      return { pasa: t.pendiente === "proxima_cohorte", fechaClave: t.creadoEn };
     case "vencidos": {
       // Los avisos propios de la tarjeta, no reescritos (sin Grain tiene su chip, 226).
       const vencido =
@@ -290,8 +196,6 @@ function evaluar(
       return { pasa: idsCalendly.has(t.dealId), fechaClave: idsCalendly.get(t.dealId) ?? null };
     case "nuevos":
       return { pasa: t.esNuevo, fechaClave: t.creadoEn };
-    case "duplicados":
-      return { pasa: idsDuplicados.has(t.dealId), fechaClave: t.creadoEn };
   }
 }
 
@@ -304,15 +208,9 @@ function compararPorChip(
   const fa = valorDeFecha(a.fechaClave);
   const fb = valorDeFecha(b.fechaClave);
   switch (chip) {
-    case "hoy":
-      // Por hora de llamada y luego fecha de seguimiento, ascendente (lo más próximo primero).
-      return (fa - fb) || desempate(a, b);
     case "reagenda":
     case "seguimiento":
       // Por fecha de seguimiento ascendente.
-      return (fa - fb) || desempate(a, b);
-    case "proxima_cohorte":
-      // Por creación ascendente.
       return (fa - fb) || desempate(a, b);
     case "vencidos":
     case "sin_comprobante":
@@ -325,9 +223,6 @@ function compararPorChip(
       return (fb - fa) || desempate(a, b);
     case "nuevos":
       // Por creación descendente.
-      return (fb - fa) || desempate(a, b);
-    case "duplicados":
-      // El envío más reciente primero (descendente).
       return (fb - fa) || desempate(a, b);
   }
 }
@@ -346,42 +241,6 @@ function desempate(a: TarjetaNotificacion, b: TarjetaNotificacion): number {
 }
 
 /**
- * El resultado de UN chip: su conteo total, la página pedida (24/página) y la fecha más
- * próxima para la línea de resumen. El universo y lo extra se leen una vez y se reutilizan.
- */
-export async function notificacionesDeChip(
-  db: Db,
-  args: { programId: string; userId: string; chip: ChipNotificacion; pagina?: number; q?: string },
-  hoy: string = hoyEnBogota(),
-): Promise<ResultadoChip> {
-  const { programId, userId, chip } = args;
-  const pagina = Math.max(0, args.pagina ?? 0);
-
-  const universo = await cargarUniverso(db, programId, userId, hoy, args.q);
-
-  // Los dos chips que preguntan a otras fuentes, acotados al universo (dueño + programa).
-  const [novedadesCalendly, idsDuplicados] = await Promise.all([
-    chip === "calendly" ? idsConNovedadCalendly(db, userId, programId) : Promise.resolve(mapaCalendlyVacio()),
-    chip === "duplicados" ? idsDuplicadosDeHoy(db, programId, userId, universo, hoy) : Promise.resolve(new Set<string>()),
-  ]);
-  const idsCalendly = novedadesCalendly.todas;
-
-  const evaluadas: TarjetaNotificacion[] = [];
-  for (const t of universo.tarjetas) {
-    const { pasa, fechaClave } = evaluar(universo, t, chip, idsCalendly, idsDuplicados);
-    if (pasa) evaluadas.push({ tarjeta: t, fechaClave });
-  }
-  evaluadas.sort((a, b) => compararPorChip(chip, a, b));
-
-  const total = evaluadas.length;
-  const desde = pagina * POR_PAGINA;
-  const tarjetas = evaluadas.slice(desde, desde + POR_PAGINA).map((e) => e.tarjeta);
-  const proxima = chipConFecha(chip) && evaluadas.length > 0 ? evaluadas[0].fechaClave : null;
-
-  return { chip, total, tarjetas, proxima };
-}
-
-/**
  * La misma proyeccion de un chip, sin paginar y conservando su fecha clave. Los avisos de
  * registros pendientes la necesitan para agrupar varios chips por deal; no redefine ningun
  * predicado: pasa por `cargarUniverso`, `evaluar` y `compararPorChip`, igual que la pantalla.
@@ -392,41 +251,17 @@ export async function notificacionesCompletasDeChip(
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
 ): Promise<NotificacionCompleta[]> {
-  const universo = await cargarUniverso(db, args.programId, args.userId, hoy, undefined, ahora);
+  const universo = await cargarUniverso(db, args.programId, args.userId, hoy, ahora);
   const evaluadas: NotificacionCompleta[] = [];
-  const idsCalendly = new Map<string, Date>();
-  const idsDuplicados = new Set<string>();
+  const idsCalendly = args.chip === "calendly"
+    ? (await idsConNovedadCalendly(db, args.userId, args.programId)).todas
+    : new Map<string, Date>();
   for (const tarjeta of universo.tarjetas) {
-    const resultado = evaluar(universo, tarjeta, args.chip, idsCalendly, idsDuplicados);
+    const resultado = evaluar(universo, tarjeta, args.chip, idsCalendly);
     if (resultado.pasa) evaluadas.push({ tarjeta, fechaClave: resultado.fechaClave });
   }
   evaluadas.sort((a, b) => compararPorChip(args.chip, a, b));
   return evaluadas;
-}
-
-/** Los conteos de TODOS los chips, para pintarlos con su número. Una sola carga del universo. */
-export async function conteosDeChips(
-  db: Db,
-  args: { programId: string; userId: string; q?: string },
-  hoy: string = hoyEnBogota(),
-): Promise<Record<ChipNotificacion, number>> {
-  const { programId, userId } = args;
-  const universo = await cargarUniverso(db, programId, userId, hoy, args.q);
-  const [novedadesCalendly, idsDuplicados] = await Promise.all([
-    idsConNovedadCalendly(db, userId, programId),
-    idsDuplicadosDeHoy(db, programId, userId, universo, hoy),
-  ]);
-  const idsCalendly = novedadesCalendly.todas;
-
-  const conteos = Object.fromEntries(
-    CHIPS_NOTIFICACIONES.map((c) => [c, 0]),
-  ) as Record<ChipNotificacion, number>;
-  for (const t of universo.tarjetas) {
-    for (const chip of CHIPS_NOTIFICACIONES) {
-      if (evaluar(universo, t, chip, idsCalendly, idsDuplicados).pasa) conteos[chip] += 1;
-    }
-  }
-  return conteos;
 }
 
 /**
@@ -473,21 +308,12 @@ function deberiaVerse(
   return pendienteConFecha;
 }
 
-/** ¿El chip ordena/muestra por una fecha? (Nuevos y Próxima Cohorte no tienen fecha propia). */
-function chipConFecha(chip: ChipNotificacion): boolean {
-  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_comprobante" || chip === "sin_grain" || chip === "sin_resultado" || chip === "calendly";
-}
-
 /** Novedades de Calendly del universo: todas (leídas o no) y el subconjunto no leído. */
 interface NovedadesCalendly {
   /** dealId -> fecha de su novedad más reciente (leída o no); el chip ordena por ella. */
   todas: Map<string, Date>;
   /** dealIds con al menos una novedad SIN leer (`leidaEn` null); lo usa `conteoSinVer`. */
   sinLeer: Set<string>;
-}
-
-function mapaCalendlyVacio(): NovedadesCalendly {
-  return { todas: new Map<string, Date>(), sinLeer: new Set<string>() };
 }
 
 /**
@@ -510,42 +336,4 @@ async function leerIdsConNovedadCalendly(db: Db, userId: string, programId: stri
   }
   const sinLeer = new Set(noLeidas.map((n) => n.dealId));
   return { todas, sinLeer };
-}
-
-/**
- * Los dealId del universo cuyo lead es un posible duplicado del usuario y cuyo envío más
- * reciente es HOY (día de Bogotá). El universo ya es sólo del dueño en el programa, así que
- * mapear por leadId mantiene la frontera.
- */
-async function idsDuplicadosDeHoy(
-  db: Db,
-  programId: string,
-  userId: string,
-  universo: Universo,
-  hoy: string,
-): Promise<Set<string>> {
-  const { filas } = await posiblesDuplicadosDelPrograma(db, programId, {
-    duenoUserId: userId,
-    porPagina: 1000,
-  });
-  const leadIdsDuplicados = new Set(filas.map((f) => f.leadId));
-  if (leadIdsDuplicados.size === 0) return new Set();
-
-  // El envío más reciente de cada lead: `leads.fechaUltimaAplicacion`. Sólo los de hoy.
-  const idsLista = [...leadIdsDuplicados];
-  const filasLead = await db
-    .select({ id: leads.id, fechaUltimaAplicacion: leads.fechaUltimaAplicacion })
-    .from(leads)
-    .where(inArray(leads.id, idsLista));
-  const leadsDeHoy = new Set(
-    filasLead
-      .filter((l) => l.fechaUltimaAplicacion != null && diaDeCalendario(l.fechaUltimaAplicacion) === hoy)
-      .map((l) => l.id),
-  );
-
-  const ids = new Set<string>();
-  for (const t of universo.tarjetas) {
-    if (leadsDeHoy.has(t.leadId)) ids.add(t.dealId);
-  }
-  return ids;
 }

@@ -13,7 +13,6 @@ import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { EnlacesDeCaptacion, type EnlaceVista } from "@/components/mi-espacio/enlaces-de-captacion";
 import { asignarMiCalendlyAccion } from "./acciones";
-import { TabNotificaciones } from "@/components/mi-espacio/tab-notificaciones";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
@@ -24,6 +23,7 @@ import { ETIQUETA_MCP_SCOPE, MCP_SCOPES } from "@/lib/mcp/token";
 import { urlDelRecurso } from "@/lib/oauth/origen";
 import { ConexionesDeIa } from "@/components/mi-espacio/conexiones-de-ia";
 import { cargarDatosDeMiEspacio, type DatosDeMiEspacio } from "@/lib/mi-espacio/cargar-datos";
+import { tipoDePendientePedido } from "@/lib/mi-espacio/pendientes";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +45,7 @@ function uno(value: string | string[] | undefined): string | undefined {
  *    `lib/mi-espacio/secciones.ts` (nunca `rol === "..."`, ADR 0025).
  *
  * Quién ve qué, por capacidad:
- *  - `trabajaLeads` (closer, setter): Mi día, Notificaciones y Métricas, siguiendo el
+ *  - `trabajaLeads` (closer, setter): Mi día y Métricas, siguiendo el
  *    programa del sidebar y, sin membresías, el mensaje A-04. El Calendly y ese mensaje
  *    SOLO aplican a quien trabaja leads.
  *  - `manejaPauta` sin administrar ni trabajar leads (paid trafficker): Canales. Sin
@@ -75,14 +75,16 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const query = await searchParams;
   const rolReal = rolRealDeSesion(session);
 
-  // El `?tab=atencion` viejo ahora es `?tab=notificaciones` (ticket 221): redirect de
-  // servidor para que un enlace guardado no caiga en la sección por defecto por el rename.
-  if (uno(query.tab) === "atencion") {
+  // Las dos URLs retiradas aterrizan en Mi día; un chip que siga siendo pendiente conserva
+  // su intención bajo el nombre actual del filtro.
+  if (uno(query.tab) === "atencion" || uno(query.tab) === "notificaciones") {
     const q = new URLSearchParams();
     for (const [clave, valor] of Object.entries(query)) {
-      if (clave !== "tab" && typeof valor === "string") q.set(clave, valor);
+      if (clave !== "tab" && clave !== "chip" && typeof valor === "string") q.set(clave, valor);
     }
-    q.set("tab", "notificaciones");
+    q.set("tab", "mi-dia");
+    const tipo = tipoDePendientePedido(uno(query.chip));
+    if (tipo) q.set("tipo", tipo);
     redirect(`/mi-espacio?${q}`);
   }
 
@@ -300,11 +302,6 @@ function Seccion({
     case "mi-dia":
       return programa && deSeccion?.id === "mi-dia"
         ? <TabMiDia slug={programa.slug} datos={deSeccion.datos} />
-        : null;
-    case "notificaciones":
-      // Lo que te toca HOY, por tipo, con las tarjetas de tus deals (ticket 222).
-      return programa && deSeccion?.id === "notificaciones"
-        ? <TabNotificaciones slug={programa.slug} datos={deSeccion.datos} />
         : null;
     case "metricas":
       // El closer se identifica por su `users.id` (ticket 167); los datos los lee el cargador.

@@ -25,16 +25,9 @@ import { esAccesoTotal, esAdministrador, manejaPauta, trabajaLeads } from "@/lib
 export type SeccionId =
   | "mi-dia"
   | "info"
-  | "notificaciones"
   | "metricas"
   | "canales"
   | "por-decidir";
-
-/**
- * El `?tab=` viejo `atencion` ahora es `notificaciones` (ticket 221). La página hace el
- * redirect de servidor; aquí sólo se documenta el alias para que nadie reintroduzca el id.
- */
-export const TAB_ATENCION_LEGADO = "atencion";
 
 export interface SeccionMiEspacio {
   id: SeccionId;
@@ -49,8 +42,7 @@ export interface SeccionMiEspacio {
  * El catálogo, en orden de aparición. Info va última para todo rol que tiene Mi espacio:
  * contiene el perfil, la foto, el rol, los enlaces de captación y la cuenta de Calendly.
  * Antes aparecen las secciones de trabajo de cada capacidad:
- *  - Las de quien trabaja leads: Notificaciones (el hub, reemplaza "Necesita atención") y
- *    Métricas personales.
+ *  - Las de quien trabaja leads: Mi día y Métricas personales.
  *  - `canales` para quien maneja pauta sin administrar ni trabajar leads (paid trafficker).
  *  - `por-decidir` para el gerente: la operación del CRM que le toca decidir, también
  *    cuando suma la capacidad de closer (ticket 236 / ADR 0084).
@@ -64,12 +56,6 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
   {
     id: "mi-dia",
     etiqueta: "Mi día",
-    habilita: (sujeto) => trabajaLeads(sujeto),
-    porPrograma: true,
-  },
-  {
-    id: "notificaciones",
-    etiqueta: "Notificaciones",
     habilita: (sujeto) => trabajaLeads(sujeto),
     porPrograma: true,
   },
@@ -129,8 +115,6 @@ export function seccionPorDefecto(sujeto: SujetoDeCapacidad): SeccionMiEspacio |
  * La sección que se debe mostrar dado el rol y la `?tab=` pedida por la URL.
  *
  * - Si el rol no cumple NINGUNA sección, `null` (la página muestra el mensaje del dueño).
- * - El `?tab=atencion` viejo se trata como `notificaciones` (ticket 221): el id cambió, el
- *   enlace guardado de alguien no debe caer en la de por defecto por un rename.
  * - Si la pedida existe y el rol la cumple, esa.
  * - En cualquier otro caso (sin `?tab=`, o una `?tab=` de otra sección forjada a mano), la
  *   POR DEFECTO del rol —su trabajo, no Info—. Forjar `?tab=canales` siendo closer NUNCA
@@ -139,7 +123,6 @@ export function seccionPorDefecto(sujeto: SujetoDeCapacidad): SeccionMiEspacio |
 export function seccionPedida(sujeto: SujetoDeCapacidad, tabPedida: string | undefined): SeccionMiEspacio | null {
   const disponibles = seccionesDeRol(sujeto);
   if (disponibles.length === 0) return null;
-  const tab = tabPedida === TAB_ATENCION_LEGADO ? "notificaciones" : tabPedida;
-  const pedida = disponibles.find((s) => s.id === tab);
+  const pedida = disponibles.find((s) => s.id === tabPedida);
   return pedida ?? seccionPorDefecto(sujeto);
 }

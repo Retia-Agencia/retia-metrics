@@ -9,10 +9,9 @@ import { programasVisibles } from "@/lib/auth/alcance";
 import { diaDeCalendario, esDiaHabil } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import {
-  notificacionesCompletasDeChip,
-  type ChipNotificacion,
-  type NotificacionCompleta,
-} from "@/lib/mi-espacio/notificaciones";
+  pendientesDelCloserEnPrograma,
+  type PendienteDelCloser,
+} from "@/lib/mi-espacio/pendientes";
 import type { RespuestaAvisosPendientes, VentanaPendientes } from "./contrato";
 import {
   ORDEN_PENDIENTES,
@@ -21,16 +20,6 @@ import {
   type PendienteDeDeal,
   type TipoPendienteCloser,
 } from "./texto";
-
-const CHIPS_DE_AVISO = ["sin_resultado", "sin_comprobante", "sin_grain", "reagenda", "vencidos", "nuevos"] as const satisfies readonly ChipNotificacion[];
-
-/**
- * Un aviso es para actuar hoy: sin_grain, reagenda y nuevos de hace más de este número de días
- * son atraso acumulado y se quedan en el CRM (el 14-nov un closer habría recibido "te faltan 2.417").
- * Los vencidos (dinero y compromisos) y las citas sin resultado tienen su propia regla.
- */
-export const DIAS_MAXIMOS_DE_AVISO = 7;
-const CHIPS_CON_TOPE_DE_ANTIGUEDAD: readonly (typeof CHIPS_DE_AVISO)[number][] = ["sin_grain", "reagenda", "nuevos"];
 
 interface ProgramaDelCloser {
   id: string;
@@ -51,23 +40,17 @@ interface CitasAntiguasDePrograma {
   cantidad: number;
 }
 
-function fechaDeNotificacion(n: NotificacionCompleta): Date {
-  if (n.fechaClave instanceof Date) return n.fechaClave;
-  if (typeof n.fechaClave === "string") return new Date(`${n.fechaClave}T12:00:00-05:00`);
-  return n.tarjeta.creadoEn;
+function fechaDePendiente(pendiente: PendienteDelCloser): Date {
+  if (pendiente.fechaClave instanceof Date) return pendiente.fechaClave;
+  if (typeof pendiente.fechaClave === "string") return new Date(`${pendiente.fechaClave}T12:00:00-05:00`);
+  return pendiente.creadoEn;
 }
 
-function detalleVencido(n: NotificacionCompleta): PendienteDeDeal["detalle"] {
-  if (n.tarjeta.avisos.seguimientoVencido) return "seguimiento";
-  if (n.tarjeta.avisos.compromisoVencido) return "compromiso";
-  return "cartera";
-}
-
-function pendienteDe(chip: typeof CHIPS_DE_AVISO[number], n: NotificacionCompleta): PendienteDeDeal {
+function pendienteDe(pendiente: PendienteDelCloser): PendienteDeDeal {
   return {
-    tipo: chip as TipoPendienteCloser,
-    fecha: n.fechaClave,
-    ...(chip === "vencidos" ? { detalle: detalleVencido(n) } : {}),
+    tipo: pendiente.tipo as TipoPendienteCloser,
+    fecha: pendiente.fechaClave,
+    ...(pendiente.detalle ? { detalle: pendiente.detalle } : {}),
   };
 }
 
@@ -111,46 +94,35 @@ async function pendientesDelCloser(
   const porDeal = new Map<string, DealConPendientes>();
   const citasAntiguasPorPrograma = new Map<string, CitasAntiguasDePrograma>();
   for (const programa of closer.programas) {
-    for (const chip of CHIPS_DE_AVISO) {
-      const notificaciones = await notificacionesCompletasDeChip(
-        db,
-        { programId: programa.id, userId: closer.userId, chip },
-        dia,
-        ahora,
-      );
-      for (const notificacion of notificaciones) {
-        // Un deal perdido no tiene nada que registrar: un aviso sobre él es ruido.
-        if (notificacion.tarjeta.etapa === "cierre_perdido") continue;
-        const fecha = fechaDeNotificacion(notificacion);
-        const antiguedad = Math.floor((new Date(`${dia}T12:00:00-05:00`).getTime() - fecha.getTime()) / 86_400_000);
-        if (CHIPS_CON_TOPE_DE_ANTIGUEDAD.includes(chip) && antiguedad > DIAS_MAXIMOS_DE_AVISO) continue;
-        if (chip === "sin_resultado" && antiguedad > 7) {
-          if (ventana === "manana") {
-            const actual = citasAntiguasPorPrograma.get(programa.slug);
-            citasAntiguasPorPrograma.set(programa.slug, {
-              programa: programa.nombre,
-              programSlug: programa.slug,
-              cantidad: (actual?.cantidad ?? 0) + 1,
-            });
-          }
-          continue;
-        }
-        if (ventana === "tarde" && (chip !== "sin_resultado" && chip !== "sin_grain" || diaDeCalendario(fecha) !== dia)) {
-          continue;
-        }
-        const actual = porDeal.get(notificacion.tarjeta.dealId) ?? {
-          dealId: notificacion.tarjeta.dealId,
-          nombreLead: notificacion.tarjeta.nombreLead ?? "Sin nombre",
-          programa: programa.nombre,
-          programSlug: programa.slug,
-          url: `${origen}/p/${programa.slug}/deals/${notificacion.tarjeta.dealId}`,
-          fechaUrgencia: fecha,
-          pendientes: [],
-        };
-        actual.fechaUrgencia = actual.fechaUrgencia < fecha ? actual.fechaUrgencia : fecha;
-        actual.pendientes.push(pendienteDe(chip, notificacion));
-        porDeal.set(actual.dealId, actual);
-      }
+    const pendientes = await pendientesDelCloserEnPrograma(db, {
+      programId: programa.id,
+      userId: closer.userId,
+      dia,
+      ahora,
+      soloAvisos: true,
+    });
+    if (ventana === "manana" && pendientes.citasAntiguas > 0) {
+      citasAntiguasPorPrograma.set(programa.slug, {
+        programa: programa.nombre,
+        programSlug: programa.slug,
+        cantidad: pendientes.citasAntiguas,
+      });
+    }
+    for (const pendiente of pendientes.filas) {
+      const fecha = fechaDePendiente(pendiente);
+      if (ventana === "tarde" && (pendiente.tipo !== "sin_resultado" && pendiente.tipo !== "sin_grain" || diaDeCalendario(fecha) !== dia)) continue;
+      const actual = porDeal.get(pendiente.dealId) ?? {
+        dealId: pendiente.dealId,
+        nombreLead: pendiente.leadNombre ?? "Sin nombre",
+        programa: programa.nombre,
+        programSlug: programa.slug,
+        url: `${origen}/p/${programa.slug}/deals/${pendiente.dealId}`,
+        fechaUrgencia: fecha,
+        pendientes: [],
+      };
+      actual.fechaUrgencia = actual.fechaUrgencia < fecha ? actual.fechaUrgencia : fecha;
+      actual.pendientes.push(pendienteDe(pendiente));
+      porDeal.set(actual.dealId, actual);
     }
   }
   const deals = [...porDeal.values()].sort((a, b) => a.fechaUrgencia.getTime() - b.fechaUrgencia.getTime() || a.dealId.localeCompare(b.dealId));
@@ -194,7 +166,7 @@ function enlacesDePendientes(
     }
     return {
       programa: programa.programa,
-      url: `${origen}/mi-espacio?tab=notificaciones&programa=${encodeURIComponent(slug)}&chip=${chip}`,
+      url: `${origen}/mi-espacio?tab=mi-dia&programa=${encodeURIComponent(slug)}&tipo=${chip}`,
     };
   });
 }

@@ -7,7 +7,6 @@ import {
   cohorts,
   dealEtapaHistorial,
   deals,
-  leadContactos,
   leads,
   miembrosPrograma,
   notificacionesCalendly,
@@ -20,13 +19,13 @@ import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 import {
-  CHIPS_NOTIFICACIONES,
-  chipPedido,
   conteoSinVer,
-  conteosDeChips,
-  notificacionesDeChip,
-  type ChipNotificacion,
 } from "@/lib/mi-espacio/notificaciones";
+import {
+  pendientesDelCloserEnPrograma,
+  TIPOS_DE_PENDIENTE,
+  type TipoDePendiente,
+} from "@/lib/mi-espacio/pendientes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -50,10 +49,8 @@ vi.mock("@/lib/auth/vista", () => ({
 }));
 
 /**
- * Ticket 222: las Notificaciones de Mi espacio por tipo. Prueba que cada chip devuelve SÓLO
- * sus deals y que su conteo coincide con la longitud de todas las páginas concatenadas; que
- * un deal de otro programa o de otro dueño nunca aparece (ids forjados); la paginación de
- * 24; y que un `?chip=` inválido cae a `hoy`.
+ * Los predicados de pendientes y el distintivo del menú conservan su frontera por programa,
+ * dueño y vigencia después de retirar la pestaña Notificaciones.
  */
 
 const HOY = "2026-10-20";
@@ -130,10 +127,6 @@ interface OpcDeal {
   source?: string;
   fechaSeguimiento?: string | null;
   fechaLimitePago?: string | null;
-  /** Instante del último envío (leads.fechaUltimaAplicacion), para "duplicados de hoy". */
-  ultimaAplicacion?: string | null;
-  /** Un contacto correo sin confirmar hace al lead "posible duplicado". */
-  duplicado?: boolean;
   nuevo?: boolean;
   creado?: string;
 }
@@ -149,7 +142,6 @@ async function deal(o: OpcDeal): Promise<{ dealId: string; leadId: string }> {
       emailNormalizado: `l${++leadN}@correo.co`,
       nombre: `Lead ${leadN}`,
       numAplicaciones: 1,
-      ...(o.ultimaAplicacion ? { fechaUltimaAplicacion: new Date(o.ultimaAplicacion) } : {}),
     })
     .returning();
   const [env] = await db
@@ -176,15 +168,6 @@ async function deal(o: OpcDeal): Promise<{ dealId: string; leadId: string }> {
     .returning();
   const fecha = new Date(`${o.creado ? o.creado.slice(0, 10) : HOY}T12:00:00-05:00`);
   await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: null, a: o.etapa, fecha });
-  if (o.duplicado) {
-    await db.insert(leadContactos).values({
-      leadId: l.id,
-      programId: prog,
-      tipo: "correo",
-      valor: `dup${leadN}@correo.co`,
-      confirmado: false,
-    });
-  }
   return { dealId: d.id, leadId: l.id };
 }
 
@@ -207,62 +190,24 @@ async function dealId(o: OpcDeal): Promise<string> {
   return (await deal(o)).dealId;
 }
 
-/** Todas las tarjetas de un chip, concatenando TODAS las páginas. */
-async function todas(chip: ChipNotificacion, userId = yo): Promise<string[]> {
-  const ids: string[] = [];
-  for (let pagina = 0; ; pagina++) {
-    const r = await notificacionesDeChip(db, { programId, userId, chip, pagina }, HOY);
-    ids.push(...r.tarjetas.map((t) => t.dealId));
-    if ((pagina + 1) * 24 >= r.total) break;
-  }
-  return ids;
+async function todas(tipo: TipoDePendiente, userId = yo): Promise<string[]> {
+  const resultado = await pendientesDelCloserEnPrograma(db, {
+    programId,
+    userId,
+    dia: HOY,
+    ahora: new Date(`${HOY}T18:00:00-05:00`),
+  });
+  return resultado.filas.filter((fila) => fila.tipo === tipo).map((fila) => fila.dealId);
 }
 
 describe("notificaciones de Mi espacio (222)", () => {
-  it("un ?chip inválido cae a hoy", () => {
-    expect(chipPedido(undefined)).toBe("hoy");
-    expect(chipPedido("")).toBe("hoy");
-    expect(chipPedido("inexistente")).toBe("hoy");
-    expect(chipPedido("reagenda")).toBe("reagenda");
-  });
-
-  it("hoy: llamada de hoy o pendiente de reagenda/seguimiento con fecha de hoy", async () => {
-    const conLlamadaHoy = await deal({ etapa: "atendido" });
-    await llamada(conLlamadaHoy.dealId, HOY);
-    const conLlamadaAyer = await deal({ etapa: "atendido" });
-    await llamada(conLlamadaAyer.dealId, AYER);
-    const reagendaHoy = await dealId({ etapa: "contactado", pendiente: "reagenda", fechaSeguimiento: HOY });
-    const seguimientoHoy = await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: HOY });
-    const seguimientoManana = await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: MANANA });
-
-    const ids = await todas("hoy");
-    expect(new Set(ids)).toEqual(new Set([conLlamadaHoy.dealId, reagendaHoy, seguimientoHoy]));
-    expect(ids).not.toContain(conLlamadaAyer.dealId);
-    expect(ids).not.toContain(seguimientoManana);
-  });
-
-  it("hoy: un deal con cita hoy y otra más adelante sigue siendo de hoy", async () => {
-    const d = await deal({ etapa: "agendado" });
-    await llamada(d.dealId, HOY);
-    await llamada(d.dealId, MANANA);
-    expect(await todas("hoy")).toContain(d.dealId);
-  });
-
-  it("una llamada ANULADA no cuenta para hoy", async () => {
-    const d = await deal({ etapa: "atendido" });
-    await llamada(d.dealId, HOY, programId, true);
-    expect(await todas("hoy")).not.toContain(d.dealId);
-  });
-
-  it("reagenda / seguimiento / proxima_cohorte: cada chip su pendiente", async () => {
+  it("reagenda y seguimiento conservan el predicado central", async () => {
     const r = await dealId({ etapa: "contactado", pendiente: "reagenda", fechaSeguimiento: MANANA });
     const s = await dealId({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: MANANA });
-    const pc = await dealId({ etapa: "atendido", pendiente: "proxima_cohorte" });
     await dealId({ etapa: "potencial" });
 
     expect(await todas("reagenda")).toEqual([r]);
     expect(await todas("seguimiento")).toEqual([s]);
-    expect(await todas("proxima_cohorte")).toEqual([pc]);
   });
 
   it("vencidos: seguimiento vencido o compromiso/cartera vencidos (avisos de la tarjeta)", async () => {
@@ -342,14 +287,6 @@ describe("notificaciones de Mi espacio (222)", () => {
     expect(await todas("nuevos")).toEqual([nuevo]);
   });
 
-  it("duplicados: solo los del dueño cuyo último envío es HOY", async () => {
-    const dupHoy = await dealId({ etapa: "contactado", duplicado: true, ultimaAplicacion: `${HOY}T09:00:00-05:00` });
-    await dealId({ etapa: "contactado", duplicado: true, ultimaAplicacion: `${AYER}T09:00:00-05:00` });
-    await dealId({ etapa: "contactado", duplicado: false, ultimaAplicacion: `${HOY}T09:00:00-05:00` });
-
-    expect(await todas("duplicados")).toEqual([dupHoy]);
-  });
-
   it("calendly: deals con novedad del usuario+programa, leídas o no", async () => {
     const conNovedad = await deal({ etapa: "agendado" });
     const callId = await llamada(conNovedad.dealId, HOY);
@@ -366,45 +303,18 @@ describe("notificaciones de Mi espacio (222)", () => {
     expect(await todas("calendly")).toEqual([conNovedad.dealId]);
   });
 
-  it("cada conteo coincide con la longitud de la lista completa", async () => {
+  it("el builder devuelve una fila por deal y tipo", async () => {
     // Un surtido que cae en varios chips.
     const d1 = await deal({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: HOY });
     await llamada(d1.dealId, HOY);
     await dealId({ etapa: "contactado", pendiente: "reagenda", fechaSeguimiento: AYER });
-    await dealId({ etapa: "atendido", pendiente: "proxima_cohorte" });
     await dealId({ etapa: "registrado", nuevo: true });
 
-    const conteos = await conteosDeChips(db, { programId, userId: yo }, HOY);
-    for (const chip of CHIPS_NOTIFICACIONES) {
-      const lista = await todas(chip);
-      expect(lista.length, chip).toBe(conteos[chip]);
-    }
-  });
-
-  it("un ?q estrecha la lista de un chip y su conteo por igual (o8-busqueda)", async () => {
-    // Dos deals en el mismo chip; solo uno tiene un nombre que casa con la búsqueda.
-    const casa = await deal({ etapa: "atendido", pendiente: "proxima_cohorte" });
-    const noCasa = await deal({ etapa: "atendido", pendiente: "proxima_cohorte" });
-    await db.update(leads).set({ nombre: "Zoraida Buscable" }).where(eq(leads.id, casa.leadId));
-    await db.update(leads).set({ nombre: "Otra Persona" }).where(eq(leads.id, noCasa.leadId));
-
-    // Sin búsqueda: los dos están.
-    const sinQ = await notificacionesDeChip(db, { programId, userId: yo, chip: "proxima_cohorte" }, HOY);
-    expect(new Set(sinQ.tarjetas.map((t) => t.dealId))).toEqual(
-      new Set([casa.dealId, noCasa.dealId]),
-    );
-
-    // Con búsqueda: la lista y el conteo del chip se estrechan igual.
-    const conQ = await notificacionesDeChip(
-      db,
-      { programId, userId: yo, chip: "proxima_cohorte", q: "Zoraida" },
-      HOY,
-    );
-    expect(conQ.tarjetas.map((t) => t.dealId)).toEqual([casa.dealId]);
-    expect(conQ.total).toBe(1);
-
-    const conteos = await conteosDeChips(db, { programId, userId: yo, q: "Zoraida" }, HOY);
-    expect(conteos.proxima_cohorte).toBe(1);
+    const resultado = await pendientesDelCloserEnPrograma(db, {
+      programId, userId: yo, dia: HOY, ahora: new Date(`${HOY}T18:00:00-05:00`),
+    });
+    const llaves = resultado.filas.map((fila) => `${fila.dealId}:${fila.tipo}`);
+    expect(new Set(llaves).size).toBe(llaves.length);
   });
 
   it("un deal de otro programa o de otro dueño nunca aparece (ids forjados)", async () => {
@@ -417,32 +327,18 @@ describe("notificaciones de Mi espacio (222)", () => {
     await dealId({ etapa: "registrado", nuevo: true, owner: otro });
     await dealId({ etapa: "compromiso_verbal", fechaLimitePago: AYER, programa: otroProgramId });
 
-    for (const chip of CHIPS_NOTIFICACIONES) {
+    for (const { tipo } of TIPOS_DE_PENDIENTE) {
       // Mi universo (yo + programId) no tiene ninguno de esos deals.
-      const mios = await todas(chip, yo);
-      expect(mios, chip).not.toContain(otroDuenoLlamada.dealId);
-      expect(mios, chip).not.toContain(otroProgLlamada.dealId);
+      const mios = await todas(tipo, yo);
+      expect(mios, tipo).not.toContain(otroDuenoLlamada.dealId);
+      expect(mios, tipo).not.toContain(otroProgLlamada.dealId);
     }
     // Forjar el userId del otro dueño sí ve lo suyo, nunca lo mío: la frontera es el universo.
-    const d1 = await deal({ etapa: "atendido", owner: yo });
-    await llamada(d1.dealId, HOY);
-    const forjado = await notificacionesDeChip(db, { programId, userId: otro, chip: "hoy" }, HOY);
-    expect(forjado.tarjetas.map((t) => t.dealId)).not.toContain(d1.dealId);
-    expect(forjado.tarjetas.map((t) => t.dealId)).toContain(otroDuenoLlamada.dealId);
-  });
-
-  it("pagina de a 24 en el servidor", async () => {
-    for (let i = 0; i < 30; i++) {
-      await dealId({ etapa: "atendido", pendiente: "proxima_cohorte", creado: `2026-10-${String(i + 1).padStart(2, "0")}T08:00:00-05:00` });
-    }
-    const p0 = await notificacionesDeChip(db, { programId, userId: yo, chip: "proxima_cohorte", pagina: 0 }, HOY);
-    const p1 = await notificacionesDeChip(db, { programId, userId: yo, chip: "proxima_cohorte", pagina: 1 }, HOY);
-    expect(p0.total).toBe(30);
-    expect(p0.tarjetas).toHaveLength(24);
-    expect(p1.tarjetas).toHaveLength(6);
-    // Sin solapamiento y la unión es todo.
-    const union = new Set([...p0.tarjetas, ...p1.tarjetas].map((t) => t.dealId));
-    expect(union.size).toBe(30);
+    const forjado = await pendientesDelCloserEnPrograma(db, {
+      programId, userId: otro, dia: HOY, ahora: new Date(`${HOY}T18:00:00-05:00`),
+    });
+    expect(forjado.filas.map((fila) => fila.dealId)).not.toContain(otroProgLlamada.dealId);
+    expect(forjado.filas.map((fila) => fila.dealId)).toContain(otroDuenoLlamada.dealId);
   });
 });
 

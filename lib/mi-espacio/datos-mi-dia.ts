@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db/tipos";
 import { estaAgendada } from "@/lib/deals/resultados-de-llamada";
 import { llamadasDelCloser, type RangoMiDia } from "@/lib/mi-espacio/llamadas-del-dia";
+import { pendientesDelCloserEnPrograma, tipoDePendientePedido } from "@/lib/mi-espacio/pendientes";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 
 type Busqueda = Record<string, string | string[] | undefined>;
@@ -24,16 +25,35 @@ export async function cargarDatosDeMiDia(db: Db, entrada: EntradaDeMiDia) {
   const orden: "hora" | "lead" | "estado" = ordenPedido === "lead" || ordenPedido === "estado" ? ordenPedido : "hora";
   const dir = uno(entrada.busqueda.dir) === "desc" ? "desc" as const : "asc" as const;
   const soloSinConfirmar = uno(entrada.busqueda.conf) === "sin";
+  const tipoPendiente = tipoDePendientePedido(uno(entrada.busqueda.tipo));
   const ahora = new Date();
-  const [filas, opciones] = await Promise.all([
-    llamadasDelCloser(db, {
+  // El resumen cuenta TODAS las llamadas de hoy; la tabla, el rango y el filtro pedidos. Con
+  // rango "hoy" la tabla sale de la misma lectura (filtrada en memoria): una consulta, no dos.
+  const deHoy = llamadasDelCloser(db, {
+    programId: entrada.programId,
+    userId: entrada.userId,
+    rango: "hoy",
+    hoy: entrada.hoy,
+  });
+  const delRango = rango === "hoy"
+    ? deHoy.then((todas) => soloSinConfirmar ? todas.filter((fila) => fila.confirmacion !== "confirmada") : [...todas])
+    : llamadasDelCloser(db, {
       programId: entrada.programId,
       userId: entrada.userId,
       rango,
       hoy: entrada.hoy,
       soloSinConfirmar,
-    }),
+    });
+  const [filas, llamadasDeHoy, opciones, pendientes] = await Promise.all([
+    delRango,
+    deHoy,
     opcionesDeFicha(db, entrada.programId, null, null),
+    pendientesDelCloserEnPrograma(db, {
+      programId: entrada.programId,
+      userId: entrada.userId,
+      dia: entrada.hoy,
+      ahora,
+    }),
   ]);
   // La regla de "sigue agendada" vive en su módulo dueño (guardián N1): aquí solo se ordena.
   const valorEstado = (fila: (typeof filas)[number]) => {
@@ -47,7 +67,23 @@ export async function cargarDatosDeMiDia(db: Db, entrada: EntradaDeMiDia) {
     : orden === "lead"
       ? (a.leadNombre ?? a.leadEmail).localeCompare(b.leadNombre ?? b.leadEmail, "es")
       : valorEstado(a).localeCompare(valorEstado(b), "es")));
-  return { filas, rango, soloSinConfirmar, orden, dir, ahora, motivosReagenda: opciones.motivos };
+  return {
+    filas,
+    rango,
+    soloSinConfirmar,
+    orden,
+    dir,
+    ahora,
+    motivosReagenda: opciones.motivos,
+    pendientes: pendientes.filas,
+    tipoPendiente,
+    resumen: {
+      llamadasHoy: llamadasDeHoy.length,
+      confirmadas: llamadasDeHoy.filter((fila) => fila.confirmacion === "confirmada").length,
+      vencidos: pendientes.filas.filter((fila) => fila.grupo === "vencido").length,
+      paraHoy: pendientes.filas.filter((fila) => fila.grupo === "hoy").length,
+    },
+  };
 }
 
 export type DatosDeMiDia = Awaited<ReturnType<typeof cargarDatosDeMiDia>>;

@@ -170,7 +170,7 @@ describe("avisos de registros pendientes", () => {
     )).json());
     expect(manana.avisos[0].texto).toContain("Abono Sin Soporte");
     expect(manana.avisos[0].texto).toContain("sin comprobante");
-    expect(manana.avisos[0].texto).toContain("programa=tactical&chip=sin_comprobante");
+    expect(manana.avisos[0].texto).toContain("tab=mi-dia&programa=tactical&tipo=sin_comprobante");
 
     const tarde = esquemaRespuestaAvisosPendientes.parse(await (await listar(
       request("/api/pendientes/avisos", { ventana: "tarde" }),
