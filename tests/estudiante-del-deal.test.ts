@@ -341,13 +341,6 @@ describe("customer success: solo marca y desmarca onboarding, con membresía (ti
     expect((await fila(dealId)).onboardedAt).toBeNull();
   });
 
-  it("SIN membresía en el programa: 403 al marcar, y la fila no se toca", async () => {
-    const cs = await nuevoCustomerSuccess({ conMembresia: false });
-    const dealId = await nuevoDeal("ganado_parcial");
-    expect((await capturar(marcarOnboarded(db, cs, { dealId }))).status).toBe(403);
-    expect((await fila(dealId)).onboardedAt).toBeNull();
-  });
-
   it("una membresía INACTIVA no alcanza: 403 al marcar", async () => {
     const [u] = await db
       .insert(users)

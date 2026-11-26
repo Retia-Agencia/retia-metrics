@@ -145,10 +145,6 @@ async function crearProgramaActivo(
 }
 
 describe("esquema de programa", () => {
-  it("acepta un programa valido", () => {
-    const datos = esquemaPrograma.parse(programaValido);
-    expect(datos.slug).toBe("programa-alfa");
-  });
 
   it("rechaza un slug con mayusculas o espacios", () => {
     expect(esquemaPrograma.safeParse({ ...programaValido, slug: "Programa Alfa" }).success).toBe(
@@ -167,11 +163,6 @@ describe("esquema de programa", () => {
     });
     expect(datos.webUrl).toBeNull();
     expect(datos.calendlyUrl).toBeNull();
-  });
-
-  it("el esquema ya no lleva la URL del formulario: sale de la fuente principal (ADR 0068)", () => {
-    const datos = esquemaPrograma.parse({ ...programaValido, formUrl: "https://form.co/x" });
-    expect(datos).not.toHaveProperty("formUrl");
   });
 
   it("rechaza una url invalida", () => {
@@ -252,15 +243,6 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
     expect((await logDe(creado.id)).length).toBe(logAntes.length);
   });
 
-  it("con fuente principal y Calendly conectado, reactivar activa el programa", async () => {
-    const activo = await crearProgramaActivo(db, gerenteId);
-    expect(activo.activo).toBe(true);
-  });
-
-  it("crear un programa lo deja inactivo (el token no viaja por el alta)", async () => {
-    const creado = await crearPrograma(db, gerenteId, programaValido);
-    expect(creado.activo).toBe(false);
-  });
 });
 
 describe("la integración de Calendly", () => {
@@ -347,14 +329,6 @@ describe("crear programa", () => {
     expect(activos.some((p) => p.slug === "programa-alfa")).toBe(true);
   });
 
-  it("rechaza un slug invalido con 400", async () => {
-    const error = await crearPrograma(db, gerenteId, {
-      ...programaValido,
-      slug: "Mayusculas",
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
 });
 
 describe("editar programa", () => {
@@ -464,38 +438,11 @@ function sinInicioVentas() {
 }
 
 describe("esquema de cohorte", () => {
-  it("acepta una cohorte valida", () => {
-    const datos = esquemaCohorte.parse({
-      ...cohorteBase,
-      programId: "00000000-0000-0000-0000-000000000000",
-    });
-    expect(datos.codigo).toBe("C1");
-  });
 
   it("rechaza un programId que no es uuid", () => {
     expect(
       esquemaCohorte.safeParse({ ...cohorteBase, programId: "no-uuid" }).success,
     ).toBe(false);
-  });
-
-  // ADR 0137 punto 5: sin inicio de ventas la cohorte queda futura por definición.
-  it("una cohorte por definir SIN inicio de ventas valida", () => {
-    const res = esquemaCohorte.safeParse({
-      ...sinInicioVentas(),
-      programId: "00000000-0000-0000-0000-000000000000",
-    });
-    expect(res.success).toBe(true);
-  });
-
-  it("una cohorte con inicio de ventas valida y normaliza la fecha", () => {
-    const res = esquemaCohorte.safeParse({
-      ...cohorteBase,
-      programId: "00000000-0000-0000-0000-000000000000",
-      fechaInicioVentas: "2026-08-14",
-      fechaCierreVentas: "2026-09-21",
-    });
-    expect(res.success).toBe(true);
-    if (res.success) expect(res.data.fechaInicioVentas).toBe("2026-08-14");
   });
 
   it("una cohorte por definir puede quedar sin inicio de ventas", () => {

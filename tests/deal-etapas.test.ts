@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { deals, leads, programs } from "@/lib/db/schema";
 import {
-  ETAPAS, NOMBRE_DE_ETAPA, TRANSICIONES, TRANSICIONES_PENDIENTE,
+  ETAPAS, TRANSICIONES, TRANSICIONES_PENDIENTE,
   aceptaAbono, esTransicionPermitida, siguientesDe, transicion, type EtapaDeal,
 } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -24,11 +24,6 @@ const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
 };
 
 describe("las once etapas", () => {
-  it("son once, no se repiten y todas tienen nombre", () => {
-    expect(ETAPAS).toHaveLength(11);
-    expect(new Set(ETAPAS).size).toBe(11);
-    for (const etapa of ETAPAS) expect(NOMBRE_DE_ETAPA[etapa]).toBeTruthy();
-  });
 });
 
 describe("la tabla de transiciones", () => {

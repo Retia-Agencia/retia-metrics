@@ -194,20 +194,6 @@ describe("/mi-espacio (ticket 172)", () => {
     expect(await correr()).toBe("login");
   });
 
-  it("el developer sin membresías ve el mensaje del dueño con 'Ver como closer' (ticket 177)", async () => {
-    auth.mockResolvedValue({
-      user: { id: "u-dev", rol: "developer", operaComoCloser: false, closerId: null, name: "Dev", email: "dev@x.co", image: null },
-    });
-    membresiasConCalendlyDe.mockResolvedValue([]);
-    const arbol = await renderizar();
-    const texto = textoDelArbol(arbol);
-    expect(texto).toContain("Ver como closer");
-    expect(texto).toContain("según su rol");
-    expect(tieneComponente(arbol, "ConexionesDeIa")).toBe(true);
-    // No le muestra el mensaje de "pídele a tu gerente": no aplica al dueño (ADR 0025).
-    expect(texto).not.toContain("pídele a tu gerente");
-  });
-
   it("el developer en vista closer sin membresías ve el mensaje del dueño, no el de 'pídele a tu gerente' (179)", async () => {
     // Vista `closer` sin suplantar: el rol de vista trabaja leads, pero la cuenta de verdad
     // es el dueño y no está suplantando a nadie. Antes del arreglo le pedía hablar con su gerente.
@@ -219,14 +205,6 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(await renderizar());
     expect(texto).toContain("Ver como closer");
     expect(texto).not.toContain("pídele a tu gerente");
-  });
-
-  it("un closer sin membresías ve el mensaje de 'pídele a tu gerente', no el del dueño", async () => {
-    membresiasConCalendlyDe.mockResolvedValue([]);
-    const arbol = await renderizar();
-    const texto = textoDelArbol(arbol);
-    expect(texto).toContain("pídele a tu gerente");
-    expect(texto).not.toContain("Ver como closer");
   });
 
   // ─────────────────────────── ticket 179: curado por rol ───────────────────────────

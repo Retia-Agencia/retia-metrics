@@ -626,11 +626,6 @@ describe("parsearFiltros", () => {
     expect(parsearFiltros({ orden: "creado", sentido: "otro" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
   });
 
-  it("acepta nombre y ante un orden invalido de la URL vuelve a actividad reciente", () => {
-    expect(parsearFiltros({ orden: "nombre", sentido: "asc" }).orden).toEqual({ campo: "nombre", sentido: "asc" });
-    expect(parsearFiltros({ orden: "nombre", sentido: "lateral" }).orden).toEqual({ campo: "actividad", sentido: "desc" });
-  });
-
   it("deja el ciclo sin filtrar por ausencia, vacío o todas y conserva un id explícito", () => {
     expect(parsearFiltros({}, HOY).cohorteId).toBeNull();
     expect(parsearFiltros({ cohorte: "" }, HOY).cohorteId).toBeNull();

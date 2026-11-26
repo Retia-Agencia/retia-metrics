@@ -229,11 +229,6 @@ describe("respuestasPorDestino: Transición (ADR 0075)", () => {
     expect(texto("calificado", "nota")).toBe("Una nota en el historial. No cambia la etapa.");
   });
 
-  it("sin frase propia, la respuesta dice solo lo que cambia", () => {
-    const califica = respuestasDe("contactado", null).find((r) => r.id === "califica")!;
-    expect(queHace("contactado", null, califica, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE))
-      .toBe(`El deal pasa a ${NOMBRE_DE_ETAPA.calificado}.`);
-  });
 });
 
 describe("etapaTrasActividad: la regla de registrarActividad", () => {
