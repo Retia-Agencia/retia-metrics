@@ -224,9 +224,10 @@ async function leerUniverso(
       }
       // CUALQUIER llamada vigente de hoy cuenta, no solo la última: un deal con cita hoy y
       // otra más adelante sigue siendo de hoy.
-      if (!c.dealId || !c.fechaLlamada || diaDeCalendario(c.fechaLlamada) !== hoy) continue;
+      const hora = c.fechaAgenda ?? c.fechaLlamada;
+      if (!c.dealId || !hora || diaDeCalendario(hora) !== hoy) continue;
       const previo = llamadaDeHoy.get(c.dealId);
-      if (!previo || c.fechaLlamada < previo) llamadaDeHoy.set(c.dealId, c.fechaLlamada);
+      if (!previo || hora < previo) llamadaDeHoy.set(c.dealId, hora);
     }
   }
 

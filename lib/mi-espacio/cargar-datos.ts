@@ -13,6 +13,7 @@ import { cargarDatosDeCanales } from "@/lib/mi-espacio/datos-canales";
 import { cargarDatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
 import { cargarDatosDeNotificaciones } from "@/lib/mi-espacio/datos-notificaciones";
 import { cargarDatosDePorDecidir } from "@/lib/mi-espacio/datos-por-decidir";
+import { cargarDatosDeMiDia } from "@/lib/mi-espacio/datos-mi-dia";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
@@ -38,8 +39,20 @@ interface EntradaDeMiEspacio {
 type ProgramaElegido = { id: string; slug: string; nombre: string };
 
 /** Los datos de la tab elegida; los mismos argumentos que cada tab usaba al leer por su cuenta. */
-async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, programa: ProgramaElegido | null, visibles: ProgramaElegido[]) {
+async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, programa: ProgramaElegido | null) {
   switch (entrada.seccion?.id) {
+    case "mi-dia":
+      return programa
+        ? {
+            id: "mi-dia" as const,
+            datos: await cargarDatosDeMiDia(db, {
+              programId: programa.id,
+              userId: entrada.userId,
+              hoy: entrada.hoy,
+              busqueda: entrada.busqueda,
+            }),
+          }
+        : null;
     case "notificaciones":
       return programa
         ? {
@@ -54,10 +67,10 @@ async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, program
           }
         : null;
     case "metricas":
+      if (!programa) return null;
       return {
         id: "metricas" as const,
         datos: await cargarDatosDeMetricas(db, {
-          programas: visibles,
           programa,
           closerUserId: entrada.userId,
           hoy: entrada.hoy,
@@ -106,17 +119,15 @@ export async function cargarDatosDeMiEspacio(db: Db, entrada: EntradaDeMiEspacio
     ? await programasVisibles(entrada.userId, entrada.rol, db)
     : [];
   let programa: Awaited<ReturnType<typeof programaVisiblePorSlug>> = null;
-  if (entrada.seccion?.usaSelectorDePrograma) {
+  if (entrada.seccion?.porPrograma) {
     if (!entrada.cargarProgramasVisibles) visibles = await programasVisibles(entrada.userId, entrada.rol, db);
-    programa = entrada.seccion.id === "metricas" && entrada.programaPedido === "todos"
-      ? null
-      : entrada.programaPedido
+    programa = entrada.programaPedido
       ? await programaVisiblePorSlug(entrada.userId, entrada.rol, entrada.programaPedido, db)
       : elegirPrograma(visibles, entrada.programaPreferido ?? null);
   }
 
-  const deSeccion = programa || entrada.seccion?.id === "metricas" || entrada.seccion?.id === "canales"
-    ? await cargarDatosDeSeccion(db, entrada, programa, visibles)
+  const deSeccion = programa || entrada.seccion?.id === "canales"
+    ? await cargarDatosDeSeccion(db, entrada, programa)
     : null;
 
   return { conexionesIa, membresias, calendly, enlaces, visibles, programa, deSeccion };

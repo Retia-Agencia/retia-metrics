@@ -6,14 +6,6 @@ import { cajaRecaudada, embudoDelRango, type CajaPorMoneda } from "@/lib/queries
 import { comisionesPorCloser } from "@/lib/queries/comision";
 import { resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { detalleDeCifra, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
-import {
-  conteo,
-  dinero,
-  sumarConteos,
-  sumarDinero,
-  type Conteo,
-  type Dinero,
-} from "@/lib/queries/agregado-programas";
 import type { RazonConCobertura } from "@/lib/cobertura";
 
 export interface ProgramaDeMetricas {
@@ -155,69 +147,5 @@ export async function armarVistaDeMisMetricas(
       grupoVendidos: personal(detalles[5]),
       grupoPendientes: personal(detalles[6]),
     },
-  };
-}
-
-export interface SumablesDeMisMetricas {
-  agendas: Conteo;
-  shows: Conteo;
-  noShows: Conteo;
-  cierres: Conteo;
-  caja: Dinero[];
-}
-
-/** El contrato no acepta tasas ni comisión: ambas permanecen por programa. */
-export function sumarCifrasDeMiEspacio(cifras: readonly SumablesDeMisMetricas[]): SumablesDeMisMetricas {
-  return {
-    agendas: sumarConteos(cifras.map((c) => c.agendas)),
-    shows: sumarConteos(cifras.map((c) => c.shows)),
-    noShows: sumarConteos(cifras.map((c) => c.noShows)),
-    cierres: sumarConteos(cifras.map((c) => c.cierres)),
-    caja: sumarDinero(cifras.map((c) => c.caja)),
-  };
-}
-
-function sumables(cifras: CifrasDePeriodo): SumablesDeMisMetricas {
-  return {
-    agendas: conteo(cifras.agendas),
-    shows: conteo(cifras.shows),
-    noShows: conteo(cifras.noShows),
-    cierres: conteo(cifras.cierres),
-    caja: cifras.caja.map((c) => dinero(c.moneda, c.total)),
-  };
-}
-
-export interface FilaDeMisMetricasPorPrograma {
-  vista: VistaDeMisMetricas;
-  razonCierre: RazonConCobertura;
-  comision: Dinero;
-}
-
-export interface VistaDeMisMetricasTodos {
-  periodo: PeriodoResuelto;
-  a: SumablesDeMisMetricas;
-  b: SumablesDeMisMetricas | null;
-  programas: FilaDeMisMetricasPorPrograma[];
-}
-
-export async function armarVistaDeMisMetricasTodos(
-  entrada: { programas: ProgramaDeMetricas[]; closerUserId: string; hoy: string; periodo: EntradaDePeriodo; origen: string },
-  db: Db = dbDeLaApp,
-): Promise<VistaDeMisMetricasTodos> {
-  const vistas = await Promise.all(entrada.programas.map((programa) => armarVistaDeMisMetricas({ ...entrada, programa }, db)));
-  const primera = vistas[0];
-  if (!primera) throw new Error("Mis métricas requiere al menos un programa visible.");
-  return {
-    // Para Cohorte cada programa resuelve su propia ventana; el selector conserva el preset.
-    periodo: primera.periodo,
-    a: sumarCifrasDeMiEspacio(vistas.map((v) => sumables(v.a))),
-    b: vistas.every((v) => v.b !== null)
-      ? sumarCifrasDeMiEspacio(vistas.map((v) => sumables(v.b!)))
-      : null,
-    programas: vistas.map((vista) => ({
-      vista,
-      razonCierre: vista.a.razonCierre,
-      comision: dinero("USD", vista.a.comisionUsd),
-    })),
   };
 }

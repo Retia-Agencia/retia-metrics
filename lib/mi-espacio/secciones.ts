@@ -23,6 +23,7 @@ import { esAccesoTotal, esAdministrador, manejaPauta, trabajaLeads } from "@/lib
 
 /** El id de una sección: también el valor de `?tab=` en la URL. */
 export type SeccionId =
+  | "mi-dia"
   | "info"
   | "notificaciones"
   | "metricas"
@@ -40,14 +41,14 @@ export interface SeccionMiEspacio {
   etiqueta: string;
   /** `true` si el rol cumple la capacidad que habilita la sección. */
   habilita: (sujeto: SujetoDeCapacidad) => boolean;
-  /** `true` si la sección se mira por programa (selector obligatorio, frontera ADR 0043). */
-  usaSelectorDePrograma: boolean;
+  /** `true` si la sección se mira por programa (frontera ADR 0043). */
+  porPrograma: boolean;
 }
 
 /**
- * El catálogo, en orden de aparición. Info va primera para todo rol que tiene Mi espacio
- * (ticket 221): el perfil, la foto, el rol, los enlaces de captación y la cuenta de
- * Calendly por programa. Después, una sección por capacidad:
+ * El catálogo, en orden de aparición. Info va última para todo rol que tiene Mi espacio:
+ * contiene el perfil, la foto, el rol, los enlaces de captación y la cuenta de Calendly.
+ * Antes aparecen las secciones de trabajo de cada capacidad:
  *  - Las de quien trabaja leads: Notificaciones (el hub, reemplaza "Necesita atención") y
  *    Métricas personales.
  *  - `canales` para quien maneja pauta sin administrar ni trabajar leads (paid trafficker).
@@ -61,24 +62,22 @@ export interface SeccionMiEspacio {
  */
 export const SECCIONES: readonly SeccionMiEspacio[] = [
   {
-    id: "info",
-    etiqueta: "Info",
-    // Todo rol que tiene Mi espacio: trabaja leads, administra o maneja pauta. El developer
-    // cumple las tres, así que también la ve. Por capacidad, nunca por el literal del rol.
-    habilita: (sujeto) => trabajaLeads(sujeto) || esAdministrador(sujeto.rol) || manejaPauta(sujeto.rol),
-    usaSelectorDePrograma: false,
+    id: "mi-dia",
+    etiqueta: "Mi día",
+    habilita: (sujeto) => trabajaLeads(sujeto),
+    porPrograma: true,
   },
   {
     id: "notificaciones",
     etiqueta: "Notificaciones",
     habilita: (sujeto) => trabajaLeads(sujeto),
-    usaSelectorDePrograma: true,
+    porPrograma: true,
   },
   {
     id: "metricas",
     etiqueta: "Métricas",
     habilita: (sujeto) => trabajaLeads(sujeto),
-    usaSelectorDePrograma: true,
+    porPrograma: true,
   },
   {
     id: "canales",
@@ -88,7 +87,7 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
     habilita: (sujeto) => manejaPauta(sujeto.rol) && !esAdministrador(sujeto.rol) && !trabajaLeads(sujeto),
     // Los Canales son globales y el paid trafficker no tiene membresías: la sección no se
     // acota por programa (ve todo, como hoy en /ajustes/canales).
-    usaSelectorDePrograma: false,
+    porPrograma: false,
   },
   {
     id: "por-decidir",
@@ -96,7 +95,15 @@ export const SECCIONES: readonly SeccionMiEspacio[] = [
     // El gerente conserva esta sección aunque opere como closer (ticket 236). El
     // developer entra por `todo`, no por aquí: en vista `gerente` sí ve esto.
     habilita: (sujeto) => esAdministrador(sujeto.rol) && !esAccesoTotal(sujeto.rol),
-    usaSelectorDePrograma: true,
+    porPrograma: true,
+  },
+  {
+    id: "info",
+    etiqueta: "Info",
+    // Todo rol que tiene Mi espacio: trabaja leads, administra o maneja pauta. El developer
+    // cumple las tres, así que también la ve. Por capacidad, nunca por el literal del rol.
+    habilita: (sujeto) => trabajaLeads(sujeto) || esAdministrador(sujeto.rol) || manejaPauta(sujeto.rol),
+    porPrograma: false,
   },
 ] as const;
 
@@ -107,15 +114,15 @@ export function seccionesDeRol(sujeto: SujetoDeCapacidad): SeccionMiEspacio[] {
 
 /**
  * La sección POR DEFECTO del rol: el trabajo de su rol, no Info. Para quien trabaja leads
- * es Notificaciones; para el gerente, Por decidir; para el paid trafficker, Canales. Info
- * va primera en la barra (ticket 221), pero no es la que se abre sin `?tab=`: lo primero
- * que ve alguien es su trabajo. Se calcula como la primera sección distinta de Info, con
- * Info de red por si un rol sólo tuviera esa.
+ * es Mi día; para el gerente, Por decidir; para el paid trafficker, Canales. Info queda
+ * como red por si un rol sólo tuviera esa sección.
  */
 export function seccionPorDefecto(sujeto: SujetoDeCapacidad): SeccionMiEspacio | null {
   const disponibles = seccionesDeRol(sujeto);
   if (disponibles.length === 0) return null;
-  return disponibles.find((s) => s.id !== "info") ?? disponibles[0];
+  return trabajaLeads(sujeto)
+    ? disponibles.find((s) => s.id === "mi-dia") ?? disponibles[0]
+    : disponibles.find((s) => s.id !== "info") ?? disponibles[0];
 }
 
 /**

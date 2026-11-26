@@ -544,6 +544,18 @@ describe("el programa en la URL (ticket 097)", () => {
     );
   });
 
+  it("desde Mi espacio conserva su estado opaco y suelta búsqueda y paginación", () => {
+    const query = new URLSearchParams("tab=mi-dia&rango=semana&conf=sin&chip=hoy&pagina=2&q=Ana");
+    expect(rutaAlCambiarDePrograma("/mi-espacio", "programa-b", query)).toBe(
+      "/mi-espacio?programa=programa-b&tab=mi-dia&rango=semana&conf=sin",
+    );
+    expect(rutaAlCambiarDePrograma("/mi-espacio", "programa-b")).toBe(
+      "/mi-espacio?programa=programa-b",
+    );
+    expect(rutaAlCambiarDePrograma("/mi-espacio", VALOR_PROGRAMA_TODOS, query)).toBe("/hub");
+    expect(rutaAlCambiarDePrograma("/mi-espacio", "programa-b", query, { activo: false })).toBe("/p/programa-b/programa");
+  });
+
   it("suelta lo que venga detras de la tab: un id es del programa anterior", () => {
     expect(rutaAlCambiarDePrograma("/p/programa-a/hub/algo", "programa-b")).toBe(
       "/p/programa-b/hub",
