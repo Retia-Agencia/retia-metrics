@@ -62,7 +62,6 @@ vi.mock("@/lib/atribucion/captacion-del-closer", () => ({ enlacesDeCaptacion: as
 
 // Los datos de cada tab se prueban en sus propios tests; aquí solo importa la rama.
 vi.mock("@/lib/mi-espacio/datos-mi-dia", () => ({ cargarDatosDeMiDia: async () => ({}) }));
-vi.mock("@/lib/mi-espacio/datos-notificaciones", () => ({ cargarDatosDeNotificaciones: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-metricas", () => ({ cargarDatosDeMetricas: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-canales", () => ({ cargarDatosDeCanales: async () => ({}) }));
 vi.mock("@/lib/mi-espacio/datos-por-decidir", () => ({ cargarDatosDePorDecidir: async () => ({}) }));
@@ -148,6 +147,14 @@ describe("/mi-espacio (ticket 172)", () => {
     programasActivos.mockReset();
     programasActivos.mockResolvedValue([PROG_A, PROG_B]);
     auth.mockResolvedValue(sesionCloser);
+  });
+
+  it.each(["atencion", "notificaciones"])("redirige ?tab=%s a Mi día y traduce un chip conocido", async (tab) => {
+    const modulo = (await import("@/app/(app)/mi-espacio/page")) as {
+      default: (props: { searchParams: Promise<Record<string, string | undefined>> }) => Promise<unknown>;
+    };
+    await expect(modulo.default({ searchParams: Promise.resolve({ tab, programa: "programa-a", chip: "reagenda" }) }))
+      .rejects.toMatchObject({ destino: "/mi-espacio?programa=programa-a&tab=mi-dia&tipo=reagenda" });
   });
 
   it("sin membresías NO llama a notFound y renderiza (el mensaje de A-04)", async () => {
@@ -262,7 +269,7 @@ describe("/mi-espacio (ticket 172)", () => {
     auth.mockResolvedValue(sesionGerente);
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(false);
     expect(tieneComponente(arbol, "TabMisDeals")).toBe(false);
     expect(tieneComponente(arbol, "TabCanales")).toBe(false);
   });
@@ -331,7 +338,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A]);
     const arbol = await renderizar();
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(true);
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(false);
   });
 
   it("el developer en vista todo ve el mensaje que lo explica (no hay sección propia)", async () => {
@@ -343,7 +350,7 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
     expect(texto).toContain("según su rol");
-    expect(tieneComponente(arbol, "TabNotificaciones")).toBe(false);
+    expect(tieneComponente(arbol, "TabMiDia")).toBe(false);
     expect(tieneComponente(arbol, "TabPorDecidir")).toBe(false);
   });
 });

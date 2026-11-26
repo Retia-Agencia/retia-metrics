@@ -11,15 +11,10 @@ import { elegirPrograma } from "@/lib/programa-preferido";
 import { programasActivos } from "@/lib/queries/programas";
 import { cargarDatosDeCanales } from "@/lib/mi-espacio/datos-canales";
 import { cargarDatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
-import { cargarDatosDeNotificaciones } from "@/lib/mi-espacio/datos-notificaciones";
 import { cargarDatosDePorDecidir } from "@/lib/mi-espacio/datos-por-decidir";
 import { cargarDatosDeMiDia } from "@/lib/mi-espacio/datos-mi-dia";
 
 type Busqueda = Record<string, string | string[] | undefined>;
-
-function uno(valor: string | string[] | undefined): string | undefined {
-  return Array.isArray(valor) ? valor[0] : valor;
-}
 
 interface EntradaDeMiEspacio {
   userId: string;
@@ -50,19 +45,6 @@ async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, program
               userId: entrada.userId,
               hoy: entrada.hoy,
               busqueda: entrada.busqueda,
-            }),
-          }
-        : null;
-    case "notificaciones":
-      return programa
-        ? {
-            id: "notificaciones" as const,
-            datos: await cargarDatosDeNotificaciones(db, {
-              programId: programa.id,
-              userId: entrada.userId,
-              chip: uno(entrada.busqueda.chip),
-              pagina: uno(entrada.busqueda.pagina),
-              q: uno(entrada.busqueda.q),
             }),
           }
         : null;

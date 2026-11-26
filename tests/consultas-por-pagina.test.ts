@@ -162,7 +162,7 @@ const PAGINAS = {
       puedeConectarIa: true,
       puedeCrearToken: true,
       cargarProgramasVisibles: false,
-      seccion: SECCIONES.find((seccion) => seccion.id === "notificaciones")!,
+      seccion: SECCIONES.find((seccion) => seccion.id === "mi-dia")!,
       programaPedido: undefined,
       programaPreferido: null,
       busqueda: {},
