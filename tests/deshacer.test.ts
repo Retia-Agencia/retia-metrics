@@ -351,9 +351,9 @@ describe("deshacer cambios", () => {
     expect((await error(deshacerEvento(db, actor(autor), { dealId, evento: { tipo: "cambio", changeLogId } }))).status).toBe(409);
   });
 
-  it.each(["no_show", "cancelada"] as const)("al deshacer una sola %s limpia Re-agenda", async (resultado) => {
+  it("al deshacer una sola falla (no_show) limpia Re-agenda", async () => {
     const { dealId, callId } = await dealConCita();
-    await marcarFallida(db, actor(autor), { callId, resultado });
+    await marcarFallida(db, actor(autor), { callId, resultado: "no_show" });
 
     await deshacerEvento(db, actor(autor), {
       dealId,

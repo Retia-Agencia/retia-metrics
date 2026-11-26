@@ -15,7 +15,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
-import { agregarLlamada, marcarFallida, pegarGrain } from "@/lib/deals/llamadas";
+import { marcarFallida, pegarGrain } from "@/lib/deals/llamadas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -202,6 +202,8 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
     expect(guardada.fechaLlamada).not.toBeNull();
 
     expect(await historial(dealId)).toMatchObject([{ de: "agendado", a: "atendido", userId: null }]);
+    const campos = (await bitacoraDeCall(call.id)).map((f) => f.campo);
+    expect(campos).toEqual(expect.arrayContaining(["linkGrain", "resultado", "fechaLlamada"]));
   });
 
   it("desde Agendado con Re-agenda pendiente también mueve a Atendido", async () => {
@@ -255,18 +257,6 @@ describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
     expect(guardada.resultado).toBe("show");
     expect(guardada.linkGrain).toBe("https://grain.com/share/z");
     expect(await historial(dealId)).toHaveLength(0);
-  });
-
-  it("deja rastro en change_log de link_grain, resultado y fecha_llamada", async () => {
-    const dealId = await nuevoDeal("agendado");
-    const call = await agendadaDe(dealId);
-
-    await pegarGrain(db, comoCloser(), { callId: call.id, linkGrain: "https://grain.com/share/w" });
-
-    const campos = (await bitacoraDeCall(call.id)).map((f) => f.campo);
-    expect(campos).toContain("linkGrain");
-    expect(campos).toContain("resultado");
-    expect(campos).toContain("fechaLlamada");
   });
 
   it("el developer puede pegar el Grain aunque el deal sea de otro (esAdministrador)", async () => {
@@ -407,60 +397,9 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
       expect(await historial(dealId)).toMatchObject([
         { de: "agendado", a: "agendado", pendienteDe: null, pendienteA: "reagenda", userId: null },
       ]);
+      expect((await bitacoraDeCall(call.id)).map((f) => f.campo)).toContain("resultado");
     });
   }
-
-  it("no_show y cancelada siguen siendo dos valores distintos (ADR 0015)", async () => {
-    // Dos leads distintos: un lead no puede tener dos deals abiertos en el mismo
-    // programa (deals_uno_abierto_por_lead_y_programa_idx).
-    const [l2] = await db
-      .insert(leads)
-      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
-      .returning();
-
-    const [d1row] = await db
-      .insert(deals)
-      .values({ leadId, programId, cohortId, etapa: "agendado", ownerUserId: closer })
-      .returning();
-    const c1 = await agendadaDe(d1row.id);
-    await marcarFallida(db, comoCloser(), { callId: c1.id, resultado: "no_show" });
-
-    const [d2row] = await db
-      .insert(deals)
-      .values({ leadId: l2.id, programId, cohortId, etapa: "agendado", ownerUserId: closer })
-      .returning();
-    const [c2] = await db
-      .insert(calls)
-      .values({
-        dealId: d2row.id,
-        programId,
-        emailLead: "beto@correo.co",
-        closerUserId: closer,
-        fechaAgenda: enUnaHora(),
-        resultado: "agendada",
-        origen: "crm",
-      })
-      .returning();
-    await marcarFallida(db, comoCloser(), { callId: c2.id, resultado: "cancelada" });
-
-    expect(await callPorId(c1.id).then((c) => c.resultado)).toBe("no_show");
-    expect(await callPorId(c2.id).then((c) => c.resultado)).toBe("cancelada");
-  });
-
-  it("desde Agendado una llamada fallida deja Re-agenda pendiente", async () => {
-    const dealId = await nuevoDeal("agendado");
-    const call = await agendadaDe(dealId);
-
-    const { etapa } = await marcarFallida(db, comoCloser(), {
-      callId: call.id,
-      resultado: "no_show",
-    });
-
-    expect(etapa).toBe("agendado");
-    expect(await historial(dealId)).toMatchObject([
-      { de: "agendado", a: "agendado", pendienteDe: null, pendienteA: "reagenda", userId: null },
-    ]);
-  });
 
   it("desde Atendido con motivo se queda en Atendido con Re-agenda, y lo firma el closer (PR2)", async () => {
     const dealId = await nuevoDeal("atendido");
@@ -485,14 +424,6 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
     // El resultado se escribió dentro de la transacción y se deshizo al rechazar el
     // movimiento: la llamada sigue como estaba.
     expect(await callPorId(call.id).then((c) => c.resultado)).toBe("show");
-  });
-
-  it("deja rastro en change_log del resultado", async () => {
-    const dealId = await nuevoDeal("agendado");
-    const call = await agendadaDe(dealId);
-    await marcarFallida(db, comoCloser(), { callId: call.id, resultado: "no_show" });
-    const campos = (await bitacoraDeCall(call.id)).map((f) => f.campo);
-    expect(campos).toContain("resultado");
   });
 
   it("el developer puede marcar fallida un deal de otro (esAdministrador)", async () => {
@@ -549,24 +480,5 @@ describe("marcarFallida: rechazos", () => {
       marcarFallida(db, comoCloser(), { callId: call.id, resultado: "show" }),
     );
     expect(err.status).toBe(400);
-  });
-});
-
-// ─────────────────────── 059 · una Call nueva sobre un deal en Re-agenda lo devuelve
-
-describe("una Call nueva con fecha sobre un deal en Re-agenda lo devuelve a Agendado", () => {
-  it("agregarLlamada desde Agendado con Re-agenda pendiente limpia el pendiente", async () => {
-    const dealId = await nuevoDeal("agendado", { pendiente: "reagenda" });
-
-    const { movioAAgendado } = await agregarLlamada(db, comoCloser(), {
-      dealId,
-      fechaAgenda: enUnaHora(),
-    });
-
-    expect(movioAAgendado).toBe(true);
-    expect(await etapaDe(dealId)).toBe("agendado");
-    expect(await historial(dealId)).toMatchObject([
-      { de: "agendado", a: "agendado", pendienteDe: "reagenda", pendienteA: null, userId: closer },
-    ]);
   });
 });

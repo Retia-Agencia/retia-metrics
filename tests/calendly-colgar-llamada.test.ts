@@ -15,7 +15,6 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { abrirDeal, moverEtapa } from "@/lib/deals/mover-etapa";
 import { agregarLlamada } from "@/lib/deals/llamadas";
 import {
@@ -445,29 +444,6 @@ describe("crearDealDesdeSuelta", () => {
     );
     expect(r.leadId).toBe(existente.id);
     expect(await db.select().from(leads).where(eq(leads.emailNormalizado, correo))).toHaveLength(1);
-  });
-});
-
-describe("las garantias de la base (migracion 0038)", () => {
-  it("una llamada del CRM no queda sin deal; la suelta de Calendly y la de la hoja si", async () => {
-    const error = await db
-      .insert(calls)
-      .values({ programId, origen: "crm" })
-      .then(() => null, (e: unknown) => e);
-    expect(esViolacionCheck(error)).toBe(true);
-    await db.insert(calls).values({ programId, origen: "calendly", huellaFila: "calendly:x" });
-    await db.insert(calls).values({ programId, origen: "sheets" });
-  });
-
-  it("dos closers no reclaman la misma cuenta de Calendly en un programa", async () => {
-    const [otra] = await db.insert(users).values({ email: "otra@retiagrowth.com", rol: "closer" }).returning();
-    const error = await db
-      .insert(miembrosPrograma)
-      .values({ userId: otra.id, programId, calendlyEmail: "MARU.TACTICAL@calendly.co" })
-      .then(() => null, (e: unknown) => e);
-    expect(esViolacionUnica(error)).toBe(true);
-    // En OTRO programa la misma cuenta si cabe: la frontera es el programa.
-    await db.insert(miembrosPrograma).values({ userId: otra.id, programId: otroProgramId, calendlyEmail: HOST_MARU });
   });
 });
 

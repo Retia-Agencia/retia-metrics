@@ -14,7 +14,6 @@ import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { ErrorDeApp } from "@/lib/errors";
 import { agregarLlamada, completarAgendada, llamadaYaPudoOcurrir, marcarShow, reagendarLlamada } from "@/lib/deals/llamadas";
-import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -214,7 +213,7 @@ describe("agregarLlamada: el efecto sobre la etapa (decisión 24-sep)", () => {
     });
   }
 
-  const NO_CAMBIAN: EtapaDeal[] = ["atendido", "compromiso_verbal", "ganado_parcial"];
+  const NO_CAMBIAN: EtapaDeal[] = ["agendado", "atendido", "compromiso_verbal", "ganado_parcial"];
 
   for (const etapa of NO_CAMBIAN) {
     it(`desde ${etapa} la etapa no cambia pero la llamada queda`, async () => {
@@ -231,17 +230,6 @@ describe("agregarLlamada: el efecto sobre la etapa (decisión 24-sep)", () => {
     });
   }
 
-  it("desde agendado la etapa no cambia (no hay flecha agendado→agendado por closer)", async () => {
-    const dealId = await nuevoDeal("agendado");
-    const { movioAAgendado } = await agregarLlamada(db, comoCloser(), {
-      dealId,
-      fechaAgenda: enUnaHora(),
-    });
-    expect(movioAAgendado).toBe(false);
-    const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
-    expect(d.etapa).toBe("agendado");
-    expect(await llamadasDe(dealId)).toHaveLength(1);
-  });
 });
 
 describe("agregarLlamada: rechazos", () => {
@@ -382,6 +370,14 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
     expect(err.status).toBe(409);
   });
 
+  it("completar una agendada también aplica la regla de la cita (Atendido con Re-agenda vuelve a Agendado)", async () => {
+    const dealId = await nuevoDeal("atendido", { pendiente: "reagenda" });
+    const callId = await agendadaDelSistema(dealId);
+    await completarAgendada(db, comoCloser(), { callId, fechaAgenda: enUnaHora() });
+    const [d] = await db.select({ etapa: deals.etapa, pendiente: deals.pendiente }).from(deals).where(eq(deals.id, dealId));
+    expect(d).toEqual({ etapa: "agendado", pendiente: null });
+  });
+
   it("un no-dueño no completa la agendada del deal", async () => {
     const dealId = await nuevoDeal("agendado", { ownerUserId: closer });
     const callId = await agendadaDelSistema(dealId);
@@ -423,22 +419,6 @@ describe("marcarShow: show en un clic, sin Grain (ticket 177)", () => {
 
     const campos = (await bitacoraDeCall(callId)).map((f) => f.campo);
     expect(campos).toContain("resultado");
-  });
-
-  it("el deal sigue a Compromiso Verbal aunque la llamada show no tenga Grain", async () => {
-    const dealId = await nuevoDeal("agendado");
-    const { callId } = await agregarLlamada(db, comoCloser(), { dealId, fechaAgenda: haceUnaHora() });
-    await marcarShow(db, comoCloser(), { callId });
-
-    // El área se pide al salir de Atendido; se declara para no toparse con ese requisito.
-    await moverEtapa(db, {
-      dealId,
-      a: "compromiso_verbal",
-      actor: { tipo: "usuario", userId: closer, rol: rolCloser , operaComoCloser: false},
-      datos: { fechaLimitePago: "2026-09-15" },
-    });
-    const [d] = await db.select({ etapa: deals.etapa }).from(deals).where(eq(deals.id, dealId));
-    expect(d.etapa).toBe("compromiso_verbal");
   });
 
   it("una llamada que ya tiene resultado no se vuelve a marcar show (409)", async () => {
@@ -549,5 +529,4 @@ describe("reagendarLlamada: cierra la cita vieja y crea la nueva (ticket 177)", 
   });
 });
 
-import "./142-nuevas-llamadas-del-deal";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";

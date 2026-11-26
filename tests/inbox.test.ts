@@ -279,31 +279,23 @@ async function motivosPorDeal(alcance: Parameters<typeof inboxDelPrograma>[2]) {
 }
 
 describe("inboxDelPrograma — atención: re-agenda sin nueva fecha (a)", () => {
-  it("positivo: Re-agenda pendiente sin cita futura entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
+  it("Re-agenda pendiente sin cita futura entra; con cita futura no entra por (a)", async () => {
+    const sin = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
+    const con = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
+    await crearLlamada({ dealId: con.dealId, fechaAgenda: enBogota("2026-09-30") }); // futura
     const m = await motivosPorDeal({ ownerUserId: closer });
-    expect(m.get(dealId)).toBe("reagenda_sin_fecha");
-  });
-
-  it("negativo: Re-agenda pendiente CON cita futura no entra por (a)", async () => {
-    const { dealId } = await crearDeal({ etapa: "agendado", pendiente: "reagenda" });
-    await crearLlamada({ dealId, fechaAgenda: enBogota("2026-09-30") }); // futura
-    const m = await motivosPorDeal({ ownerUserId: closer });
-    expect(m.get(dealId)).not.toBe("reagenda_sin_fecha");
+    expect(m.get(sin.dealId)).toBe("reagenda_sin_fecha");
+    expect(m.get(con.dealId)).not.toBe("reagenda_sin_fecha");
   });
 });
 
 describe("inboxDelPrograma — atención: compromiso verbal vencido (b)", () => {
-  it("positivo: compromiso_verbal con fecha límite pasada entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-09-20" });
+  it("compromiso_verbal con fecha límite pasada entra; con fecha hoy o futura no", async () => {
+    const vencido = await crearDeal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-09-20" });
+    const aTiempo = await crearDeal({ etapa: "compromiso_verbal", fechaLimitePago: HOY });
     const m = await motivosPorDeal({ ownerUserId: closer });
-    expect(m.get(dealId)).toBe("compromiso_vencido");
-  });
-
-  it("negativo: compromiso_verbal con fecha límite hoy o futura no entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "compromiso_verbal", fechaLimitePago: HOY });
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("compromiso_vencido");
+    expect(m.get(vencido.dealId)).toBe("compromiso_vencido");
+    expect(m.get(aTiempo.dealId)).not.toBe("compromiso_vencido");
   });
 });
 
@@ -326,21 +318,17 @@ describe("inboxDelPrograma — atención: próximo contacto vencido", () => {
 });
 
 describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
-  it("positivo: abonado con fecha límite pasada y saldo entra con su saldo", async () => {
-    const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400" });
+  it("abonado con fecha límite pasada y saldo entra con su saldo; pagado completo (saldo 0) no entra", async () => {
+    const conSaldo = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
+    await abonoDePrueba(db, { dealId: conSaldo.dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400" });
+    const pagado = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
+    await abonoDePrueba(db, { dealId: pagado.dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD", comprobanteUrl: "https://soporte.test/1000" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    const fila = inbox.atencion.find((f) => f.dealId === dealId)!;
+    const fila = inbox.atencion.find((f) => f.dealId === conSaldo.dealId)!;
     expect(fila.motivo).toBe("pago_vencido");
     expect(fila.saldo).toBe(600); // 1000 - 400
     expect(fila.fecha).toBe("2026-09-20");
-  });
-
-  it("negativo: abonado pagado completo (saldo 0) no entra", async () => {
-    const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD", comprobanteUrl: "https://soporte.test/1000" });
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("pago_vencido");
+    expect(inbox.atencion.find((f) => f.dealId === pagado.dealId)?.motivo).not.toBe("pago_vencido");
   });
 });
 
@@ -364,31 +352,25 @@ describe("inboxDelPrograma — atención: abono sin comprobante", () => {
 });
 
 describe("inboxDelPrograma — atención: re-envío sin atender (d)", () => {
-  it("positivo: un envío completo posterior a la última actividad del deal entra", async () => {
-    // Deal creado hace tiempo, con actividad vieja.
-    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
-    await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
-    // Re-envío COMPLETO más nuevo que la actividad.
-    await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: false, fechaEnvio: enBogota("2026-09-24") });
+  it("entra con un envío completo posterior a la última actividad; no entra si una actividad lo atendió después ni con un envío parcial", async () => {
+    const nuevoEnvio = async (token: string, esParcial: boolean, leadId: string) =>
+      db.insert(submissions).values({ leadId, sourceId, token, esParcial, fechaEnvio: enBogota("2026-09-24") });
+    const sinAtender = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
+    await db.insert(dealActividades).values({ dealId: sinAtender.dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
+    await nuevoEnvio("t1", false, sinAtender.leadId);
+
+    const atendido = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
+    await nuevoEnvio("t2", false, atendido.leadId);
+    await db.insert(dealActividades).values({ dealId: atendido.dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-26") });
+
+    const parcial = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
+    await db.insert(dealActividades).values({ dealId: parcial.dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
+    await nuevoEnvio("t3", true, parcial.leadId);
+
     const m = await motivosPorDeal({ ownerUserId: closer });
-    expect(m.get(dealId)).toBe("reenvio_sin_atender");
-  });
-
-  it("negativo: se limpia cuando se registra una actividad DESPUÉS del re-envío", async () => {
-    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
-    await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: false, fechaEnvio: enBogota("2026-09-24") });
-    // Actividad posterior al re-envío: ya lo atendió.
-    await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-26") });
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("reenvio_sin_atender");
-  });
-
-  it("un envío PARCIAL no dispara el re-envío", async () => {
-    const { dealId, leadId } = await crearDeal({ etapa: "contactado", createdAt: enBogota("2026-09-01") });
-    await db.insert(dealActividades).values({ dealId, tipo: "contacto", userId: closer, fecha: enBogota("2026-09-10") });
-    await db.insert(submissions).values({ leadId, sourceId, token: "t1", esParcial: true, fechaEnvio: enBogota("2026-09-24") });
-    const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
-    expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("reenvio_sin_atender");
+    expect(m.get(sinAtender.dealId)).toBe("reenvio_sin_atender");
+    expect(m.get(atendido.dealId)).not.toBe("reenvio_sin_atender");
+    expect(m.get(parcial.dealId)).not.toBe("reenvio_sin_atender");
   });
 });
 
