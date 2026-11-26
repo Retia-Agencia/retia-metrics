@@ -78,6 +78,8 @@ describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra",
   });
 
   it("un sobrepago confirmado se registra, deja el deal en Completo y su nota en la bitácora", async () => {
+    // El primer abono crea la línea: desde ahí el saldo del deal es el de esa línea.
+    await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, abono("500"));
     const saldo = (await saldosDeDeals(db, [dealId])).get(dealId)!.saldo!;
     const resultado = await registrarAbono(db, { userId: closer, rol: "closer", operaComoCloser: false }, {
       ...abono((saldo + 60).toFixed(2)),

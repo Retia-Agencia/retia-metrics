@@ -107,6 +107,7 @@ export const SEGMENTOS_DE_RUTA = new Set([
   "students",
   "token",
   "usuarios",
+  "version",
   "webhooks",
 ]);
 
