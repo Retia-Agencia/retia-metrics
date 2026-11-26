@@ -169,6 +169,7 @@ a fase 2.
 | [ ] | 463 | [376 › Migración de retiro: productos, ticket y % del programa, precio de la cohorte](./376-productos-y-skus.md#463--migración-de-retiro-destructiva-al-final) | 459 a 462 | todo · migración destructiva · agrupado en G3 |
 | [ ] | 464 | [376 › El ciclo del deal lo define su SKU; SKUs predeterminados; filtros de Deals por SKU](./376-productos-y-skus.md#464--el-ciclo-del-deal-lo-define-su-sku-skus-predeterminados-adr-0140) | 459, 460 | en main (PR 58 y 64, 0158 aplicada: 4 predeterminados) · falta recorrido en producción con un closer · agrupado en G1 |
 | [ ] | 465 | [376 › Un ciclo nuevo hereda los umbrales del anterior](./376-productos-y-skus.md#465--un-ciclo-nuevo-hereda-los-umbrales-del-anterior-adr-0141) | 461 | en main (PR 63) · falta que gerencia cree un ciclo y vea los umbrales heredados · agrupado en G1 |
+| [ ] | 470 | [A futuro y motivos libres](./470-a-futuro-y-motivos-libres.md) | — | en curso · PR abierto · ADR 0143 |
 
 ## 1 · Entrada y lead
 

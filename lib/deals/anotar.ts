@@ -106,7 +106,7 @@ export async function anotar(
         throw new ErrorDeApp("Ese próximo paso no está permitido desde la etapa actual.", 409);
       }
       if (datos.reagenda) {
-        await exigirTextoDelMotivo(tx, datos.reagenda.motivoId, datos.comentario);
+        await exigirTextoDelMotivo(tx, datos.reagenda.motivoId, "reagenda", datos.comentario);
       }
 
       if (!datos.proximaCohorte || datos.comentario) {

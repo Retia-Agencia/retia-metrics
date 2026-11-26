@@ -172,11 +172,11 @@ async function deal(o: OpcDeal): Promise<string> {
 }
 
 describe("tableroKanban", () => {
-  it("las once etapas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
+  it("las doce etapas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const orden = t.columnas.map((c) => c.clave);
     expect([...orden].sort()).toEqual([...ETAPAS].sort());
-    expect(orden.at(-1)).toBe("cierre_perdido");
+    expect(orden.at(-1)).toBe("a_futuro");
     expect(t.total).toBe(0);
     expect(t.columnas.every((columna) => columna.potencialUsd === 0)).toBe(true);
     // Confirmado solo existe donde se abona; en el resto no aplica.
@@ -549,11 +549,11 @@ describe("tags y vistas del tablero (ticket 498, ADR 0142)", () => {
     const setteo = await tableroKanban(db, programId, { tipo: "todos" }, { vista: "setteo" }, HOY);
 
     expect(llamada.columnas.map((c) => c.clave)).toEqual([
-      "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+      "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
     ]);
-    // El setter cierra por chat sin pasar por llamada: Compromiso, los dos Ganados y Cierre perdido.
+    // El setter resuelve por chat sin pasar por llamada: Compromiso, Ganados, Cierre perdido y A futuro.
     expect(setteo.columnas.map((c) => c.clave)).toEqual([
-      ...ETAPAS_DE_SETTEO, "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+      ...ETAPAS_DE_SETTEO, "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro",
     ]);
     expect(todo.columnas.map((c) => c.clave)).toEqual([...COLUMNAS_DE_VISTA.todo]);
     // Una vista no cambia la cifra de una columna: solo cuales salen.
