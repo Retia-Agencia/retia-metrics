@@ -248,12 +248,7 @@ describe("cancelacion y no-show", () => {
     await enviar(noShow("A", true));
     expect((await llamadas())[0].resultado).toBe("agendada");
     expect((await etapa()).etapa).toBe("agendado");
-  });
-
-  it("un segundo no-show después de corregir es un evento nuevo, no un retry silenciado", async () => {
-    await enviar(creado("A"));
-    await enviar(noShow("A"));
-    await enviar(noShow("A", true));
+    // Un segundo no-show tras corregir es un evento nuevo, no un retry silenciado.
     await enviar(noShow("A"));
     expect((await db.select().from(notificacionesCalendly)).map((n) => n.tipo)).toEqual([
       "cita_nueva",

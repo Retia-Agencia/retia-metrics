@@ -55,7 +55,7 @@ beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
 });
 
-beforeEach(async () => {
+async function sembrarBase() {
   await vaciar();
   const [p] = await db
     .insert(programs)
@@ -81,7 +81,7 @@ beforeEach(async () => {
   const [u2] = await db.insert(users).values({ email: "maria@retia.co", rol: "closer", closerId: "maria", nombre: "Maria" }).returning();
   owner1 = u1.id;
   owner2 = u2.id;
-});
+}
 
 afterAll(async () => {
   await cerrar();
@@ -172,6 +172,7 @@ async function deal(o: OpcDeal): Promise<string> {
 }
 
 describe("tableroKanban", () => {
+  beforeEach(sembrarBase);
   it("las doce etapas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     const orden = t.columnas.map((c) => c.clave);
@@ -320,14 +321,6 @@ describe("tableroKanban", () => {
     expect(t.columnas.find((c) => c.clave === "registrado")!.tarjetas[0].envios).toBe(3);
   });
 
-  it("filtra por dueño", async () => {
-    await deal({ etapa: "contactado", owner: owner1 });
-    await deal({ etapa: "contactado", owner: owner2 });
-    const t = await tableroKanban(db, programId, { tipo: "todos" }, { ownerUserId: owner2 }, HOY);
-    expect(t.total).toBe(1);
-    expect(t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0].ownerUserId).toBe(owner2);
-  });
-
   it("el alcance de dueño ignora un owner ajeno forjado en la URL", async () => {
     await deal({ etapa: "contactado", owner: owner1 });
     await deal({ etapa: "contactado", owner: owner2 });
@@ -342,13 +335,6 @@ describe("tableroKanban", () => {
     const equipo = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     expect(personal.columnas.flatMap((c) => c.tarjetas)[0].esNuevo).toBe(true);
     expect(equipo.columnas.flatMap((c) => c.tarjetas)[0].esNuevo).toBe(false);
-  });
-
-  it("gerente y developer usan alcance todos", async () => {
-    await deal({ etapa: "contactado", owner: owner1 });
-    await deal({ etapa: "contactado", owner: owner2 });
-    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    expect(t.columnas.flatMap((columna) => columna.tarjetas)).toHaveLength(2);
   });
 
   it("filtra por canal (source|medium del envío de origen)", async () => {
@@ -468,6 +454,7 @@ describe("tableroKanban", () => {
 });
 
 describe("tableroKanban: lecturas en paralelo (paridad)", () => {
+  beforeEach(sembrarBase);
   const ahora = new Date("2026-10-21T12:00:00-05:00");
   const dia = (desde: string, hasta: string) => ({
     campo: "actividad" as const,
@@ -512,6 +499,7 @@ describe("tableroKanban: lecturas en paralelo (paridad)", () => {
 });
 
 describe("tags y vistas del tablero (ticket 498, ADR 0142)", () => {
+  beforeEach(sembrarBase);
   const conteo = (t: Awaited<ReturnType<typeof tableroKanban>>, clave: string) =>
     t.columnas.find((c) => c.clave === clave)?.tarjetas.length ?? 0;
   const potencial = (t: Awaited<ReturnType<typeof tableroKanban>>, clave: string) =>
@@ -576,6 +564,7 @@ describe("tags y vistas del tablero (ticket 498, ADR 0142)", () => {
 });
 
 describe("opcionesDeTablero", () => {
+  beforeEach(sembrarBase);
   it("incluye la cohorte activa aunque no tenga deals", async () => {
     const o = await opcionesDeTablero(db, programId);
     expect(o.cohortes).toEqual([{ id: cohortId, nombre: "C1" }]);

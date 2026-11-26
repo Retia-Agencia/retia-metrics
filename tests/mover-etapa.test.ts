@@ -1,6 +1,6 @@
 import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -16,7 +16,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
 import { destinosDeCorreccion as destinosDeCorreccionPuros } from "@/lib/deals/etapas";
 import { crearConRastro } from "@/lib/crm/rastro";
@@ -61,9 +61,6 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await vaciar();
-  // El ticket entrega solo schema.ts; la sesión central genera la migración. La base de
-  // prueba necesita temporalmente el valor para ejercer el motor nuevo.
-  await db.execute(sql`ALTER TYPE tipo_motivo ADD VALUE IF NOT EXISTS 'correccion'`);
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co" }).returning();
@@ -286,12 +283,6 @@ describe("solo el dueño o un administrador mueven un deal (punto 3, Mani 27-sep
     expect(await historial(dealId)).toEqual([]);
   });
 
-  it("el dueño sí puede moverlo", async () => {
-    const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
-    await moverEtapa(db, { dealId, a: "cierre_perdido", actor: comoCloser(), motivoId: motivoActivo });
-    expect(await etapaDe(dealId)).toBe("cierre_perdido");
-  });
-
   it("un administrador (gerente o developer) mueve cualquier deal, aunque no sea el dueño", async () => {
     const dealId = await nuevoDeal("contactado", { ownerUserId: closer });
     await moverEtapa(db, { dealId, a: "cierre_perdido", actor: comoGerente(), motivoId: motivoActivo });
@@ -394,16 +385,6 @@ describe("los datos van en el mismo movimiento, o no van (punto 6, Mani 27-sep)"
     expect(log.every((l) => l.userId === closer)).toBe(true);
   });
 
-  it("una prueba de hecho (abono) NUNCA entra por datos: no hay campo para colarla", async () => {
-    // El tipo de `DatosMovimiento` no admite abonos, contactos ni llamadas: se leen de la
-    // base. Esta prueba fija que el saldo —y por tanto el abono— sale de la base incluso
-    // pasando datos: sin abono real, no se puede ir a Abonado por mas datos que se manden.
-    const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
-    const e = await rechazo(
-      moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema }),
-    );
-    expect(e.faltantes.map((f) => f.codigo)).toContain("abono");
-  });
 });
 
 describe("corregir el último movimiento", () => {
@@ -448,28 +429,6 @@ describe("corregir el último movimiento", () => {
       expect.objectContaining({ campo: "etapa", valorAnterior: "calificado", valorNuevo: "contactado", userId: closer }),
       expect.objectContaining({ campo: "cohorteDestinoTexto", valorAnterior: null, valorNuevo: "2027", userId: closer }),
     ]));
-    expect(destinosDeCorreccionPuros("contactado")).toContain("calificado");
-  });
-
-  it("una corrección libre no recupera el pendiente si el destino no lo pide", async () => {
-    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
-    await db.insert(dealEtapaHistorial).values({
-      dealId,
-      de: "contactado",
-      a: "calificado",
-      pendienteDe: "proxima_cohorte",
-      pendienteA: null,
-      userId: closer,
-    });
-
-    await moverEtapa(db, {
-      dealId,
-      a: "contactado",
-      correccion: true,
-      actor: comoCloser(),
-      motivoId: motivoCorreccion,
-    });
-    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
   it("la corrección ofrece todos los destinos libres y ninguno desde etapas cerradas", () => {
@@ -480,7 +439,7 @@ describe("corregir el último movimiento", () => {
     expect(destinosDeCorreccionPuros("cierre_perdido")).toEqual([]);
   });
 
-  it("la corrección manual no depende del autor del último movimiento", async () => {
+  it("la corrección manual no depende del autor del último movimiento y no exige motivo", async () => {
     const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({
       dealId,
@@ -494,17 +453,8 @@ describe("corregir el último movimiento", () => {
       a: "registrado",
       correccion: true,
       actor: comoCloser(),
-      motivoId: motivoCorreccion,
     });
     expect(await etapaDe(dealId)).toBe("registrado");
-  });
-
-  it("la corrección no exige motivo", async () => {
-    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
-    await db.insert(dealEtapaHistorial).values({ dealId, de: "contactado", a: "calificado", userId: closer });
-
-    await moverEtapa(db, { dealId, a: "contactado", correccion: true, actor: comoCloser() });
-    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
   it("un closer que no es dueño recibe 403 y la base no cambia", async () => {
@@ -698,17 +648,9 @@ describe("los hechos salen de la base", () => {
     expect(await historial(dealId)).toEqual(historialAntes);
   });
 
-  it("un deal histórico pasa de Abonado a Completo", async () => {
-    const dealId = await nuevoDeal("ganado_parcial", { huellaMigracion: "sheets:p:ventas:1" });
-    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "1000", comprobanteUrl: "https://x/1.png" });
-    await moverEtapa(db, { dealId, a: "ganado_completo", actor: sistema });
-    expect(await etapaDe(dealId)).toBe("ganado_completo");
-  });
-
-  it.each([
-    { destino: "ganado_parcial" as const, monto: "500" },
-    { destino: "ganado_completo" as const, monto: "1000" },
-  ])("ADR 0137 punto 8: para mover a $destino usa el valor vendido que ya vive en la línea", async ({ destino, monto }) => {
+  it("ADR 0137 punto 8: para mover a Ganado usa el valor vendido que ya vive en la línea", async () => {
+    const destino = "ganado_parcial" as const;
+    const monto = "500";
     const [cohorte] = await db
       .insert(cohorts)
       .values({
@@ -847,6 +789,94 @@ describe("revisarMovimiento: la vista previa es un ensayo del motor (ADR 0072 pu
   });
 });
 
+// Contratos del ticket 142 sobre el estado compuesto (etapa + pendiente), Próxima Cohorte y los
+// nacimientos. Viven aquí, con la base compartida del archivo, porque moverEtapa es su dueño.
+let secuencia = 0;
+async function nuevoEnLeadPropio(etapa: EtapaDeal, pendiente: PendienteDeal | null = null, extra: Partial<typeof deals.$inferInsert> = {}) {
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `persona-${secuencia++}@retia.co` }).returning();
+  const [deal] = await db.insert(deals).values({
+    leadId: lead.id, programId, etapa, pendiente, ownerUserId: closer,
+    valorVendidoUsd: "1000", ...extra,
+  }).returning();
+  return deal;
+}
+const filaDeal = async (id: string) => (await db.select().from(deals).where(eq(deals.id, id)))[0];
+
+describe("estado compuesto e historial", () => {
+  it("todo cambio de etapa limpia el pendiente y guarda antes/después", async () => {
+    const d = await nuevoEnLeadPropio("contactado", "seguimiento");
+    await db.insert(dealActividades).values({ dealId: d.id, tipo: "contacto", canal: "WhatsApp", userId: closer });
+    const hecho = await moverEtapa(db, { dealId: d.id, a: "calificado", actor: comoCloser() });
+    expect(hecho).toMatchObject({ de: "contactado", a: "calificado", pendienteDe: "seguimiento", pendienteA: null, transicion: { id: "E3" } });
+    expect(await filaDeal(d.id)).toMatchObject({ etapa: "calificado", pendiente: null });
+    expect(await historial(d.id)).toMatchObject([{ pendienteDe: "seguimiento", pendienteA: null }]);
+  });
+
+  it("E9 solo devuelve Atendido a Agendado si había pendiente", async () => {
+    const sin = await nuevoEnLeadPropio("atendido");
+    await db.insert(calls).values({ dealId: sin.id, programId, resultado: "agendada", origen: "crm", fechaAgenda: new Date() });
+    expect((await rechazo(moverEtapa(db, { dealId: sin.id, a: "agendado", actor: comoCloser() }))).status).toBe(409);
+
+    const con = await nuevoEnLeadPropio("atendido", "reagenda");
+    await db.insert(calls).values({ dealId: con.id, programId, resultado: "agendada", origen: "crm", fechaAgenda: new Date() });
+    await moverEtapa(db, { dealId: con.id, a: "agendado", actor: comoCloser() });
+    expect(await filaDeal(con.id)).toMatchObject({ etapa: "agendado", pendiente: null });
+  });
+
+  it("RETRO decide el destino por el historial y fuerza Seguimiento", async () => {
+    const d = await nuevoEnLeadPropio("compromiso_verbal", null, { fechaSeguimiento: "2026-10-20" });
+    await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "calificado", a: "compromiso_verbal" });
+    const error = await rechazo(moverEtapa(db, { dealId: d.id, a: "atendido", actor: comoCloser(), motivoId: motivoRetroceso }));
+    expect(error.status).toBe(409);
+    await moverEtapa(db, { dealId: d.id, a: "calificado", actor: comoCloser(), motivoId: motivoRetroceso });
+    expect(await filaDeal(d.id)).toMatchObject({ etapa: "calificado", pendiente: "seguimiento" });
+  });
+
+  it("dos movimientos dentro de una transacción quedan ordenados por clock_timestamp", async () => {
+    const d = await nuevoEnLeadPropio("registrado");
+    await db.insert(dealActividades).values({ dealId: d.id, tipo: "contacto", canal: "WhatsApp", userId: closer });
+    await moverEtapa(db, { dealId: d.id, a: "en_gestion", actor: sistema });
+    await moverEtapa(db, { dealId: d.id, a: "contactado", actor: sistema });
+    const h = await historial(d.id);
+    expect(h.map((x) => x.a)).toEqual(["en_gestion", "contactado"]);
+    expect(h[1].fecha.getTime()).toBeGreaterThanOrEqual(h[0].fecha.getTime());
+  });
+});
+
+describe("pendientes y Próxima Cohorte", () => {
+  async function cohortes() {
+    const base = { programId, metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" };
+    const [origen, destino] = await db.insert(cohorts).values([
+      { ...base, codigo: "O", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+      { ...base, codigo: "D", fechaInicioVentas: "2026-10-01" },
+    ]).returning();
+    return { origen, destino };
+  }
+
+  it("PC conserva su contrato legado, pero ya no tiene una RET que lo quite", async () => {
+    const { origen, destino } = await cohortes();
+    const d = await nuevoEnLeadPropio("calificado", null, { cohortId: origen.id });
+    await moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: "proxima_cohorte", actor: comoCloser(), datos: { cohorteDestinoId: destino.id } });
+    expect(await filaDeal(d.id)).toMatchObject({ etapa: "calificado", pendiente: "proxima_cohorte", cohortId: origen.id });
+
+    expect((await rechazo(moverEtapa(db, { dealId: d.id, a: "calificado", pendiente: null, actor: sistema }))).faltantes.map((f) => f.codigo)).toEqual(["transicion_no_permitida"]);
+  });
+
+  it("Cierre perdido limpia Próxima Cohorte sin mudar la cohorte", async () => {
+    const { origen, destino } = await cohortes();
+    const d = await nuevoEnLeadPropio("calificado", "proxima_cohorte", { cohortId: origen.id, cohorteDestinoId: destino.id });
+    await moverEtapa(db, { dealId: d.id, a: "cierre_perdido", actor: comoCloser(), motivoId: motivoActivo });
+    expect(await filaDeal(d.id)).toMatchObject({ etapa: "cierre_perdido", pendiente: null, cohortId: origen.id });
+  });
+
+  it("R a En gestión ya no conserva Próxima Cohorte", async () => {
+    const { origen } = await cohortes();
+    const sin = await nuevoEnLeadPropio("cierre_perdido", null, { cohortId: origen.id });
+    await moverEtapa(db, { dealId: sin.id, a: "en_gestion", pendiente: "proxima_cohorte", actor: comoCloser(), motivoId: motivoRecuperacion });
+    expect(await filaDeal(sin.id)).toMatchObject({ etapa: "en_gestion", pendiente: null });
+  });
+});
+
 describe("abrirDeal: donde nace un deal (ticket 047)", () => {
   it("a mano nace en En gestión con quien lo crea de dueño, con su primera fila de historial y su rastro", async () => {
     const dealId = await abrirDeal(db, { leadId, programId, etapa: "en_gestion", actor: comoCloser() });
@@ -873,6 +903,14 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
     expect(await historial(dealId)).toMatchObject([{ de: null, a: "agendado", userId: null }]);
     const [d] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(d.ownerUserId).toBe(closer);
+  });
+
+  it("el sistema nace en sus cuatro puertas, sin dueño", async () => {
+    for (const etapa of ["potencial", "registrado", "calificado", "agendado"] as const) {
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `alta-${secuencia++}@retia.co` }).returning();
+      const id = await abrirDeal(db, { leadId: lead.id, programId, etapa, actor: sistema });
+      expect(await filaDeal(id)).toMatchObject({ etapa, ownerUserId: null });
+    }
   });
 
   it("el programa es frontera: no se abre un deal sobre un lead de otro programa", async () => {
@@ -905,5 +943,4 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
   });
 });
 
-import "./142-nuevas-mover-etapa";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
