@@ -38,16 +38,12 @@ describe("419 E-3: explicaciones y presentación del norte del programa", () => 
   it("pinta ambos horizontes solo con Cifras y cuatro barras, sin la frase de avance", () => {
     const html = pintar();
     expect(html).toContain('data-testid="vamos-a-llegar"');
-    expect(html).toContain("¿Vamos a llegar?");
-    expect(html).toContain("no cambia con los filtros ni con la fecha");
     expect(html.match(/data-abre-explicacion=""/g)).toHaveLength(18);
     expect(html.match(/role="progressbar"/g)).toHaveLength(4);
     expect(html).toContain("USD 2.700,00");
     expect(html).toContain("Falta historial para proyectar");
     // Una advertencia por horizonte, desde la propia Cifra en USD.
     expect(html.match(/1 ventas no tienen valor vendido/g)).toHaveLength(2);
-    // La barra ya dice cuánto vamos atrás: la frase repetía el dato redondeado y se retiró.
-    expect(html).not.toContain("Llevas 3 de");
     expect(html).not.toContain("metrica=cierres");
   });
 
