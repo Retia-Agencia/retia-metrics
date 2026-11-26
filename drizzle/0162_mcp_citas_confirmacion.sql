@@ -1,6 +1,6 @@
 SET lock_timeout = '5s';--> statement-breakpoint
 -- Mi espacio 2b: la confirmación de la cita llega al MCP (consultar_datos). confirmada_antes_de_la_hora
--- repite el predicado de lib/deals/confirmacion-de-cita.ts; tests/mcp-lectura-vistas.test.ts vigila la paridad.
+-- repite el predicado de lib/deals/confirmacion-de-cita.ts; tests/confirmacion-de-cita.test.ts vigila la paridad.
 CREATE OR REPLACE VIEW crm_definicion.citas AS
 SELECT c.id AS id_de_la_llamada, c.deal_id AS id_del_deal, c.program_id AS programa_id, p.slug AS programa,
   f.dia, date_trunc('week', f.dia::timestamp)::date AS semana, date_trunc('month', f.dia::timestamp)::date AS mes,
