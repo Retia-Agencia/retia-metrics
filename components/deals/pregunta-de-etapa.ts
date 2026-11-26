@@ -299,17 +299,9 @@ export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | nul
   return respuestasDe(etapa, pendiente).filter((r) => llevaA(r.accion, etapa, columna));
 }
 
-/** Si la respuesta deja el deal con Re-agenda: "Otra llamada" (PR2) o la llamada fallida (PR1). */
-function poneReagenda(accion: AccionDeRespuesta): boolean {
-  return (accion.tipo === "mover" && accion.pendiente === "reagenda")
-    || (accion.tipo === "llamada" && accion.uso === "fallida");
-}
-
 /**
- * Las respuestas que llevan la tarjeta de la columna `desde` a la columna `hacia` del Kanban,
- * contando la columna derivada Re-agenda (ADR 0103). Entrar a Re-agenda es PR1 o PR2; salir de
- * ella a su propia etapa solo pasa con una cita nueva, que limpia el pendiente y deja el deal en
- * Agendado (ADR 0070 punto 7): no hay "quitar el pendiente" sin un hecho.
+ * Las respuestas que llevan la tarjeta de la columna `desde` a la columna `hacia` del Kanban.
+ * Cada columna es una etapa; los pendientes se muestran como tags (ADR 0142).
  */
 export function respuestasHaciaColumna(
   etapa: EtapaDeal,
@@ -318,13 +310,6 @@ export function respuestasHaciaColumna(
   hacia: ColumnaDelTablero,
 ): Respuesta[] {
   if (desde === hacia) return [];
-  if (hacia === "reagenda") return respuestasDe(etapa, pendiente).filter((r) => poneReagenda(r.accion));
-  if (hacia === etapa) {
-    // Salir de Re-agenda hacia su etapa es una cita nueva: la anterior ya fracasó, no hay cuál mover.
-    return hacia === "agendado"
-      ? respuestasDe(etapa, pendiente).filter((r) => r.accion.tipo === "llamada" && r.accion.uso === "agendar")
-      : [];
-  }
   return respuestasHacia(etapa, pendiente, hacia);
 }
 

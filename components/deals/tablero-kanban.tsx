@@ -38,7 +38,7 @@ export interface TableroKanbanProps {
   mapa: MapaTransiciones;
   destinosDeCorreccion: Record<string, { etapa: EtapaDeal; nombre: string }[]>;
   nombreDeEtapa: Record<EtapaDeal, string>;
-  /** Las etapas más la columna derivada Re-agenda (ADR 0103). */
+  /** Las etapas del deal, en el orden del tablero. */
   nombreDeColumna: Record<ColumnaDelTablero, string>;
   nombreDePendiente: Record<PendienteDeal, string>;
   tonoDeColumna: Record<ColumnaDelTablero, TonoEtapa>;
@@ -89,7 +89,6 @@ export function TableroKanban({
   const router = useRouter();
   // La tarjeta que se está arrastrando (para el efecto "levantar") y la columna sobre la
   // que se está soltando (para el resaltado).
-  // La tarjeta guarda la columna de la que sale: Re-agenda no es una etapa (ADR 0103).
   const [levantada, setLevantada] = useState<{ tarjeta: TarjetaDeal; desde: ColumnaDelTablero } | null>(null);
   const arrastrando = levantada?.tarjeta ?? null;
   const [columnaHover, setColumnaHover] = useState<ColumnaDelTablero | null>(null);
@@ -169,8 +168,7 @@ export function TableroKanban({
       toast.error(`Desde ${nombreDeColumna[desde]} no se pasa a ${nombreDeColumna[columna]}.`);
       return;
     }
-    // Re-agenda deja el deal en su etapa: el destino del diálogo es esa etapa.
-    abrirDestino(dealDe(tarjeta), columna === "reagenda" ? tarjeta.etapa : columna, respuestas);
+    abrirDestino(dealDe(tarjeta), columna, respuestas);
   }
 
   return (
@@ -194,7 +192,6 @@ export function TableroKanban({
             levantada != null
             && respuestasHaciaColumna(levantada.tarjeta.etapa, levantada.tarjeta.pendiente, levantada.desde, columna.clave).length > 0;
           const destinoProhibido = levantada != null && levantada.desde !== columna.clave && !destinoPermitido;
-          const esReagenda = columna.clave === "reagenda";
           const tarjetas = columna.tarjetas;
 
           return (
@@ -236,16 +233,13 @@ export function TableroKanban({
 
               <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1">
                 {tarjetas.length === 0 ? (
-                  <p className="px-1 py-4 text-center text-xs text-muted-foreground">
-                    {esReagenda ? "Sin deals por re-agendar." : "Sin deals en esta etapa."}
-                  </p>
+                  <p className="px-1 py-4 text-center text-xs text-muted-foreground">Sin deals en esta etapa.</p>
                 ) : (
                   tarjetas.map((tarjeta) => (
                     <TarjetaDealCard
                       key={tarjeta.dealId}
                       tarjeta={tarjeta}
                       nombreDePendiente={nombreDePendiente}
-                      vieneDe={esReagenda ? nombreDeEtapa[tarjeta.etapa] : null}
                       programaSlug={programaSlug}
                       origen={origen}
                       arrastrando={arrastrando?.dealId === tarjeta.dealId}

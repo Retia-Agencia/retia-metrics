@@ -4,7 +4,6 @@ import {
   tipoMotivoEnum,
   type EtapaDeal,
 } from "@/lib/db/schema";
-import { sql, type SQL } from "drizzle-orm";
 
 export type { EtapaDeal };
 export type PendienteDeal = (typeof pendienteDealEnum.enumValues)[number];
@@ -40,32 +39,12 @@ export const NOMBRE_DE_ETAPA: Readonly<Record<EtapaDeal, string>> = {
   a_futuro: "A futuro",
 };
 export const NOMBRE_DE_PENDIENTE: Readonly<Record<PendienteDeal, string>> = {
-  reagenda: "Re-agenda", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte",
+  reagenda: "Por reagendar", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte",
 };
 
-/**
- * Las columnas del Kanban (ADR 0103): las etapas más "Re-agenda", una columna DERIVADA con los
- * deals que tienen ese pendiente en Agendado o Atendido. No es una etapa: el deal no cambia de
- * etapa por estar ahí, y el motor, el historial y el embudo no la conocen (ADR 0070).
- */
-export const COLUMNA_REAGENDA = "reagenda" as const;
-export type ColumnaDelTablero = EtapaDeal | typeof COLUMNA_REAGENDA;
-const ETAPAS_CON_COLUMNA_REAGENDA: readonly EtapaDeal[] = ["agendado", "atendido"];
-export const COLUMNAS_EN_ORDEN: readonly ColumnaDelTablero[] = ETAPAS_EN_ORDEN.flatMap(
-  (etapa): ColumnaDelTablero[] => etapa === "agendado" ? [COLUMNA_REAGENDA, etapa] : [etapa],
-);
-export const NOMBRE_DE_COLUMNA: Readonly<Record<ColumnaDelTablero, string>> = {
-  ...NOMBRE_DE_ETAPA, [COLUMNA_REAGENDA]: NOMBRE_DE_PENDIENTE.reagenda,
-};
-/** En qué columna del Kanban va un deal: Re-agenda le gana a Agendado y a Atendido. */
-export function columnaDelDeal(etapa: EtapaDeal, pendiente: PendienteDeal | null): ColumnaDelTablero {
-  return pendiente === "reagenda" && ETAPAS_CON_COLUMNA_REAGENDA.includes(etapa) ? COLUMNA_REAGENDA : etapa;
-}
-
-/** Gemela SQL de `columnaDelDeal`; recibe columnas, nunca valores interpolados. */
-export function columnaDelDealSql(etapa: SQL, pendiente: SQL): SQL<string> {
-  return sql<string>`case when ${pendiente} = 'reagenda' and ${etapa} in ('agendado', 'atendido') then 'reagenda' else ${etapa}::text end`;
-}
+export type ColumnaDelTablero = EtapaDeal;
+export const COLUMNAS_EN_ORDEN: readonly ColumnaDelTablero[] = ETAPAS_EN_ORDEN;
+export const NOMBRE_DE_COLUMNA: Readonly<Record<ColumnaDelTablero, string>> = NOMBRE_DE_ETAPA;
 
 /**
  * Las vistas del Kanban (ADR 0103): qué columnas se muestran. No son permisos ni filtros: no
@@ -80,7 +59,7 @@ export const NOMBRE_DE_VISTA: Readonly<Record<VistaDelTablero, string>> = {
 /** Lo que cierra un deal sin pasar por llamada: el setter negocia y cobra por chat (E5, E6). */
 const CIERRE_SIN_LLAMADA: readonly EtapaDeal[] = ["compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido", "a_futuro"];
 export const COLUMNAS_DE_VISTA: Readonly<Record<VistaDelTablero, readonly ColumnaDelTablero[]>> = {
-  llamada: COLUMNAS_EN_ORDEN.slice(COLUMNAS_EN_ORDEN.indexOf(COLUMNA_REAGENDA)),
+  llamada: COLUMNAS_EN_ORDEN.slice(COLUMNAS_EN_ORDEN.indexOf("agendado")),
   setteo: [...ETAPAS_DE_SETTEO, ...CIERRE_SIN_LLAMADA],
   todo: COLUMNAS_EN_ORDEN,
 };

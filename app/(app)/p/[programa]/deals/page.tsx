@@ -31,7 +31,7 @@ const CAMPOS_DE_FECHA = [
   { valor: "creado", etiqueta: "Creado" },
   { valor: "actividad", etiqueta: "Última actividad" },
   { valor: "cierre", etiqueta: "Cierre" },
-  { valor: "llamada", etiqueta: "Llamada" },
+  { valor: "llamada", etiqueta: "Fecha de la cita" },
   { valor: "seguimiento", etiqueta: "Próximo contacto" },
 ] as const satisfies readonly { valor: CampoDeFechaDeDeal; etiqueta: string }[];
 

@@ -28,7 +28,7 @@ describe("resumenDelCambio", () => {
   it("un pendiente puesto sin fecha no inventa un día", () => {
     expect(
       resumenDelCambio({ ...base, pendienteDespues: "reagenda" }),
-    ).toEqual(["Quedó en Re-agenda."]);
+    ).toEqual(["Quedó en Por reagendar."]);
   });
 
   it("un pendiente quitado sin cambio de etapa se anuncia", () => {
