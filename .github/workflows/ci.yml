@@ -25,15 +25,22 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
+      # 26-nov: `npm ci` con el caché de npm tardaba ~50 s por runner (7 runners). Se guarda
+      # node_modules entero por hash del lock y versión de Node: con acierto no se instala nada.
+      - id: modulos
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - if: steps.modulos.outputs.cache-hit != 'true'
+        run: npm ci
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
 
   # 14-oct: la suite en un solo job llego a 462 s y una corrida se corto en los 480 s de
   # scripts/test.mjs sin un test rojo. Partida en 3, cada parte corre en su propio runner.
-  # 25-nov: 6 partes. Cada parte gasta ~40 s fijos (contenedor y npm ci) y el resto es suite, asi que
+  # 25-nov: 6 partes. Cada parte gasta ~40 s fijos (contenedor e instalación) y el resto es suite, asi que
   # duplicar partes baja la espera de ~3,8 a ~2,2 min; el techo pasa a ser el job de chequeos (build).
   # El checkpoint es verde solo si las 6 lo son.
   tests:
@@ -64,6 +71,13 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
+      # 26-nov: `npm ci` con el caché de npm tardaba ~50 s por runner (7 runners). Se guarda
+      # node_modules entero por hash del lock y versión de Node: con acierto no se instala nada.
+      - id: modulos
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
+      - if: steps.modulos.outputs.cache-hit != 'true'
+        run: npm ci
       - run: npm test -- --shard=${{ matrix.shard }}/6
