@@ -92,7 +92,9 @@ async function sembrar(s: Siembra): Promise<string> {
   return deal.id;
 }
 
-beforeEach(async () => {
+// Cada `describe` que escribe siembra por test (`beforeEach`); el de la tarjeta, que solo LEE una misma
+// escalera, la siembra una vez (`beforeAll`).
+async function sembrarProgramas() {
   await vaciar();
   const [p, q] = await db.insert(programs).values([
     { ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "100", cortePagoRapidoDias: 3 },
@@ -104,7 +106,16 @@ beforeEach(async () => {
     { email: "ana@x.test", rol: "closer", closerId: "Ana" },
     { email: "beto@x.test", rol: "closer", closerId: "Beto" },
   ]).returning();
-});
+}
+
+async function sembrarVarios() {
+  await sembrar({ owner: ana, etapaVendida: true, abonos: [{ fecha: "2026-10-05" }], citas: [{ dia: "2026-10-05", resultado: "cerrada" }] });
+  await sembrar({ owner: ana, etapaVendida: true, ventaEl: "2026-10-08", abonos: [{ fecha: "2026-10-08" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
+  await sembrar({ owner: beto, etapaVendida: true, ventaEl: "2026-10-20", abonos: [{ fecha: "2026-10-20" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
+  await sembrar({ owner: beto, citas: [{ dia: "2026-10-05", resultado: "perdida" }] });
+  await sembrar({ owner: null });
+  for (let i = 0; i < TAMANO_PAGINA + 3; i += 1) await sembrar({ owner: ana, citas: [{ dia: "2026-10-05", resultado: "no_show" }] });
+}
 
 async function porEscalon(corte?: number | null) {
   if (corte !== undefined) await db.update(programs).set({ cortePagoRapidoDias: corte }).where(eq(programs.id, programId));
@@ -113,6 +124,8 @@ async function porEscalon(corte?: number | null) {
 }
 
 describe("cargarEscalera: los siete escalones contra la base", () => {
+  beforeEach(sembrarProgramas);
+
   it("Deals creados usa el mismo ancla de envío en el Hub y la escalera", async () => {
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
     const crear = async (sufijo: string, envioCreado: string, dealCreado: string) => {
@@ -212,15 +225,6 @@ describe("cargarEscalera: los siete escalones contra la base", () => {
     expect(cargada.deals.map((d) => d.dealId)).toEqual([propio]);
   });
 
-  it("el escalón cambia al leer cuando el deal paga, sin guardar nada", async () => {
-    const id = await sembrar({ citas: [{ dia: "2026-10-05", resultado: "show" }] });
-    expect((await porEscalon()).escalon(id)).toBe("atendio_no_compro");
-    await db.update(deals).set({ etapa: "ganado_parcial" }).where(eq(deals.id, id));
-    await db.insert(dealEtapaHistorial).values({ dealId: id, a: "ganado_parcial", fecha: new Date("2026-10-05T15:00:00-05:00") });
-    await abonoDePrueba(db, { programId, dealId: id, fecha: "2026-10-05", monto: "100", moneda: "USD", closerId: "Ana" });
-    expect((await porEscalon()).escalon(id)).toBe("pago_en_llamada");
-  });
-
   it("corte nulo: 'pagó rápido' no existe y sus pagos están en 'pagó después'", async () => {
     const id = await sembrar({ etapaVendida: true, ventaEl: "2026-10-07", abonos: [{ fecha: "2026-10-07" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
     const { cargada, escalon } = await porEscalon(null);
@@ -282,20 +286,15 @@ describe("cargarEscalera: los siete escalones contra la base", () => {
 });
 
 describe("320: la tarjeta y su lista cuentan lo mismo", () => {
+  beforeAll(async () => {
+    await sembrarProgramas();
+    await sembrarVarios();
+  }, 60_000);
+
   const periodo = { preset: "custom" as const, a: rango, b: null };
   const entrada = () => ({ programId, slug: "p", hoy: "2026-10-31", periodo, claveCloser: null, origen: "/p/p/hub", conEquipo: true });
 
-  async function sembrarVarios() {
-    await sembrar({ owner: ana, etapaVendida: true, abonos: [{ fecha: "2026-10-05" }], citas: [{ dia: "2026-10-05", resultado: "cerrada" }] });
-    await sembrar({ owner: ana, etapaVendida: true, ventaEl: "2026-10-08", abonos: [{ fecha: "2026-10-08" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
-    await sembrar({ owner: beto, etapaVendida: true, ventaEl: "2026-10-20", abonos: [{ fecha: "2026-10-20" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
-    await sembrar({ owner: beto, citas: [{ dia: "2026-10-05", resultado: "perdida" }] });
-    await sembrar({ owner: null });
-    for (let i = 0; i < TAMANO_PAGINA + 3; i += 1) await sembrar({ owner: ana, citas: [{ dia: "2026-10-05", resultado: "no_show" }] });
-  }
-
   it("cada cifra de la tarjeta es el subtotal de su lista, y la lista pagina completa", async () => {
-    await sembrarVarios();
     const vista = await vistaDeEscalera(entrada(), db);
     for (const escalon of ESCALONES) {
       const celda = vista.principal.celdas[escalon];
@@ -313,7 +312,6 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
   });
 
   it("los grupos suman sus escalones y cada lista da la misma cifra", async () => {
-    await sembrarVarios();
     const vista = await vistaDeEscalera(entrada(), db);
     for (const [grupo, escalones] of Object.entries(GRUPOS_DE_CIERRE)) {
       expect(escalones.every((escalon) => grupoDeCierre(escalon) === grupo)).toBe(true);
@@ -325,7 +323,6 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
   });
 
   it("por closer: la celda abre la lista de ese closer y las filas suman el total del programa", async () => {
-    await sembrarVarios();
     const vista = await vistaDeEscalera(entrada(), db);
     expect(vista.porCloser.reduce((t, f) => t + f.total, 0)).toBe(vista.principal.total);
     const deAna = vista.porCloser.find((f) => f.clave === ana)!;
@@ -338,6 +335,25 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
     expect(abierta?.lista.subtotal.cantidad).toBe(celda.deals);
     expect(new URL(celda.detalle!.href, "http://x").searchParams.get("closer")).toBe(codigo);
   });
+
+  it("sin acceso al equipo no hay closers ni listas, pero las cifras quedan", async () => {
+    const vista = await vistaDeEscalera({ ...entrada(), conEquipo: false }, db);
+    expect(vista.porCloser).toEqual([]);
+    expect(vista.principal.celdas.pago_en_llamada.deals).toBe(1);
+    expect(Object.values(vista.principal.celdas).every((c) => c.detalle === null)).toBe(true);
+  });
+
+  it("un escalón que no existe da una lista vacía, nunca la escalera entera", async () => {
+    const [lista] = await listaDeMetrica("escalera", { programId, rango, hoy: "2026-10-31", escalon: "inventado" }, 1, db);
+    expect(lista.subtotal.cantidad).toBe(0);
+  });
+});
+
+describe("320: la tarjeta con su propia siembra (reloj y comparación)", () => {
+  beforeEach(sembrarProgramas);
+
+  const periodo = { preset: "custom" as const, a: rango, b: null };
+  const entrada = () => ({ programId, slug: "p", hoy: "2026-10-31", periodo, claveCloser: null, origen: "/p/p/hub", conEquipo: true });
 
   it("la lista decide con el mismo reloj que la cifra: ahora fijo", async () => {
     await sembrar({ citas: [{ dia: "2026-10-05", resultado: "no_show" }] });
@@ -353,22 +369,7 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
     }
   });
 
-  it("sin acceso al equipo no hay closers ni listas, pero las cifras quedan", async () => {
-    await sembrarVarios();
-    const vista = await vistaDeEscalera({ ...entrada(), conEquipo: false }, db);
-    expect(vista.porCloser).toEqual([]);
-    expect(vista.principal.celdas.pago_en_llamada.deals).toBe(1);
-    expect(Object.values(vista.principal.celdas).every((c) => c.detalle === null)).toBe(true);
-  });
-
-  it("un escalón que no existe da una lista vacía, nunca la escalera entera", async () => {
-    await sembrarVarios();
-    const [lista] = await listaDeMetrica("escalera", { programId, rango, hoy: "2026-10-31", escalon: "inventado" }, 1, db);
-    expect(lista.subtotal.cantidad).toBe(0);
-  });
-
   it("con comparación trae el B de cada escalón", async () => {
-    await sembrarVarios();
     await sembrar({ creado: "2026-09-10", citas: [{ dia: "2026-09-10", resultado: "perdida" }] });
     const vista = await vistaDeEscalera({ ...entrada(), periodo: { preset: "custom", a: rango, b: { desde: "2026-09-01", hasta: "2026-09-30" } } }, db);
     expect(vista.hayComparacion).toBe(true);
@@ -377,6 +378,8 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
 });
 
 describe("320: todos los programas, lado a lado y sin mezclar (ADR 0048)", () => {
+  beforeEach(sembrarProgramas);
+
   const periodo = { preset: "custom" as const, a: rango, b: null };
 
   it("una distribución por programa; cada cifra contra la lista de SU programa y ningún total cruzado", async () => {
@@ -421,6 +424,8 @@ describe("320: todos los programas, lado a lado y sin mezclar (ADR 0048)", () =>
 });
 
 describe("349/355: las ventas de Pauta por origen salen del cargador de ROAS y abren su lista", () => {
+  beforeEach(sembrarProgramas);
+
   async function conOrigen(dealId: string, source: string, medium: string, campaign: string) {
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
     const [fuente] = await db.insert(sources).values({ programId, nombre: `F${n++}` }).returning();

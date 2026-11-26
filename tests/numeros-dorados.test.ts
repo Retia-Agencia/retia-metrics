@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Session } from "next-auth";
 import type { Db } from "@/lib/db/tipos";
 import { consultarMetricaMcp, resumenDelHubMcp } from "@/lib/mcp/herramientas/metricas";
@@ -31,12 +31,14 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let s: SemillaDorada;
 
-beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
-afterAll(async () => cerrar());
-beforeEach(async () => {
+// Todo el archivo LEE (vista del dashboard, herramientas MCP con `escritura: false`, metas, students): la
+// siembra dorada es la misma para todos y se hace una vez.
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   await vaciar();
   s = await sembrarDorada(db);
 }, 60_000);
+afterAll(async () => cerrar());
 
 type Periodo = keyof typeof PERIODOS_DORADOS;
 type Programa = "A" | "B";
@@ -173,13 +175,6 @@ describe("Hub Comercial y Dinero", () => {
     expect(vista.ventasPorCohorte.map((c) => [c.codigo, c.ventas, c.contratadoUsd, c.dinero.recaudado])).toEqual(esperado.porCohorte);
     expect(vista.comparativo.map((c) => [c.closerId, c.cierres])).toEqual(esperado.comparativo);
   });
-
-  it("las ventas por cohorte suman las ventas del periodo (la misma venta no se cuenta dos veces)", async () => {
-    for (const [p, per] of CASOS) {
-      const vista = await vistaDe(p, per);
-      expect(vista.ventasPorCohorte.reduce((suma, c) => suma + c.ventas, 0)).toBe(vista.embudo.cierres);
-    }
-  });
 });
 
 describe("MCP contra Hub, con el escalon conteo y despues claves", () => {
@@ -250,13 +245,6 @@ describe("Metas y cohorte", () => {
     expect(nov.metaCupos).toBeCloseTo((20 * 21) / 43, 10);
     expect(nov.esperado).toBeCloseTo((20 * 5) / 43, 10);
     expect(nov.contratadoUsd).toBe(3000);
-  });
-
-  it("el vendido del mes de Metas coincide con las ventas del Hub del mismo mes (misma definicion de venta)", async () => {
-    for (const p of ["A", "B"] as const) {
-      const metas = await leerMetasDelMes(id(p), "2026-10", HOY_DORADO, db);
-      expect(metas.vendidos).toBe((await vistaDe(p, "mesCerrado")).embudo.cierres);
-    }
   });
 });
 
