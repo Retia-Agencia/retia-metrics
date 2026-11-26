@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
@@ -44,6 +45,8 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   const [errorSku, setErrorSku] = useState<string | null>(null);
   const [cargandoSku, setCargandoSku] = useState(true);
   const [skuNuevo, setSkuNuevo] = useState("");
+  const [agregando, setAgregando] = useState(false);
+  const [skuRecienAgregado, setSkuRecienAgregado] = useState<string | null>(null);
   const [asignando, iniciarAsignacion] = useTransition();
   // Sube para volver a pedir los SKUs (tras asignar uno); el efecto solo escribe estado tras la respuesta.
   const [versionSku, setVersionSku] = useState(0);
@@ -57,7 +60,9 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
       } else {
         setErrorSku(null);
         setOpcionesSku(resultado);
-        setSkuNuevo((actual) => resultado.skusActivos.some((sku) => sku.id === actual) ? actual : (resultado.skusActivos[0]?.id ?? ""));
+        const skuIdsVigentes = new Set(resultado.lineas.filter((linea) => linea.estado !== "anulada").map((linea) => linea.skuId));
+        const disponibles = resultado.skusActivos.filter((sku) => !skuIdsVigentes.has(sku.id));
+        setSkuNuevo((actual) => disponibles.some((sku) => sku.id === actual) ? actual : (disponibles[0]?.id ?? ""));
       }
       setCargandoSku(false);
     }, () => {
@@ -71,6 +76,8 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   const lineas = opcionesSku?.lineas ?? [];
   const skusActivos = opcionesSku?.skusActivos ?? [];
   const vigentes = lineas.filter((linea) => linea.estado !== "anulada");
+  const skuIdsVigentes = new Set(vigentes.map((linea) => linea.skuId));
+  const disponibles = skusActivos.filter((sku) => !skuIdsVigentes.has(sku.id));
   // Con una sola línea vigente se preselecciona sin mutar lo que llega del padre.
   const datos = datosDelPadre.lineaId == null && vigentes.length === 1 ? { ...datosDelPadre, lineaId: vigentes[0].id } : datosDelPadre;
   // El padre decide con su propio estado: la preselección también se le informa.
@@ -79,6 +86,11 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
     if (lineaPreseleccionada) onChange({ ...datosDelPadre, lineaId: lineaPreseleccionada });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lineaPreseleccionada]);
+  const lineaDelSkuAgregado = vigentes.slice().reverse().find((linea) => linea.skuId === skuRecienAgregado) ?? null;
+  useEffect(() => {
+    if (lineaDelSkuAgregado?.id && lineaDelSkuAgregado.id !== datos.lineaId) onChange({ ...datos, lineaId: lineaDelSkuAgregado.id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineaDelSkuAgregado?.id]);
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
   const lineaElegida = vigentes.find((linea) => linea.id === datos.lineaId);
   const monto = Number(datos.monto);
@@ -92,30 +104,36 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
       <legend className="text-sm font-medium">¿Qué SKU está pagando?</legend>
       {cargandoSku ? <p className="text-sm text-muted-foreground">Cargando SKUs…</p> : null}
       {!cargandoSku && errorSku ? <p className="text-sm text-tono-peligro">{errorSku}</p> : null}
-      {!cargandoSku && !errorSku && vigentes.length > 0 ? <select
-        className={claseInput}
-        value={datos.lineaId ?? ""}
-        disabled={ticketDeshabilitado}
-        required
-        onChange={(e) => cambiar({ lineaId: e.target.value })}
-      >
-        <option value="">Elige un SKU</option>
-        {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.cohorte} · {linea.porCobrarUsd == null ? "por cobrar —" : `por cobrar ${usd(linea.porCobrarUsd)}`}</option>)}
-      </select> : null}
-      {!cargandoSku && !errorSku && vigentes.length === 0 && skusActivos.length > 0 ? <p className="text-sm">Este deal no tiene SKU. Asígnale el que está pagando.</p> : null}
-      {!cargandoSku && !errorSku && skusActivos.length === 0 ? <p className="text-sm text-tono-alerta">Este programa no tiene SKUs activos.</p> : null}
+      {!cargandoSku && !errorSku && vigentes.length > 0 ? <div className="flex gap-2">
+        <select
+          className={`${claseInput} flex-1`}
+          value={datos.lineaId ?? ""}
+          disabled={ticketDeshabilitado}
+          required
+          onChange={(e) => cambiar({ lineaId: e.target.value })}
+        >
+          <option value="">Elige un SKU</option>
+          {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.cohorte} · {linea.porCobrarUsd == null ? "por cobrar —" : `por cobrar ${usd(linea.porCobrarUsd)}`}</option>)}
+        </select>
+        {disponibles.length > 0 && !ticketDeshabilitado ? <Button type="button" variant="outline" size="icon" aria-label="Agregar otro SKU" title="Agregar otro SKU" onClick={() => setAgregando(true)}><Plus /></Button> : null}
+      </div> : null}
+      {!cargandoSku && !errorSku && vigentes.length === 0 && disponibles.length > 0 ? <p className="text-sm">Este deal no tiene SKU. Agrega el que está pagando.</p> : null}
+      {!cargandoSku && !errorSku && vigentes.length === 0 && skusActivos.length === 0 ? <p className="text-sm text-tono-alerta">Este programa no tiene SKUs activos.</p> : null}
       {ticketDeshabilitado ? <p className="text-xs text-tono-alerta">{motivoTicketDeshabilitado}</p> : null}
-      {!cargandoSku && !errorSku && skusActivos.length > 0 ? <div className="flex gap-2">
-        <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{skusActivos.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
+      {!cargandoSku && !errorSku && disponibles.length > 0 && (agregando || vigentes.length === 0) ? <div className="flex gap-2">
+        <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{disponibles.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
         <Button type="button" size="sm" disabled={!skuNuevo || asignando} onClick={() => iniciarAsignacion(async () => {
           const resultado = await asignarSkuAccion({ dealId, skuId: skuNuevo });
           if (!resultado.ok) { toast.error(resultado.error); return; }
-          toast.success("SKU asignado");
+          toast.success("SKU agregado");
           router.refresh();
+          setAgregando(false);
+          setSkuRecienAgregado(skuNuevo);
           setVersionSku((v) => v + 1);
-        })}>{vigentes.length > 0 ? "Asignar otro SKU" : "Asignar SKU"}</Button>
+        })}>Agregar</Button>
+        {vigentes.length > 0 ? <Button type="button" variant="ghost" size="sm" onClick={() => setAgregando(false)}>Cancelar</Button> : null}
       </div> : null}
-      {!cargandoSku && !errorSku && opcionesSku ? (opcionesSku.rutaCatalogoSkus
+      {!cargandoSku && !errorSku && opcionesSku && (agregando || vigentes.length === 0) ? (opcionesSku.rutaCatalogoSkus
         ? <Enlace precarga="nunca" href={opcionesSku.rutaCatalogoSkus} className="inline-block text-xs text-marca-texto underline-offset-2 hover:underline">¿Falta el SKU? Créalo en el catálogo</Enlace>
         : <p className="text-xs text-muted-foreground">¿Falta el SKU? Pídele a gerencia que lo cree.</p>) : null}
     </fieldset>

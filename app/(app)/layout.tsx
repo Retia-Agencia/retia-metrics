@@ -59,7 +59,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <BarraSuplantacion nombre={session.user.name ?? session.user.email ?? "este closer"} />
         ) : null}
         {children}
-        <AvisoVersionNueva />
+        <AvisoVersionNueva versionCargada={process.env.VERCEL_DEPLOYMENT_ID ?? null} />
       </div>
     </div>
   );
