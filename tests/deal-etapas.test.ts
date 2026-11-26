@@ -8,7 +8,7 @@ import {
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
-/** Matriz manual del ticket 142: cubre las 121 combinaciones sin derivarse del motor. */
+/** Matriz manual del ticket 142: cubre las 144 combinaciones sin derivarse del motor. */
 const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
   potencial: ["registrado", "calificado", "en_gestion", "agendado", "cierre_perdido", "a_futuro"],
   registrado: ["calificado", "en_gestion", "agendado", "cierre_perdido", "a_futuro"],
@@ -33,7 +33,7 @@ describe("las doce etapas", () => {
 });
 
 describe("la tabla de transiciones", () => {
-  it("recorre las 121 combinaciones: las de la tabla pasan y el resto se rechaza", () => {
+  it("recorre las 144 combinaciones: las de la tabla pasan y el resto se rechaza", () => {
     const errores: string[] = [];
     for (const de of ETAPAS) for (const a of ETAPAS) {
       const esperada = ESPERADAS[de].includes(a);
@@ -47,7 +47,7 @@ describe("la tabla de transiciones", () => {
     expect(new Set(pares).size).toBe(pares.length);
   });
 
-  it("trae cada id del documento: S1 a S3, E1 a E14, RETRO, P, R, A1 y A2", () => {
+  it("trae cada id del documento: S1 a S3, E1 a E14, RETRO, F, RF, P, R, A1 y A2", () => {
     const ids = new Set(TRANSICIONES.map((t) => t.id));
     const esperados = ["S1", "S2", "S3", ...Array.from({ length: 14 }, (_, i) => `E${i + 1}`), "RETRO", "F", "RF", "P", "R", "A1", "A2"];
     expect([...ids].sort()).toEqual(esperados.sort());
@@ -66,11 +66,11 @@ describe("las reglas generales del motor", () => {
     expect(aceptaAbono("ganado_parcial")).toBe(true);
   });
 
-  it("Cierre Perdido es alcanzable desde las nueve abiertas y nunca desde Ganado Pagado Completo", () => {
+  it("Cierre Perdido es alcanzable desde las nueve etapas del embudo y A futuro, nunca desde Ganado Pagado Completo", () => {
     const hacia = ETAPAS.filter((etapa) => esTransicionPermitida(etapa, "cierre_perdido"));
     expect(new Set(hacia)).toEqual(new Set([
       "potencial", "registrado", "en_gestion", "contactado", "calificado", "agendado",
-      "atendido", "compromiso_verbal", "ganado_parcial",
+      "atendido", "compromiso_verbal", "ganado_parcial", "a_futuro",
     ]));
     expect(esTransicionPermitida("ganado_completo", "cierre_perdido")).toBe(false);
   });

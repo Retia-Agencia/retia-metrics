@@ -45,6 +45,17 @@ const descartar = (etiqueta = "Descartar"): Respuesta => ({
   accion: { tipo: "mover", a: "cierre_perdido", pendiente: null },
 });
 
+const dejarParaMasAdelante: Respuesta = {
+  id: "a_futuro",
+  etiqueta: "Dejar para más adelante",
+  accion: { tipo: "mover", a: "a_futuro", pendiente: null },
+};
+
+const respuestasDeRecuperacion: readonly Respuesta[] = [
+  { id: "recuperar_gestion", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
+  { id: "recuperar_agendado", etiqueta: "A agendado", accion: { tipo: "mover", a: "agendado", pendiente: null } },
+];
+
 const proximaCohorte = (etapa: EtapaDeal, soloConPendiente = false): Respuesta => ({
   id: "proxima_cohorte",
   etiqueta: "Próxima cohorte",
@@ -73,15 +84,15 @@ const pago = (etiqueta: string): Respuesta => ({ id: "abono", etiqueta, accion: 
 export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
   potencial: {
     pregunta: null,
-    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("potencial"), descartar()],
+    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("potencial"), dejarParaMasAdelante, descartar()],
   },
   registrado: {
     pregunta: null,
-    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("registrado"), descartar()],
+    respuestas: [registrarContacto, loEstoyTrabajando, proximaCohorte("registrado"), dejarParaMasAdelante, descartar()],
   },
   en_gestion: {
     pregunta: "¿Se logró el contacto?",
-    respuestas: [{ ...registrarContacto, etiqueta: "Sí" }, proximaCohorte("en_gestion"), descartar()],
+    respuestas: [{ ...registrarContacto, etiqueta: "Sí" }, proximaCohorte("en_gestion"), dejarParaMasAdelante, descartar()],
   },
   contactado: {
     pregunta: "¿Califica?",
@@ -89,6 +100,7 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
       { id: "califica", etiqueta: "Sí", accion: { tipo: "mover", a: "calificado", pendiente: null } },
       { id: "negocia", etiqueta: "Negocia", accion: { tipo: "mover", a: "compromiso_verbal", pendiente: null } },
       proximaCohorte("contactado"),
+      dejarParaMasAdelante,
       descartar("No califica"),
     ],
   },
@@ -104,6 +116,7 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
         accion: { tipo: "mover", a: "calificado", pendiente: "seguimiento" },
       },
       proximaCohorte("calificado"),
+      dejarParaMasAdelante,
       descartar(),
     ],
   },
@@ -116,6 +129,7 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
       { id: "agendar_nueva", etiqueta: "Agendar nueva cita", accion: { tipo: "llamada", uso: "agendar" }, soloConPendiente: true },
       { id: "fallida", etiqueta: "No asistió o canceló", accion: { tipo: "llamada", uso: "fallida" } },
       proximaCohorte("agendado", true),
+      dejarParaMasAdelante,
       descartar(),
     ],
   },
@@ -128,6 +142,7 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
       { id: "seguimiento", etiqueta: "Seguimiento", accion: { tipo: "mover", a: "atendido", pendiente: "seguimiento" } },
       { id: "otra_llamada", etiqueta: "Otra llamada", accion: { tipo: "mover", a: "atendido", pendiente: "reagenda" } },
       proximaCohorte("atendido"),
+      dejarParaMasAdelante,
       descartar("Perdido"),
     ],
   },
@@ -146,25 +161,22 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
         accion: { tipo: "retroceder", destinos: ["atendido", "contactado", "calificado"] },
       },
       proximaCohorte("compromiso_verbal"),
+      dejarParaMasAdelante,
       descartar(),
     ],
   },
   ganado_parcial: {
     pregunta: null,
-    respuestas: [pago("Registrar abono"), descartar("Desistió")],
+    respuestas: [pago("Registrar abono"), dejarParaMasAdelante, descartar("Desistió")],
   },
   ganado_completo: { pregunta: null, respuestas: [] },
   cierre_perdido: {
     pregunta: "¿Se recupera?",
-    respuestas: [
-      { id: "recuperar", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
-    ],
+    respuestas: [...respuestasDeRecuperacion, dejarParaMasAdelante],
   },
   a_futuro: {
-    pregunta: "¿Se retoma?",
-    respuestas: [
-      { id: "retomar", etiqueta: "A gestión", accion: { tipo: "mover", a: "en_gestion", pendiente: null } },
-    ],
+    pregunta: "¿Retomamos?",
+    respuestas: [...respuestasDeRecuperacion, descartar()],
   },
 };
 

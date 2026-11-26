@@ -1,3 +1,7 @@
+---
+status: en curso
+---
+
 # 470 — A futuro y motivos libres
 
 ## Objetivo

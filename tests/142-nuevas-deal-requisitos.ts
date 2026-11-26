@@ -38,7 +38,7 @@ const ESPERADOS: Record<string, Codigo[]> = {
   "E12>ganado_parcial": ["dueno", "valor_vendido", "abono", "saldo_pendiente"],
   "E12>ganado_completo": ["dueno", "valor_vendido", "abono", "saldo_en_cero"],
   E13: ["valor_vendido", "saldo_en_cero"], E14: [],
-  RETRO: ["fecha_seguimiento", "motivo"], P: ["motivo"], R: ["motivo"], A1: ["sin_abonos"], A2: ["saldo_pendiente"],
+  RETRO: ["fecha_seguimiento", "motivo"], F: ["motivo"], RF: ["motivo"], P: ["motivo"], R: ["motivo"], A1: ["sin_abonos"], A2: ["saldo_pendiente"],
   PR1: ["llamada_fallida"], PR2: ["motivo"], PS1: ["fecha_seguimiento"],
   PS2: ["contacto"], PS3: ["fecha_seguimiento"], PC: ["cohorte_destino"],
 };
