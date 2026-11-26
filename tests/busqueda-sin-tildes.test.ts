@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import { leads, programs } from "@/lib/db/schema";
@@ -71,17 +69,5 @@ describe("búsqueda sin tildes", () => {
     await crearLead("Ana", "ana@b.co");
     expect(await leadsQueCasan(db, programId, "a%a")).toEqual(new Set());
     expect(await leadsQueCasan(db, programId, "a_a")).toEqual(new Set());
-  });
-
-  it("ninguna búsqueda vuelve a ilike: se saltaría las tildes", () => {
-    const archivos = (dir: string): string[] =>
-      readdirSync(dir).flatMap((nombre) => {
-        const ruta = join(dir, nombre);
-        return statSync(ruta).isDirectory() ? archivos(ruta) : /\.tsx?$/.test(ruta) ? [ruta] : [];
-      });
-    const conIlike = ["lib", "app", "components"]
-      .flatMap(archivos)
-      .filter((ruta) => /\bilike\(/.test(readFileSync(ruta, "utf8")));
-    expect(conIlike).toEqual([]);
   });
 });

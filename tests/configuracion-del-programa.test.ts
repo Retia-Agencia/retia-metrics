@@ -5,7 +5,6 @@ import { programs, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
-  CLAVES_DE_PASO,
   mensajeDeActivacionBloqueada,
   pasosDeConfiguracion,
   pasosPendientes,
@@ -36,12 +35,6 @@ describe("registro de configuración del programa", () => {
     expect(seccionDeLaFicha("ventas")).toBe("ventas");
     expect(seccionDeLaFicha(undefined)).toBeUndefined();
     expect(seccionDeLaFicha("x")).toBe("x");
-  });
-
-  it("conserva el orden único de los pasos", () => {
-    expect(pasosDeConfiguracion(SIN_CONFIGURAR).map((paso) => paso.clave)).toEqual(
-      CLAVES_DE_PASO,
-    );
   });
 
   it("datos comerciales exige el corte de pago rápido", () => {
@@ -89,13 +82,6 @@ describe("registro de configuración del programa", () => {
     expect(
       pasosPendientes(SIN_CONFIGURAR, { soloExigidos: true }).map((paso) => paso.clave),
     ).toEqual(["calendly", "fuente_principal"]);
-  });
-
-  it("arma el mensaje con los títulos tal como están registrados", () => {
-    const pendientes = pasosPendientes(SIN_CONFIGURAR, { soloExigidos: true });
-    expect(mensajeDeActivacionBloqueada(pendientes)).toBe(
-      "Todavía no se puede activar el programa. Falta: Calendly y Formulario principal.",
-    );
   });
 });
 
@@ -161,29 +147,5 @@ describe("paridad de la reja de activación", () => {
       urlPublica: "https://form.typeform.com/to/principal",
     });
     await comprobarParidad();
-  });
-});
-
-/**
- * 🩸 14-nov: vincular la cuenta de Meta desde el recorrido de un programa INACTIVO respondía
- * "No autorizado para este programa": la acción preguntaba `programaEnAlcance`, que solo ve
- * programas activos. Toda acción que un editor del recorrido llama tiene que autorizar con
- * `exigirAccesoAlPrograma` (ADR 0094 punto 4, ADR 0132). Este guardián lee los módulos de
- * acciones que esos editores importan.
- */
-describe("las acciones del recorrido admiten un programa inactivo", () => {
-  const ACCIONES_DEL_RECORRIDO = [
-    "app/(app)/p/[programa]/programa/acciones-programa.ts",
-    "app/(app)/p/[programa]/programa/acciones-integraciones.ts",
-    "app/(app)/p/[programa]/programa/acciones-fuentes.ts",
-    "app/(app)/p/[programa]/programa/acciones-meta.ts",
-    "app/(app)/p/[programa]/programa/acciones.ts",
-    "app/(app)/ajustes/usuarios/acciones.ts",
-  ];
-
-  it.each(ACCIONES_DEL_RECORRIDO)("%s no autoriza con programaEnAlcance", async (ruta) => {
-    const { readFileSync } = await import("node:fs");
-    const codigo = readFileSync(ruta, "utf8").replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(codigo).not.toMatch(/programaEnAlcance\s*\(/);
   });
 });

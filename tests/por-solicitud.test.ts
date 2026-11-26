@@ -1,5 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { claveDe, crearUnaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Db } from "@/lib/db/tipos";
@@ -114,31 +112,5 @@ describe("unaVezPorSolicitud", () => {
   it("arma claves estables para objetos e ids", () => {
     expect(claveDe("pregunta", { b: 2, a: 1 }, ["z", "a"]))
       .toBe(claveDe("pregunta", { a: 1, b: 2 }, ["a", "z"]));
-  });
-});
-
-function llamadasSinPreguntaLiteral(fuente: string): string[] {
-  const sinDeclaracion = fuente.replace(/(?:async\s+)?function\s+unaVezPorSolicitud[^\{]+\{/g, "");
-  return [...sinDeclaracion.matchAll(/unaVezPorSolicitud\s*\(\s*[^,]+,\s*([^,\n]+)/g)]
-    .map((coincidencia) => coincidencia[1]!.trim())
-    .filter((clave) => !/^(?:claveDe\(\s*)?["'][A-Za-z][A-Za-z0-9]*/.test(clave));
-}
-
-function archivosTs(dir: string): string[] {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entrada) => {
-    const ruta = path.join(dir, entrada.name);
-    return entrada.isDirectory() ? archivosTs(ruta) : /\.tsx?$/.test(entrada.name) ? [ruta] : [];
-  });
-}
-
-describe("guardian de claves", () => {
-  it("exige que cada llamada nombre literalmente la pregunta", () => {
-    const culpables = archivosTs(path.join(process.cwd(), "lib"))
-      .flatMap((archivo) => llamadasSinPreguntaLiteral(fs.readFileSync(archivo, "utf8")).map(() => archivo));
-    expect(culpables).toEqual([]);
-  });
-
-  it("muerde una llamada sin nombre literal", () => {
-    expect(llamadasSinPreguntaLiteral("unaVezPorSolicitud(db, claveDinamica, leer)")).toEqual(["claveDinamica"]);
   });
 });

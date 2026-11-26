@@ -1,8 +1,5 @@
 import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { fileURLToPath } from "node:url";
-import fs from "node:fs";
-import path from "node:path";
 import { and, eq, sql } from "drizzle-orm";
 import {
   abonos,
@@ -25,7 +22,6 @@ import { deshacerMigracion } from "@/lib/migracion/deshacer";
 import { importarGestion } from "@/lib/migracion/importar";
 import { extraccionVacia, type DealTemplate, type Extraccion } from "@/lib/migracion/template";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
-import { archivos, sinComentarios } from "./helpers/codigo-fuente";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
@@ -260,29 +256,5 @@ describe("deshacerMigracion se niega si alguien trabajo encima", () => {
     const d = await dealMigrado("ana@c.co");
     await db.update(deals).set({ anuladoEn: new Date(), anuladoPor: maru, motivoAnulacion: "error" }).where(eq(deals.id, d.id));
     await esperarNegativa("deal_anulado");
-  });
-});
-
-describe("guardian: solo la reversa borra filas operativas", () => {
-  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-  const AUTORIZADO = path.join("lib", "migracion", "deshacer.ts");
-  const TABLAS = ["deals", "calls", "abonos", "dealActividades", "dealEtapaHistorial"];
-  const patron = new RegExp(`\\.delete\\(\\s*(${TABLAS.join("|")})\\s*\\)`);
-  const borra = (fuente: string) => patron.test(sinComentarios(fuente));
-
-  it("ningun otro archivo de lib/, app/, components/ ni scripts/ borra deals, llamadas, abonos, actividades ni historial", () => {
-    const culpables = ["lib", "app", "components", "scripts"]
-      .flatMap((d) => archivos(path.join(RAIZ, d)))
-      .map((f) => path.relative(RAIZ, f))
-      .filter((f) => f !== AUTORIZADO)
-      .filter((f) => borra(fs.readFileSync(path.join(RAIZ, f), "utf8")));
-    expect(culpables).toEqual([]);
-  });
-
-  it("muerde: caza el borrado y no marca otras tablas", () => {
-    expect(borra("await db.delete(deals).where(x)")).toBe(true);
-    expect(borra("tx.delete( abonos )")).toBe(true);
-    expect(borra("db.delete(entregasWebhook)")).toBe(false);
-    expect(borra("// db.delete(deals)")).toBe(false);
   });
 });

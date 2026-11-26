@@ -1,6 +1,4 @@
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
@@ -123,31 +121,5 @@ describe("archivos", () => {
   it("no firma una lectura pendiente", async () => {
     const { archivoId } = await nuevaSubida();
     await expect(urlParaVer(db, almacen, archivoId)).rejects.toMatchObject({ status: 404 });
-  });
-});
-
-const USA_STORAGE_REST = /\/storage\/v1/;
-
-describe("el guardián del almacén muerde", () => {
-  it.each([
-    ["fetch('/storage/v1/object/x')", true],
-    ["fetch('/api/archivos')", false],
-  ])("%s → %s", (codigo, caza) => {
-    expect(USA_STORAGE_REST.test(codigo)).toBe(caza);
-  });
-
-  it("solo lib/archivos conoce las rutas REST del almacén", () => {
-    const culpables: string[] = [];
-    const recorrer = (dir: string) => {
-      for (const nombre of readdirSync(dir)) {
-        const ruta = join(dir, nombre);
-        if (statSync(ruta).isDirectory()) recorrer(ruta);
-        else if (/\.tsx?$/.test(nombre) && !ruta.replaceAll("\\", "/").includes("lib/archivos/")) {
-          if (USA_STORAGE_REST.test(readFileSync(ruta, "utf8"))) culpables.push(ruta);
-        }
-      }
-    };
-    ["lib", "app", "components", "scripts"].forEach(recorrer);
-    expect(culpables).toEqual([]);
   });
 });

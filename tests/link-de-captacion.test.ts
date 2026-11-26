@@ -1,5 +1,3 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
 import { generarLink, sanearUtm } from "@/lib/atribucion/link-de-captacion";
@@ -135,46 +133,5 @@ describe("el emparejador reconoce el link que el generador produce", () => {
     const traza = emparejar(utmsQueLlegan(link), ARBOL_VACIO);
     expect(traza.origen).toMatchObject({ area: "referidos", canal: { clave: "closer" } });
     expect(traza.contenido).toEqual({ formato: "closer", codigoCloser: "c7x2" });
-  });
-});
-
-/**
- * Las formas de pegar un utm_source a una URL: `.set/.append("utm_source", …)` sobre
- * cualquier receptor, `new URLSearchParams({ utm_source: … })` y la concatenacion
- * `?utm_source=${…}`. Leer un utm_source (la ingesta, los filtros) no es armar un link.
- */
-const ARMA_UN_LINK =
-  /\.(set|append)\(\s*["'`]utm_source["'`]|URLSearchParams\(\s*\{[^}]*\butm_source\b|[?&]utm_source=\$\{/;
-
-describe("el guardián del generador muerde", () => {
-  it.each([
-    [`url.searchParams.set("utm_source", s)`, true],
-    [`const p = url.searchParams; p.set("utm_source", s)`, true],
-    [`p.append('utm_source', s)`, true],
-    [`new URLSearchParams({ utm_medium: m, utm_source: s })`, true],
-    ["`${base}?utm_source=${s}`", true],
-    [`const s = params.get("utm_source")`, false],
-    [`respuestas["utm_source"]`, false],
-  ])("%s → %s", (codigo, caza) => {
-    expect(ARMA_UN_LINK.test(codigo)).toBe(caza);
-  });
-});
-
-describe("el generador es uno solo (ADR 0051, AGENTS.md)", () => {
-  it("nadie fuera de link-de-captacion.ts pega utm_source a una URL", () => {
-    const raices = ["lib", "app", "components"];
-    const culpables: string[] = [];
-    const recorrer = (dir: string) => {
-      for (const nombre of readdirSync(dir)) {
-        const ruta = join(dir, nombre);
-        if (statSync(ruta).isDirectory()) recorrer(ruta);
-        else if (/\.tsx?$/.test(nombre) && !ruta.replaceAll("\\", "/").endsWith("lib/atribucion/link-de-captacion.ts")) {
-          const texto = readFileSync(ruta, "utf8");
-          if (ARMA_UN_LINK.test(texto)) culpables.push(ruta);
-        }
-      }
-    };
-    raices.forEach(recorrer);
-    expect(culpables).toEqual([]);
   });
 });

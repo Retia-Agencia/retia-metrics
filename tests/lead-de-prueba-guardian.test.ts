@@ -15,7 +15,6 @@ const RAIZ = fileURLToPath(new URL("./", import.meta.url));
 const EXCEPCIONES: Record<string, string> = {
   "lead-de-prueba-guardian.test.ts": "Sus propias cadenas de muestra contienen inserts sin fecha para morder el guardian.",
   "lead-nace-con-fecha.test.ts": "Incluye el caso que prueba el rechazo del CHECK (insert de formulario sin fecha).",
-  "migracion-0058.test.ts": "SQL crudo contra el esquema de la migracion 0058, anterior al CHECK.",
 };
 
 function archivos(dir: string): string[] {

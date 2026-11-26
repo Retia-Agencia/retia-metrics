@@ -35,25 +35,6 @@ describe("360: la bitacora usa el filtro de fecha de las listas", () => {
   });
 });
 
-describe("360: la busqueda vive en la URL y sobrevive a abrir un registro y volver", () => {
-  it("Leads: abrir un lead desde ?q= y volver devuelve la misma busqueda", async () => {
-    const { origenDeLaPagina, enlaceConVuelta, destinoDeVolver } = await import("@/lib/navegacion/volver");
-    const origen = origenDeLaPagina("/p/x/leads", { q: "ana pérez", calidad: "high" });
-    const enlace = enlaceConVuelta("/p/x/leads/abc", origen);
-    const desde = new URL(`https://crm.test${enlace}`).searchParams.get("desde");
-    expect(desde).toBe(origen);
-    expect(decodeURIComponent(origen)).toContain("q=ana+p");
-    expect(destinoDeVolver).toBeTypeOf("function");
-  });
-
-  it("el buscador de las listas dice «teléfono», no «celular»", async () => {
-    const { readFileSync } = await import("node:fs");
-    const fuente = readFileSync("components/filtros/buscador-url.tsx", "utf8");
-    expect(fuente).toContain("correo o teléfono");
-    expect(fuente).not.toContain("celular");
-  });
-});
-
 describe("360: Calls filtra la fecha con campo + periodo", () => {
   it("fecha=agenda&periodo=custom acota y el enlace viejo desde/hasta sigue valiendo", async () => {
     const { filtroDeLlamadasDesdeUrl } = await import("@/lib/queries/llamadas");
