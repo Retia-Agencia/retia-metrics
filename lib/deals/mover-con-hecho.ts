@@ -201,6 +201,7 @@ export async function moverConHecho(
         plataformaId: entrada.hecho.plataformaId,
         comprobanteUrl: entrada.hecho.comprobanteUrl,
         archivo: entrada.hecho.archivo,
+        confirmarSobrepago: entrada.hecho.confirmarSobrepago,
       });
     }
 

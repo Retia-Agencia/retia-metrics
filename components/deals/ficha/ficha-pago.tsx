@@ -348,6 +348,7 @@ function DialogoRegistrarAbono({
               plataformaId: datos.plataformaId!,
               comprobanteUrl: datos.comprobanteUrl,
               archivoId: datos.archivoId ?? undefined,
+              confirmarSobrepago: datos.confirmarSobrepago,
             }),
             { exito: "Abono registrado.", alExito: onCerrar },
           );

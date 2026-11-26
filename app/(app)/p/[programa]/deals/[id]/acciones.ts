@@ -125,7 +125,7 @@ const esquemaLinea = z.object({ dealId: z.string().uuid("Deal inválido."), line
 export async function opcionesDeSkuDelDealAccion(entrada: { dealId: string }): Promise<
   | {
     ok: true;
-    lineas: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: "propuesta" | "vendida" | "anulada" }>;
+    lineas: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; valorVendidoUsd: number; porCobrarUsd: number | null; estado: "propuesta" | "vendida" | "anulada" }>;
     skusActivos: Array<{ id: string; nombre: string; codigo: string }>;
     rutaCatalogoSkus: string | null;
   }
@@ -150,7 +150,7 @@ export async function opcionesDeSkuDelDealAccion(entrada: { dealId: string }): P
     ]);
     return {
       ok: true,
-      lineas: lineas.map(({ id, skuNombre, skuCodigo, cohorte, estado }) => ({ id, skuNombre, skuCodigo, cohorte, estado })),
+      lineas: lineas.map(({ id, skuNombre, skuCodigo, cohorte, valorVendidoUsd, porCobrarUsd, estado }) => ({ id, skuNombre, skuCodigo, cohorte, valorVendidoUsd, porCobrarUsd, estado })),
       skusActivos: skusActivos.map(({ id, nombre, codigo }) => ({ id, nombre, codigo })),
       rutaCatalogoSkus: configuraPrograma(rol) ? `/p/${encodeURIComponent(deal.programaSlug)}/programa?seccion=ventas#cohortes` : null,
     };
@@ -262,6 +262,7 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     plataformaId: plataformaObligatoria(),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
     archivoId: textoOpcional(id("Archivo inválido.")),
+    confirmarSobrepago: z.boolean().optional(),
   }),
 ]);
 
@@ -487,6 +488,7 @@ const esquemaAbonoAccion = z.object({
   plataformaId: plataformaObligatoria(),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
   archivoId: textoOpcional(id("Archivo inválido.")),
+  confirmarSobrepago: z.boolean().optional(),
 });
 export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 

@@ -180,7 +180,7 @@ export function useResponder(
       : tipoDeHecho === "agendado" && datos.horaElegida
         ? { tipo: "agendado" as const, horaElegida: datos.horaElegida }
         : tipoDeHecho === "abono" && datos.abono?.lineaId
-          ? { tipo: "abono" as const, lineaId: datos.abono.lineaId, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, plataformaId: datos.abono.plataformaId ?? "", comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
+          ? { tipo: "abono" as const, lineaId: datos.abono.lineaId, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, plataformaId: datos.abono.plataformaId ?? "", comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined, confirmarSobrepago: datos.abono.confirmarSobrepago }
           : undefined;
     const r = pendiente === "proxima_cohorte"
       ? await proximaCohorteAccion({

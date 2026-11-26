@@ -8,8 +8,8 @@ import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { hoyEnBogota } from "@/lib/format";
-import { asignarSkuAccion, crearPlataformaParaAbonoAccion, opcionesDeSkuDelDealAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { hoyEnBogota, usd } from "@/lib/format";
+import { asignarSkuAccion, crearPlataformaParaAbonoAccion, editarValorLineaAccion, opcionesDeSkuDelDealAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
@@ -20,10 +20,11 @@ export interface DatosFormularioAbono {
   plataformaId: string | null;
   comprobanteUrl: string;
   archivoId: string | null;
+  confirmarSobrepago: boolean;
 }
 
 export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAbono {
-  return { lineaId: null, fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null };
+  return { lineaId: null, fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", plataformaId: null, comprobanteUrl: "", archivoId: null, confirmarSobrepago: false };
 }
 
 type Plataforma = { id: string; nombre: string };
@@ -79,6 +80,13 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lineaPreseleccionada]);
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
+  const lineaElegida = vigentes.find((linea) => linea.id === datos.lineaId);
+  const monto = Number(datos.monto);
+  const pagoSuperaSaldo = lineaElegida?.porCobrarUsd != null && Number.isFinite(monto) && monto > lineaElegida.porCobrarUsd;
+  useEffect(() => {
+    if (datosDelPadre.confirmarSobrepago !== pagoSuperaSaldo) onChange({ ...datos, confirmarSobrepago: pagoSuperaSaldo });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagoSuperaSaldo]);
   return <>
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium">¿Qué SKU está pagando?</legend>
@@ -92,7 +100,7 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
         onChange={(e) => cambiar({ lineaId: e.target.value })}
       >
         <option value="">Elige un SKU</option>
-        {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.skuCodigo} · {linea.cohorte}</option>)}
+        {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.cohorte} · {linea.porCobrarUsd == null ? "por cobrar —" : `por cobrar ${usd(linea.porCobrarUsd)}`}</option>)}
       </select> : null}
       {!cargandoSku && !errorSku && vigentes.length === 0 && skusActivos.length > 0 ? <p className="text-sm">Este deal no tiene SKU. Asígnale el que está pagando.</p> : null}
       {!cargandoSku && !errorSku && skusActivos.length === 0 ? <p className="text-sm text-tono-alerta">Este programa no tiene SKUs activos.</p> : null}
@@ -125,6 +133,15 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
         />
       </Campo>
     </div>
+    {pagoSuperaSaldo && lineaElegida && lineaElegida.porCobrarUsd != null ? <AjusteValorVendido
+      key={`${lineaElegida.id}:${datos.monto}`}
+      dealId={dealId}
+      lineaId={lineaElegida.id}
+      monto={monto}
+      porCobrarUsd={lineaElegida.porCobrarUsd}
+      valorVendidoUsd={lineaElegida.valorVendidoUsd}
+      alActualizar={() => setVersionSku((v) => v + 1)}
+    /> : null}
     <Campo etiqueta="Plataforma de pago">
       <ControlPlataforma
         dealId={dealId}
@@ -143,6 +160,43 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
       </div>
     </Campo>
   </>;
+}
+
+function AjusteValorVendido({ dealId, lineaId, monto, porCobrarUsd, valorVendidoUsd, alActualizar }: {
+  dealId: string;
+  lineaId: string;
+  monto: number;
+  porCobrarUsd: number;
+  valorVendidoUsd: number;
+  alActualizar: () => void;
+}) {
+  const router = useRouter();
+  const sugerido = Math.round((valorVendidoUsd + monto - porCobrarUsd + Number.EPSILON) * 100) / 100;
+  const [nuevoValor, setNuevoValor] = useState(String(sugerido));
+  const [actualizando, iniciarActualizacion] = useTransition();
+  const valor = Number(nuevoValor);
+
+  return <div className="space-y-2 text-sm text-tono-alerta">
+    <p>El pago supera lo que falta por cobrar de este SKU ({usd(porCobrarUsd)}): se registrará con un sobrepago de {usd(monto - porCobrarUsd)}. Si el precio acordado es otro, cambia el valor vendido.</p>
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        className={`${claseInput} cifra`}
+        min="0"
+        step="0.01"
+        aria-label="Nuevo valor vendido"
+        value={nuevoValor}
+        onChange={(evento) => setNuevoValor(evento.target.value)}
+      />
+      <Button type="button" size="sm" disabled={actualizando || !Number.isFinite(valor) || valor < 0} onClick={() => iniciarActualizacion(async () => {
+        const resultado = await editarValorLineaAccion({ dealId, lineaId, valorVendidoUsd: valor });
+        if (!resultado.ok) { toast.error(resultado.error); return; }
+        toast.success("Valor vendido actualizado");
+        router.refresh();
+        alActualizar();
+      })}>Cambiar valor vendido</Button>
+    </div>
+  </div>;
 }
 
 export function ControlPlataforma({ dealId, plataformas: plataformasIniciales, value, onValueChange }: {
