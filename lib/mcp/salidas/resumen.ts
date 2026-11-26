@@ -46,6 +46,7 @@ export const salidaDeResumen = z.object({
     asistencia: campoDeTasa("asistencia"),
     cierre_de_ventas: campoDeTasa("cierre_de_ventas"),
     cita_a_venta: campoDeTasa("cita_a_venta"),
+    show_sin_confirmar: campoDeTasa("show_sin_confirmar"),
   }).strict().describe("Tasas del periodo con su cobertura."),
   pauta: z.array(celdaDePauta).describe("Columna Total de cada fila que devuelve la tabla semanal de Pauta para el mismo periodo y cohorte."),
   perdidos: z.array(z.object({
@@ -190,6 +191,7 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
       asistencia: { valor: vista.embudo.razonShow.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
       cierre_de_ventas: { valor: vista.embudo.razonCierre.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
       cita_a_venta: { valor: vista.embudo.agendaAVenta, cobertura: grupo.cobertura, parcial: grupo.parcial },
+      show_sin_confirmar: { valor: vista.embudo.razonShowSinConfirmar.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
     },
     pauta: extras.pauta.map(({ clave, nombre, unidad, celdas }) => ({ clave, nombre, unidad, valor: celdas.total.valor, cobertura: celdas.total.cobertura })),
     perdidos: vista.embudoEtapas.motivosDePerdida.map((fila) => ({ motivo: fila.motivo, deals: fila.deals, ticket_perdido_usd: fila.ticketPerdidoUsd, deals_sin_ticket: fila.dealsSinTicket })),
