@@ -13,8 +13,7 @@ import { cargarDatosDeCanales } from "@/lib/mi-espacio/datos-canales";
 import { cargarDatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
 import { cargarDatosDeNotificaciones } from "@/lib/mi-espacio/datos-notificaciones";
 import { cargarDatosDePorDecidir } from "@/lib/mi-espacio/datos-por-decidir";
-import { llamadasDelCloser, type RangoMiDia } from "@/lib/mi-espacio/llamadas-del-dia";
-import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { cargarDatosDeMiDia } from "@/lib/mi-espacio/datos-mi-dia";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
@@ -42,41 +41,18 @@ type ProgramaElegido = { id: string; slug: string; nombre: string };
 /** Los datos de la tab elegida; los mismos argumentos que cada tab usaba al leer por su cuenta. */
 async function cargarDatosDeSeccion(db: Db, entrada: EntradaDeMiEspacio, programa: ProgramaElegido | null) {
   switch (entrada.seccion?.id) {
-    case "mi-dia": {
-      if (!programa) return null;
-      const rangoPedido = uno(entrada.busqueda.rango);
-      const rango: RangoMiDia = rangoPedido === "manana" || rangoPedido === "semana" ? rangoPedido : "hoy";
-      const ordenPedido = uno(entrada.busqueda.orden);
-      const orden: "hora" | "lead" | "estado" = ordenPedido === "lead" || ordenPedido === "estado" ? ordenPedido : "hora";
-      const dir = uno(entrada.busqueda.dir) === "desc" ? "desc" as const : "asc" as const;
-      const soloSinConfirmar = uno(entrada.busqueda.conf) === "sin";
-      const ahora = new Date();
-      const [filas, opciones] = await Promise.all([
-        llamadasDelCloser(db, {
-          programId: programa.id,
-          userId: entrada.userId,
-          rango,
-          hoy: entrada.hoy,
-          soloSinConfirmar,
-        }),
-        opcionesDeFicha(db, programa.id, null, null),
-      ]);
-      const valorEstado = (fila: (typeof filas)[number]) => {
-        if (fila.confirmacion === "confirmada") return "Confirmó";
-        if (fila.resultado !== "agendada" || fila.hora < ahora) return "Ya pasó";
-        return "Sin confirmar";
-      };
-      const signo = dir === "asc" ? 1 : -1;
-      filas.sort((a, b) => signo * (orden === "hora"
-        ? a.hora.getTime() - b.hora.getTime()
-        : orden === "lead"
-          ? (a.leadNombre ?? a.leadEmail).localeCompare(b.leadNombre ?? b.leadEmail, "es")
-          : valorEstado(a).localeCompare(valorEstado(b), "es")));
-      return {
-        id: "mi-dia" as const,
-        datos: { filas, rango, soloSinConfirmar, orden, dir, ahora, motivosReagenda: opciones.motivos },
-      };
-    }
+    case "mi-dia":
+      return programa
+        ? {
+            id: "mi-dia" as const,
+            datos: await cargarDatosDeMiDia(db, {
+              programId: programa.id,
+              userId: entrada.userId,
+              hoy: entrada.hoy,
+              busqueda: entrada.busqueda,
+            }),
+          }
+        : null;
     case "notificaciones":
       return programa
         ? {
