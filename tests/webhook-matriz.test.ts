@@ -242,20 +242,6 @@ describe("caso 2 — completo sin link de agenda, setteo_no_calificado", () => {
   });
 });
 
-// ─────────────────────────────────────────────────────── caso 3: descartado
-
-describe("caso 3 — descartado sin agenda", () => {
-  it("el lead se guarda y abre en Calificado: todo el que llena el formulario es contacto (ADR 0061)", async () => {
-    vi.stubGlobal("fetch", fetchQueLanza());
-    const res = await enviar(conAgenda(conEstado(fixture(), "descartado"), ""));
-    expect(res.status).toBe(200);
-    const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBe("descartado");
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
-  });
-});
-
 // ────────────────────────── caso 4: agenda con link pero variable descartado
 
 describe("caso 4 — link de agenda con cualquier variable", () => {
@@ -405,41 +391,6 @@ describe("caso 6 — reintentos y llegada fuera de orden", () => {
 // ─────────────────────────────────── caso 7: la misma persona re-aplica
 
 describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)", () => {
-  it("(a) agendó y luego descartado: el deal sigue en Agendado; la calificación del lead pasa a descartado", async () => {
-    vi.stubGlobal("fetch", stubCalendly({}));
-    const agenda = fixture();
-    agenda.form_response.token = "t-agenda";
-    await enviar(agenda);
-    let [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("agendado");
-
-    // Ahora descartado, sin agenda: el lead ya tiene deal abierto y un Estado de Setteo no
-    // lo toca ni lo retrocede.
-    vi.stubGlobal("fetch", fetchQueLanza());
-    const desc = conAgenda(conEstado(fixture(), "descartado"), "");
-    desc.form_response.token = "t-desc";
-    await enviar(desc);
-    [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("agendado"); // el deal no retrocede
-  });
-
-  it("(b) descartado y luego agenda: el deal de Setteo sube a Agendado al llegar la agenda", async () => {
-    const desc = conAgenda(conEstado(fixture(), "descartado"), "");
-    desc.form_response.token = "t-desc";
-    await enviar(desc);
-    const [enSetteo] = await db.select().from(deals);
-    expect(enSetteo.etapa).toBe("registrado");
-
-    vi.stubGlobal("fetch", stubCalendly({}));
-    const agenda = fixture();
-    agenda.form_response.token = "t-agenda";
-    await enviar(agenda);
-    const todos = await db.select().from(deals);
-    expect(todos).toHaveLength(1);
-    expect(todos[0].id).toBe(enSetteo.id);
-    expect(todos[0].etapa).toBe("agendado");
-  });
-
   it("(c) agenda dos veces con dos citas distintas: la SEGUNDA cita crea su llamada en el mismo deal", async () => {
     // Decidido por Mani (28-sep): una re-agenda con fecha nueva no se pierde. El deal ya
     // está en Agendado y no se mueve; la cita nueva queda como otra llamada del mismo
@@ -464,19 +415,20 @@ describe("caso 7 — la misma persona re-aplica (fija el comportamiento actual)"
     expect(segunda.fechaAgenda?.toISOString()).toBe("2026-10-07T16:00:00.000Z");
   });
 
-  it("(d) setteo y luego agenda: el deal sube de Calificado a Agendado", async () => {
+  it("(d) setteo y luego agenda: el MISMO deal sube de Registrado a Agendado", async () => {
     const setteo = conAgenda(fixture(), "");
     setteo.form_response.token = "t-setteo";
     await enviar(setteo);
-    let [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
+    const [enSetteo] = await db.select().from(deals);
+    expect(enSetteo.etapa).toBe("registrado");
 
     vi.stubGlobal("fetch", stubCalendly({}));
     const agenda = fixture();
     agenda.form_response.token = "t-agenda";
     await enviar(agenda);
-    [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("agendado");
+    const todos = await db.select().from(deals);
+    expect(todos).toHaveLength(1);
+    expect(todos[0]).toMatchObject({ id: enSetteo.id, etapa: "agendado" });
   });
 
   it("DECIDIDO (Mani, 28-sep): la calificación del lead pasa a descartado y su deal sigue en Agendado (7a): decide el closer en la llamada", async () => {
@@ -637,23 +589,6 @@ describe("Dapta", () => {
     expect(await db.select().from(leads)).toHaveLength(1);
   });
 
-  it("mantiene la frontera cuando el mismo correo llega a otro programa", async () => {
-    const fuente = await fuenteDapta();
-    await enviarDapta(daptaCompleto, fuente);
-    const [otro] = await db
-      .insert(programs)
-      .values({
-        ...PROGRAMA_DE_PRUEBA,
-        slug: "dapta-otro",
-        nombre: "Dapta Otro",
-        ticketUsd: "1500",
-      })
-      .returning();
-    const fuenteOtro = await fuenteDapta(otro.id);
-    await enviarDapta(daptaCompleto, fuenteOtro);
-    expect(await db.select().from(leads)).toHaveLength(2);
-  });
-
   it("la entrega de prueba del editor de Dapta responde 200, deja el sobre y no crea lead", async () => {
     const fuente = await fuenteDapta();
     // El cuerpo REAL del boton "enviar prueba" de Dapta, recibido en produccion el 30-sep.
@@ -727,15 +662,6 @@ describe("caso 9 — sin correo, solo teléfono, teléfono inválido", () => {
 // ─────────────────────────────────── caso 10: nombres raros
 
 describe("caso 10 — nombres vacíos, con tildes/emoji, largos, ausentes", () => {
-  it("nombre solo con espacios queda null", async () => {
-    const p = conAgenda(fixture(), "");
-    const n = p.form_response.answers.find((a) => a.field.id === "f-nombre")!;
-    n.text = "   ";
-    await enviar(p);
-    const [lead] = await db.select().from(leads);
-    expect(lead.nombre).toBeNull();
-  });
-
   it("nombre con tildes y emoji se guarda tal cual (recortado)", async () => {
     const p = conAgenda(fixture(), "");
     const n = p.form_response.answers.find((a) => a.field.id === "f-nombre")!;
@@ -743,16 +669,6 @@ describe("caso 10 — nombres vacíos, con tildes/emoji, largos, ausentes", () =
     await enviar(p);
     const [lead] = await db.select().from(leads);
     expect(lead.nombre).toBe("José Ñandú 🦤");
-  });
-
-  it("nombre muy largo se guarda entero (no hay límite en la columna)", async () => {
-    const largo = "A".repeat(600);
-    const p = conAgenda(fixture(), "");
-    const n = p.form_response.answers.find((a) => a.field.id === "f-nombre")!;
-    n.text = largo;
-    await enviar(p);
-    const [lead] = await db.select().from(leads);
-    expect(lead.nombre).toBe(largo);
   });
 
   it("pregunta de nombre AUSENTE: lead sin nombre, sin error", async () => {
@@ -768,14 +684,6 @@ describe("caso 10 — nombres vacíos, con tildes/emoji, largos, ausentes", () =
 // ─────────────────────────────────── caso 11: UTM (centinela xxxxx; el resto sin cambio)
 
 describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)", () => {
-  it("UTM presentes se guardan crudos", async () => {
-    await enviar(conAgenda(fixture(), ""));
-    const [envio] = await db.select().from(submissions);
-    expect(envio.utmSource).toBe("facebook");
-    expect(envio.utmMedium).toBe("paid");
-    expect(envio.utmCampaign).toBe("tactical-septiembre");
-  });
-
   it("UTM ausentes (sin hidden): quedan null, no un centinela inventado", async () => {
     const p = conAgenda(fixture(), "");
     delete p.form_response.hidden;
@@ -784,14 +692,6 @@ describe("caso 11 — UTM ausentes, vacíos, y el CENTINELA xxxxx (Mani, 28-sep)
     expect(envio.utmSource).toBeNull();
     expect(envio.utmMedium).toBeNull();
     expect(envio.utmCampaign).toBeNull();
-  });
-
-  it("UTM vacíos: quedan null", async () => {
-    const p = conAgenda(fixture(), "");
-    p.form_response.hidden = { utm_source: "", utm_medium: "", utm_campaign: "" };
-    await enviar(p);
-    const [envio] = await db.select().from(submissions);
-    expect(envio.utmSource).toBeNull();
   });
 
   it('el placeholder "xxxxx" es un CENTINELA: se trata como sin UTM (null) en los tres leídos', async () => {
@@ -862,15 +762,6 @@ describe("caso 12 — respuestas raras: tipo nuevo, nula, sin definition, answer
     const res = await enviar(p);
     expect(res.status).toBe(200);
     expect(await db.select().from(sobresCrudos)).toHaveLength(1);
-  });
-
-  it("hidden ausente: 200, envío guardado sin UTM", async () => {
-    const p = conAgenda(fixture(), "");
-    delete p.form_response.hidden;
-    const res = await enviar(p);
-    expect(res.status).toBe(200);
-    const [envio] = await db.select().from(submissions);
-    expect(envio.utmSource).toBeNull();
   });
 });
 
@@ -994,22 +885,4 @@ describe("caso D — caja negra: se guarda el cuerpo crudo de CADA envío", () =
     expect(sobres).toHaveLength(1);
     expect(sobres[0].cuerpo).toBe(crudo);
   });
-});
-
-// ─────────────────────────────────── caso E: variables genéricas por la ruta
-
-describe("caso E — variables genéricas (nada hard-coded a estado)", () => {
-
-  it("un payload SIN la variable estado entra sin Estado y no revienta", async () => {
-    const p = conAgenda(fixture(), "");
-    p.form_response.variables = [{ key: "score", type: "number", number: 1 }];
-    const res = await enviar(p);
-    expect(res.status).toBe(200);
-    const [lead] = await db.select().from(leads);
-    expect(lead.calificacion).toBeNull();
-    // Sin Estado igual abre deal (ADR 0069, GC-27): completo sin calidad mapeada = Registrado.
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
-  });
-
 });

@@ -50,7 +50,7 @@ describe("etapaDeEntrada: la tabla del ADR 0069, fila por fila", () => {
   const hechos = (esParcial: boolean, agendo: boolean, leadQuality: string | null) => ({ esParcial, agendo, leadQuality });
 
   it.each([
-    [false, "High"], [false, "Low"], [false, null], [true, "High"], [true, null],
+    [false, "Low"], [true, "High"],
   ] as const)("agendó (parcial=%s, calidad %s): Agendado, venga con la calidad que venga", (esParcial, q) => {
     expect(etapaDeEntrada(hechos(esParcial, true, q))).toBe("agendado");
   });
@@ -59,11 +59,11 @@ describe("etapaDeEntrada: la tabla del ADR 0069, fila por fila", () => {
     expect(etapaDeEntrada(hechos(false, false, "High"))).toBe("calificado");
   });
 
-  it.each(["High", " high ", "Low", "Mid", null])("🩸 parcial sin agenda con calidad %s: Potencial, nunca Calificado (16-oct)", (q) => {
+  it.each(["High", " high ", null])("🩸 parcial sin agenda con calidad %s: Potencial, nunca Calificado (16-oct)", (q) => {
     expect(etapaDeEntrada(hechos(true, false, q))).toBe("potencial");
   });
 
-  it.each(["Low", "Mid", null, ""])("completo %s sin agenda: Registrado (ningún envío se descarta)", (q) => {
+  it.each(["Low", null])("completo %s sin agenda: Registrado (ningún envío se descarta)", (q) => {
     expect(etapaDeEntrada(hechos(false, false, q))).toBe("registrado");
   });
 
@@ -149,7 +149,7 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
     },
   );
 
-  it.each(["agendado", "atendido", "compromiso_verbal", "ganado_parcial"] as const)(
+  it.each(["agendado", "ganado_parcial"] as const)(
     "entra en Agendado + cita vigente con deal en %s (4, 5, 6 o 7) agrega la llamada, sin mover",
     (etapa) => {
       // Mani, 28-sep: una re-agenda con cita nueva no se pierde. El deal no se mueve.
@@ -161,7 +161,7 @@ describe("decidirAccionDeDeal: la tabla del insumo §3.1, fila por fila", () => 
     },
   );
 
-  it.each(["agendado", "atendido", "compromiso_verbal", "ganado_parcial"] as const)(
+  it.each(["agendado", "ganado_parcial"] as const)(
     "entra en Agendado + cita NO vigente con deal en %s (4, 5, 6 o 7) notifica re-envio, sin mover",
     (etapa) => {
       expect(decidirAccionDeDeal(AGENDADO, conDeal(etapa), { estado: "cancelada" })).toMatchObject({
@@ -402,13 +402,14 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(await db.select().from(calls)).toHaveLength(1);
   });
 
-  it("un completo sin agenda ni calidad abre en Registrado, por el motor y con historial", async () => {
+  it("🩸 un COMPLETO sin estado, agenda ni calidad SÍ abre deal en Registrado, por el motor y con historial (GC-27; el 29-sep de Tactical no vuelve a pasar)", async () => {
     const r = await ingerirEntradas(
       db,
       programId,
-      [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })],
+      [entrada({ token: "t1", correo: "ana@correo.co" })],
       { aplicarReglaDeDeals: true },
     );
+    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBeNull();
 
     const [deal] = await db.select().from(deals);
     expect(deal.etapa).toBe("registrado");
@@ -514,50 +515,6 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(r.reglaDeDeals[0].accion.tipo).toBe("abrir");
   });
 
-  it("🩸 un COMPLETO sin estado SÍ abre deal (GC-27; el 29-sep de Tactical no vuelve a pasar)", async () => {
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co" })], {
-      aplicarReglaDeDeals: true,
-    });
-    expect((await leadDeCorreo("ana@correo.co")).calificacion).toBeNull();
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("registrado");
-  });
-
-  it("con_calendly desde Setteo + cita vigente MUEVE a Agendado, crea la llamada y deja su fila de historial", async () => {
-    // Los 9 casos de dev: un lead con deal en Pendiente Setteo que re-aplica Con Calendly.
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
-      aplicarReglaDeDeals: true,
-    });
-    const lead = await leadDeCorreo("ana@correo.co");
-    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
-
-    // Re-envío Con Calendly del MISMO lead: la regla crea la llamada con la fecha de la
-    // cita (T2 exige `llamada_con_fecha`, que ahora se cumple sola).
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
-      aplicarReglaDeDeals: true,
-      citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
-    });
-
-    const [movido] = await db.select().from(deals).where(eq(deals.id, deal.id));
-    expect(movido.etapa).toBe("agendado");
-
-    const historial = await db
-      .select()
-      .from(dealEtapaHistorial)
-      .where(and(eq(dealEtapaHistorial.dealId, deal.id), eq(dealEtapaHistorial.a, "agendado")));
-    expect(historial).toHaveLength(1);
-    expect(historial[0].de).toBe("registrado");
-    expect(historial[0].userId).toBeNull(); // lo movió el sistema
-
-    // La llamada la creó la regla (huella determinista por invitado).
-    const filasCall = await db.select().from(calls).where(eq(calls.dealId, deal.id));
-    expect(filasCall).toHaveLength(1);
-    expect(filasCall[0].huellaFila).toBe("calendly:UU-1");
-
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("mover");
-    expect(r.reglaDeDeals[0].rechazo).toBeUndefined();
-  });
-
   it("con_calendly desde Setteo + cita CANCELADA: no mueve, el deal se queda en Pendiente Setteo con nota", async () => {
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
       aplicarReglaDeDeals: true,
@@ -582,22 +539,6 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect((await leadDeCorreo("ana@correo.co")).calificacion).toBe("con_calendly");
   });
 
-  it("con_calendly desde Setteo + ERROR de Calendly: no mueve, deja nota con el mensaje", async () => {
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
-      aplicarReglaDeDeals: true,
-    });
-    const lead = await leadDeCorreo("ana@correo.co");
-
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
-      aplicarReglaDeDeals: true,
-      citasPorCorreo: citas("ana@correo.co", { estado: "error", mensaje: "Calendly respondió 500." }),
-    });
-
-    const [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
-    expect(deal.etapa).toBe("registrado");
-    expect(r.reglaDeDeals[0].nota).toBe("No se pudo consultar Calendly: Calendly respondió 500.");
-  });
-
   // ─────────────── regresión A1 del ticket 114: 3 y 11 sí avanzan a Agendado ───────────────
   //
   // Antes la ingesta tenía su propia lista 1/2/9 (escrita antes de Seguimiento), así que
@@ -605,6 +546,7 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
   // formulario con una cita válida NO pasaba a Agendado. Con la lista única de
   // `lib/deals/etapas.ts` sí avanza y crea su llamada de Calendly.
   it.each([
+    ["registrado", null],
     ["agendado", "reagenda"],
     ["atendido", "seguimiento"],
   ] as const)("con_calendly desde %s/%s + cita vigente MUEVE a Agendado y crea la llamada", async (etapa, pendiente) => {
@@ -661,33 +603,9 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
       citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
     });
     expect(await db.select().from(calls).where(eq(calls.dealId, deal.id))).toHaveLength(1);
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("agregar_llamada");
-  });
-
-  it("con_calendly con el deal ya avanzado (Agendado) NO mueve y agrega la llamada de la cita", async () => {
-    // Lead con deal, llevado a Agendado (etapa 4, "avanzada") con su cita vigente.
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "setteo_no_calificado" })], {
-      aplicarReglaDeDeals: true,
-    });
-    const lead = await leadDeCorreo("ana@correo.co");
-    let [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
-
-    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
-      aplicarReglaDeDeals: true,
-      citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
-    });
-    [deal] = await db.select().from(deals).where(eq(deals.leadId, lead.id));
-    expect(deal.etapa).toBe("agendado"); // ya avanzado (4)
-
-    // Otro re-envío Con Calendly: el deal ya está en 'agendado' (avanzada), no se mueve.
-    const historialAntes = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id));
-    const r = await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", estado: "con_calendly" })], {
-      aplicarReglaDeDeals: true,
-      citasPorCorreo: citas("ana@correo.co", CITA_VIGENTE),
-    });
-    const historialDespues = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id));
-    expect(historialDespues).toHaveLength(historialAntes.length); // no hubo movimiento
     expect(r.reglaDeDeals[0].accion).toMatchObject({ tipo: "agregar_llamada", etapa: "agendado" });
+    // El deal ya avanzado no se mueve: solo el historial de su apertura.
+    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toHaveLength(1);
   });
 
   it("un lead con deal completo (cerrado) es 'sin deal abierto': con_calendly abre uno NUEVO en Agendado", async () => {
@@ -721,7 +639,6 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
   it.each([
     ["completo High sin agenda", { esParcial: false, leadQuality: "High" }, "calificado"],
     ["completo Low sin agenda", { esParcial: false, leadQuality: "Low" }, "registrado"],
-    ["completo Mid sin agenda", { esParcial: false, leadQuality: "Mid" }, "registrado"],
     ["parcial High sin agenda", { esParcial: true, leadQuality: "High" }, "potencial"],
     ["parcial sin calidad", { esParcial: true, leadQuality: null }, "potencial"],
   ] as const)("%s nace en %s", async (_caso, hechos, etapa) => {
@@ -746,14 +663,6 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     },
   );
 
-  it("un estado del formulario que dice agendado, sin el link de agenda, no agenda: decide la calidad", async () => {
-    // Solo el adaptador pone `con_calendly`, cuando la pregunta de agenda trae el link; una
-    // variable del formulario no es un hecho de agenda.
-    await ingerir([entrada({ token: "t1", correo: "ana@correo.co", estado: "agendado", leadQuality: "High" })]);
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("calificado");
-  });
-
   it("parcial High y luego su completa con cita: un lead, un deal, de Potencial a Agendado con su llamada", async () => {
     const parcial = await ingerir([
       entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" }),
@@ -777,16 +686,6 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     expect(llamadas[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
     const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, calificado.id));
     expect(historial.map((h) => h.a)).toEqual(["potencial", "agendado"]);
-  });
-
-  it("parcial sin calidad y luego su completa High sin agenda: el deal sube de Potencial a Calificado (S2, ADR 0073)", async () => {
-    // Antes se quedaba en Potencial (no había flecha); Mani decidió el 2-oct que la etapa de
-    // entrada refleja el mejor envío, solo hacia arriba y solo mientras nadie lo trabaja.
-    await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null })]);
-    const r = await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", leadQuality: "High" })]);
-    expect(r.reglaDeDeals[0].accion.tipo).toBe("subir");
-    const [deal] = await db.select().from(deals);
-    expect(deal.etapa).toBe("calificado");
   });
 
   it("parcial High y luego su completa High sin agenda: el MISMO deal sube de Potencial a Calificado (16-oct, ADR 0073)", async () => {

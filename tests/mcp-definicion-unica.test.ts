@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import type { PGlite } from "@electric-sql/pglite";
 import type { Db } from "@/lib/db/tipos";
@@ -40,12 +40,13 @@ let programaA: string;
 let programaB: string;
 let closerId: string;
 
-beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
-afterAll(async () => cerrar());
-beforeEach(async () => {
+// Todo el archivo solo LEE (definición, vista y lecturas de la app), así que se siembra una vez.
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   await vaciar();
   ({ programaA, programaB, closerId } = await sembrarLectura(db));
 });
+afterAll(async () => cerrar());
 
 type Fila = Record<string, unknown>;
 

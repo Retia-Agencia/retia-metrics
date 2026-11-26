@@ -29,7 +29,6 @@ let programId: string;
 let otroProgramId: string;
 let closerId: string;
 let otroCloserId: string;
-let developerId: string;
 let token: string;
 let plataformaId: string;
 let otraPlataformaId: string;
@@ -47,14 +46,12 @@ beforeEach(async () => {
     { ...PROGRAMA_DE_PRUEBA, slug: "ola-2-otro", nombre: "Ola 2 otro", ticketUsd: "1000" },
   ]).returning();
   programId = programa.id; otroProgramId = otro.id;
-  const [closer, otroCloser, developer] = await db.insert(users).values([
+  const [closer, otroCloser] = await db.insert(users).values([
     { email: "ola2@retia.co", nombre: "Closer ola 2", rol: "closer", closerId: "Closer ola 2" },
     { email: "otro-ola2@retia.co", nombre: "Otro closer", rol: "closer", closerId: "Otro closer" },
-    { email: "developer-ola2@retia.co", nombre: "Developer ola 2", rol: "developer" },
   ]).returning();
   closerId = closer.id;
   otroCloserId = otroCloser.id;
-  developerId = developer.id;
   await db.insert(miembrosPrograma).values([
     { userId: closerId, programId, calendlyEmail: "ola2@calendly.co" },
     { userId: otroCloserId, programId, calendlyEmail: "otro-ola2@calendly.co" },
@@ -325,7 +322,6 @@ describe("acciones MCP ola 2", () => {
     expect(eventoId).toBeNull();
     expect(((await db.select().from(calls).where(eq(calls.id, caso.callId)))[0] as Record<string, unknown>)[caso.campo]).toBe(caso.despues);
     expect((await db.select().from(changeLog).where(eq(changeLog.registroId, caso.callId))).every((x) => x.origen === "mcp")).toBe(true);
-    expect(((await db.select().from(calls).where(eq(calls.id, caso.callId)))[0] as Record<string, unknown>)[caso.campo]).toBe(caso.despues);
   });
 
   it("registrar_abono adicional confirma y su evento lo anula al deshacer", async () => {
@@ -387,13 +383,6 @@ describe("acciones MCP ola 2", () => {
     const [fila] = await db.select().from(tabla).where(eq(tabla.id, id));
     expect(fila.motivoAnulacion).toBe(motivo);
     expect((await db.select().from(changeLog).where(eq(changeLog.registroId, id))).every((x) => x.origen === "mcp")).toBe(true);
-  });
-
-  it("otro programa queda oculto y no cambia", async () => {
-    const dealId = await nuevoDeal("atendido", otroProgramId);
-    const previa = await preparar("anular_deal", { deal_id: dealId, motivo: "No debe verse" });
-    expect(previa.filas).toEqual([expect.objectContaining({ se_puede_aplicar: false, razon: "No existe ese deal" })]);
-    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].anuladoEn).toBeNull();
   });
 
   it("registrar_abono rechaza sobrepago, plataforma inactiva y comprobante ausente", async () => {
@@ -650,7 +639,7 @@ describe("acciones MCP ola 2", () => {
   });
 
   it.each(CASOS_OLA_2)(
-    "$accion protege programa, dueño, scope de lectura y ver como",
+    "$accion protege programa y dueño (el scope de lectura y ver como los prueba mcp-acciones)",
     async ({ accion, crear }) => {
       const fetchCalendly = vi.fn().mockRejectedValue(new Error("Calendly no debe ejecutarse"));
       vi.stubGlobal("fetch", fetchCalendly);
@@ -686,77 +675,6 @@ describe("acciones MCP ola 2", () => {
       })]);
       expect(await deOtro.snapshot()).toEqual(deOtroAntes);
 
-      const lectura = await crear("normal");
-      const lecturaAntes = await lectura.snapshot();
-      const tokenLectura = await emitirTokenPersonal(db, {
-        userId: closerId,
-        actorId: closerId,
-        nombre: `Lectura ${accion}`,
-        scope: "lectura",
-      });
-      const capacidadesLectura = contenido(await post("tools/call", {
-        name: "capacidades",
-        arguments: {},
-      }, tokenLectura.valor))!;
-      expect((capacidadesLectura.acciones as { clave: string }[]).map((fila) => fila.clave)).not.toContain(accion);
-      const herramientasLectura = await post("tools/list", {}, tokenLectura.valor);
-      expect(JSON.stringify(herramientasLectura)).not.toContain(accion);
-      const prepararLectura = await post("tools/call", {
-        name: "preparar_accion",
-        arguments: {
-          programa: "ola-2",
-          accion,
-          argumentos: lectura.argumentos,
-        },
-      }, tokenLectura.valor);
-      expect(texto(prepararLectura)).toMatch(/not found|No puedes/i);
-      const confirmarLectura = await post("tools/call", {
-        name: "confirmar_cambio",
-        arguments: { id: crypto.randomUUID() },
-      }, tokenLectura.valor);
-      expect(texto(confirmarLectura)).toMatch(/not found|No puedes/i);
-      expect(await lectura.snapshot()).toEqual(lecturaAntes);
-
-      const verComo = await crear("normal");
-      const verComoAntes = await verComo.snapshot();
-      const tokenDeveloper = await emitirTokenPersonal(db, {
-        userId: developerId,
-        actorId: developerId,
-        nombre: `Developer ${accion}`,
-        scope: "escritura",
-      });
-      const preparadaDeveloper = contenido(await post("tools/call", {
-        name: "preparar_accion",
-        arguments: {
-          programa: "ola-2",
-          accion,
-          argumentos: verComo.argumentos,
-        },
-      }, tokenDeveloper.valor))!;
-      const capacidadesVerComo = contenido(await post("tools/call", {
-        name: "capacidades",
-        arguments: { vista: `usuario:${closerId}` },
-      }, tokenDeveloper.valor))!;
-      expect(capacidadesVerComo.acciones).toEqual([]);
-      const prepararVerComo = await post("tools/call", {
-        name: "preparar_accion",
-        arguments: {
-          vista: `usuario:${closerId}`,
-          programa: "ola-2",
-          accion,
-          argumentos: verComo.argumentos,
-        },
-      }, tokenDeveloper.valor);
-      expect(texto(prepararVerComo)).toContain("No puedes usar esta herramienta");
-      const confirmarVerComo = await post("tools/call", {
-        name: "confirmar_cambio",
-        arguments: {
-          vista: `usuario:${closerId}`,
-          id: preparadaDeveloper.id,
-        },
-      }, tokenDeveloper.valor);
-      expect(texto(confirmarVerComo)).toMatch(/403|permiso|herramienta/i);
-      expect(await verComo.snapshot()).toEqual(verComoAntes);
       expect(fetchCalendly).not.toHaveBeenCalled();
     },
   );

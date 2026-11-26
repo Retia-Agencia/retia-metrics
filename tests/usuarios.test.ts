@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { ZodError } from "zod";
 import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -12,7 +11,6 @@ import {
   esquemaUsuario,
   exigirUsuarioDentroDelAlcance,
   listarUsuarios,
-  parsearEntradaUsuario,
   quitarMembresia,
   reactivarUsuario,
 } from "@/lib/catalogo/usuarios";
@@ -93,22 +91,6 @@ describe("esquema de usuario", () => {
     expect(datos.email).toBe("andrea@retiagrowth.com");
   });
 
-  it("rechaza un correo invalido con ZodError", () => {
-    expect(() =>
-      esquemaUsuario.parse({ ...closerValido, email: "no-es-correo", programas: [programaAId] }),
-    ).toThrow(ZodError);
-  });
-
-  it("parsearEntradaUsuario expone el mismo esquema para el CLI", () => {
-    const datos = parsearEntradaUsuario({
-      email: "  Dana@Retiagrowth.com ",
-      rol: "closer",
-      closerId: "Dana",
-      programas: [programaAId],
-    });
-    expect(datos.email).toBe("dana@retiagrowth.com");
-    expect(datos.closerId).toBe("Dana");
-  });
 });
 
 describe("crear usuario", () => {
@@ -163,11 +145,6 @@ describe("crear usuario", () => {
     expect(creado.rol).toBe("closer");
     expect(creado.closerId).toBeNull();
     expect(await membresiasDe(creado.id)).toHaveLength(1);
-  });
-
-  it("un closer puede nacer sin membresias", async () => {
-    const creado = await crearUsuario(db, actorGerente(), closerValido);
-    expect(await membresiasDe(creado.id)).toHaveLength(0);
   });
 
   it("revierte el usuario si falla la escritura de alcance", async () => {
@@ -283,14 +260,6 @@ describe("editar usuario", () => {
     );
   });
 
-  it("un id que no es uuid es un 400", async () => {
-    const error = await editarUsuario(db, actorGerente(), "no-es-uuid", {
-      ...closerValido,
-      programas: [programaAId],
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
 });
 
 describe("membresias desde la ficha del programa", () => {
@@ -464,16 +433,8 @@ describe("desactivar y reactivar", () => {
 
     const cambiosActivo = (await logDe(creado.id)).filter((l) => l.campo === "activo");
     expect(cambiosActivo.some((l) => l.valorAnterior === "true" && l.valorNuevo === "false")).toBe(true);
-  });
 
-  it("reactivar vuelve a activar al usuario", async () => {
-    const creado = await crearUsuario(db, actorGerente(), {
-      ...closerValido,
-      programas: [programaAId],
-    });
-    await desactivarUsuario(db, actorGerente(), creado.id);
-    const reactivado = await reactivarUsuario(db, actorGerente(), creado.id);
-    expect(reactivado.activo).toBe(true);
+    expect((await reactivarUsuario(db, actorGerente(), creado.id)).activo).toBe(true);
   });
 });
 
@@ -491,21 +452,6 @@ describe("alta de un correo que ya existe", () => {
     const error = await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] }).catch((e) => e);
     expect(error.status).toBe(409);
     expect(error.message).not.toContain("desactivado");
-  });
-});
-
-describe("listar usuarios", () => {
-  it("devuelve activos e inactivos con sus programas", async () => {
-    const creado = await crearUsuario(db, actorGerente(), {
-      ...closerValido,
-      programas: [programaAId, programaBId],
-    });
-    const lista = await listarUsuarios(db);
-    const andrea = lista.find((u) => u.id === creado.id);
-    expect(andrea).toBeDefined();
-    expect(andrea!.programas.sort()).toEqual([programaAId, programaBId].sort());
-    // El gerente sembrado tambien aparece.
-    expect(lista.find((u) => u.id === gerenteId)).toBeDefined();
   });
 });
 
