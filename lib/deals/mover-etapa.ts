@@ -772,7 +772,7 @@ export type DealHistorico =
  * Es el otro camino de nacimiento, al lado de `abrirDeal`, y vive en el motor porque
  * escribe la etapa. **No pasa por `queLeFalta`**: lo que la hoja no trae (valor vendido,
  * fecha limite) le falta al deal y la Ficha lo dice, como a cualquier otro. Lo usa solo
- * la migracion, y `tests/migracion-escritor-guardian.test.ts` lo fija.
+ * la migracion, y la regla de lint en `eslint.config.mjs` lo fija.
  *
  * Las dos formas de chocar las decide la BASE (ADR 0005) y aqui solo se nombran: la huella
  * repetida es la segunda corrida, y el cupo ocupado es el deal vivo que gana.

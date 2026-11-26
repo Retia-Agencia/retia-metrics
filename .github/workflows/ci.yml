@@ -33,14 +33,16 @@ jobs:
 
   # 14-oct: la suite en un solo job llego a 462 s y una corrida se corto en los 480 s de
   # scripts/test.mjs sin un test rojo. Partida en 3, cada parte corre en su propio runner.
-  # El checkpoint es verde solo si las 3 lo son.
+  # 25-nov: 6 partes. Cada parte gasta ~40 s fijos (contenedor y npm ci) y el resto es suite, asi que
+  # duplicar partes baja la espera de ~3,8 a ~2,2 min; el techo pasa a ser el job de chequeos (build).
+  # El checkpoint es verde solo si las 6 lo son.
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5, 6]
     services:
       postgres:
         image: postgres:16
@@ -64,4 +66,4 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test -- --shard=${{ matrix.shard }}/3
+      - run: npm test -- --shard=${{ matrix.shard }}/6
