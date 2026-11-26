@@ -34,6 +34,7 @@ import { iniciarMedicionDeSolicitud } from "@/lib/db/medidor";
  */
 export const ACCIONES_DE_SOLO_LECTURA = [
   "revisarMovimientoAccion",
+  "opcionesDeSkuDelDealAccion",
   "buscarDealsAbiertosAccion",
   "detalleDePuntoAccion",
 ] as const;

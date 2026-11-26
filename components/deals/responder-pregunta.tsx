@@ -51,8 +51,6 @@ export interface OpcionesDeRespuesta {
   cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: { id: string; nombre: string }[];
-  lineas?: Array<{ id: string; skuNombre: string; skuCodigo: string; cohorte: string; estado: string }>;
-  skusActivos?: Array<{ id: string; nombre: string; codigo: string }>;
 }
 
 const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
@@ -344,8 +342,6 @@ export function useResponder(
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
         plataformas={opciones.plataformas}
-        lineas={opciones.lineas}
-        skusActivos={opciones.skusActivos}
         saldo={deal.saldo}
         moneda={deal.moneda}
         llamada={deal.llamada}

@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 import { ControlPlataforma, FormularioAbono, datosInicialesDeAbono } from "../formulario-abono";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 import { DialogoDeshacer } from "./dialogo-deshacer";
-import type { LineaDeDealVisible } from "@/lib/queries/lineas-de-deal";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -58,8 +57,6 @@ export function FichaPago({
   hoy,
   nombreDeEtapa,
   aceptaAbono,
-  lineas,
-  skusActivos,
 }: {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
@@ -73,8 +70,6 @@ export function FichaPago({
   hoy: string;
   /** Calculado en el servidor: esta etapa admite una flecha de pago. */
   aceptaAbono: boolean;
-  lineas: LineaDeDealVisible[];
-  skusActivos: Array<{ id: string; nombre: string; codigo: string; precioListaUsd: string }>;
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const { pendiente, correr } = useAccion();
@@ -295,7 +290,7 @@ export function FichaPago({
       ) : dialogo?.tipo === "anular" ? (
         <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} />
       ) : null}
-      {dialogo?.tipo === "abono" ? <DialogoRegistrarAbono ficha={ficha} opciones={opciones} hoy={hoy} lineas={lineas} skusActivos={skusActivos} ticketDeshabilitado={cerrado || !aceptaAbono} motivoTicketDeshabilitado={cerrado ? "El deal ya está cerrado." : `Desde ${nombreDeEtapa[ficha.etapa]} aún no se cobra el programa: mueve el deal a una etapa donde el lead ya hable de pagar.`} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "abono" ? <DialogoRegistrarAbono ficha={ficha} opciones={opciones} hoy={hoy} ticketDeshabilitado={cerrado || !aceptaAbono} motivoTicketDeshabilitado={cerrado ? "El deal ya está cerrado." : `Desde ${nombreDeEtapa[ficha.etapa]} aún no se cobra el programa: mueve el deal a una etapa donde el lead ya hable de pagar.`} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
@@ -310,8 +305,6 @@ function DialogoRegistrarAbono({
   hoy,
   ticketDeshabilitado,
   motivoTicketDeshabilitado,
-  lineas,
-  skusActivos,
   onCerrar,
 }: {
   ficha: FichaDeDeal;
@@ -319,12 +312,10 @@ function DialogoRegistrarAbono({
   hoy: string;
   ticketDeshabilitado: boolean;
   motivoTicketDeshabilitado: string;
-  lineas: LineaDeDealVisible[];
-  skusActivos: Array<{ id: string; nombre: string; codigo: string; precioListaUsd: string }>;
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [datos, setDatos] = useState(() => ({ ...datosInicialesDeAbono("USD"), fecha: hoy, lineaId: lineas.length === 1 ? lineas[0].id : null }));
+  const [datos, setDatos] = useState(() => ({ ...datosInicialesDeAbono("USD"), fecha: hoy }));
   const faltan = [
     !datos.lineaId && "qué SKU está pagando",
     !datos.fecha && "fecha del pago",
@@ -369,8 +360,6 @@ function DialogoRegistrarAbono({
         plataformas={opciones.plataformas}
         datos={datos}
         onChange={setDatos}
-        lineas={lineas}
-        skusActivos={skusActivos}
         ticketDeshabilitado={ticketDeshabilitado}
         motivoTicketDeshabilitado={motivoTicketDeshabilitado}
       />

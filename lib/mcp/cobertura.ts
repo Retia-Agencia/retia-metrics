@@ -94,6 +94,7 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#editarDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Editar los datos comerciales de un deal." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#anularDealAccion": { clase: "expuesta", accion: "anular_deal" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#asignarSkuAccion": { clase: "expuesta", accion: "asignar_sku" },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#opcionesDeSkuDelDealAccion": { clase: "lectura", herramienta: "ficha_de_deal" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#editarValorLineaAccion": { clase: "expuesta", accion: "editar_valor_linea" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#quitarLineaAccion": { clase: "expuesta", accion: "quitar_linea" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#anularLineaAccion": { clase: "expuesta", accion: "anular_linea" },
