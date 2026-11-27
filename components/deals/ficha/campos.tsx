@@ -55,6 +55,7 @@ export function DialogoForm({
   deshabilitarConfirmar = false,
   faltan = [],
   peligro = false,
+  textoCerrar = "Cancelar",
   onCerrar,
   children,
 }: {
@@ -67,6 +68,8 @@ export function DialogoForm({
   /** Campos obligatorios vacíos: se nombran junto al botón para que nunca quede gris sin razón. */
   faltan?: string[];
   peligro?: boolean;
+  /** "Cerrar" cuando el diálogo ya terminó su trabajo y "Cancelar" sonaría a deshacer. */
+  textoCerrar?: string;
   onCerrar: () => void;
   children: ReactNode;
 }) {
@@ -83,7 +86,7 @@ export function DialogoForm({
         ) : null}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onCerrar} disabled={pendiente}>
-            Cancelar
+            {textoCerrar}
           </Button>
           {confirmar ? (
             <Button

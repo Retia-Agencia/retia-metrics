@@ -18,6 +18,7 @@ import {
   type ResultadoInbox,
 } from "@/app/(app)/p/[programa]/inbox/acciones";
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
+import { ReclamarPorCsv } from "@/components/deals/reclamar-por-csv";
 
 /**
  * Las dos secciones "sin dueño" del Inbox (ticket 070): Por settear y Agendados sin
@@ -315,17 +316,22 @@ export function InboxPorSettear({
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle>Por settear</CardTitle>
-        {puedeReclamar && filas.length > 0 ? (
-          <Button
-            size="sm"
-            disabled={pendiente}
-            onClick={() => correr(() => reclamarTodosPorSettearAccion({ programId }), {
-              exito: ({ reclamados, saltados }) =>
-                `Te asignaste ${reclamados} deals.${saltados > 0 ? ` ${saltados} ya tenían dueño.` : ""}`,
-            })}
-          >
-            {pendiente ? "Asignando…" : "Asignarme todos"}
-          </Button>
+        {puedeReclamar ? (
+          <div className="flex flex-wrap justify-end gap-2">
+            <ReclamarPorCsv programId={programId} />
+            {filas.length > 0 ? (
+              <Button
+                size="sm"
+                disabled={pendiente}
+                onClick={() => correr(() => reclamarTodosPorSettearAccion({ programId }), {
+                  exito: ({ reclamados, saltados }) =>
+                    `Te asignaste ${reclamados} deals.${saltados > 0 ? ` ${saltados} ya tenían dueño.` : ""}`,
+                })}
+              >
+                {pendiente ? "Asignando…" : "Asignarme todos"}
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </CardHeader>
       <CardContent className="p-0">

@@ -167,6 +167,8 @@ export const COBERTURA_MCP = {
 
   "app/(app)/p/[programa]/inbox/acciones.ts#reclamarDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reclamar un deal sin responsable." },
   "app/(app)/p/[programa]/inbox/acciones.ts#reclamarTodosPorSettearAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reclamar todos los deals pendientes de contacto." },
+  "app/(app)/p/[programa]/inbox/acciones.ts#previsualizarReclamoCsvAccion": { clase: "fuera", razon: "Vista previa de un CSV subido en la pantalla: el MCP no recibe archivos." },
+  "app/(app)/p/[programa]/inbox/acciones.ts#reclamarDealsDeCsvAccion": { clase: "fuera", razon: "Comodidad de pantalla sobre reclamarDealAccion: cuando el MCP reclame un deal, reclamar varios es repetir esa capacidad." },
   "app/(app)/p/[programa]/inbox/acciones.ts#reasignarDealAccion": { clase: "expuesta", accion: "reasignar_deal" },
   "app/(app)/p/[programa]/inbox/acciones.ts#completarAgendadaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Completar los datos de una cita agendada desde la bandeja." },
   "app/(app)/p/[programa]/inbox/acciones.ts#asignarLlamadaSueltaAccion": { clase: "expuesta", accion: "asignar_llamada_suelta" },
