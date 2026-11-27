@@ -130,6 +130,38 @@ describe("abono al mover", () => {
 });
 
 describe("líneas del deal, forjando la peticion", () => {
+  it("asignar con reemplazo quita la propuesta en la misma transacción y no deja quitar una línea con abonos", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "C1", metaCupos: 5, precioUsd: "100" }).returning();
+    const catalogo = await db.insert(skus).values([
+      { programId: programaA, nombre: "Anterior", slug: "anterior", cohortId: cohorte.id, codigo: "A-ANTERIOR-C1", precioListaUsd: "100" },
+      { programId: programaA, nombre: "Nuevo", slug: "nuevo", cohortId: cohorte.id, codigo: "A-NUEVO-C1", precioListaUsd: "120" },
+      { programId: programaA, nombre: "Tercero", slug: "tercero", cohortId: cohorte.id, codigo: "A-TERCERO-C1", precioListaUsd: "140" },
+    ]).returning();
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+    const a = await acciones();
+    expect(await a.asignarSkuAccion({ dealId, skuId: catalogo[0].id })).toMatchObject({ ok: true });
+    const [propuesta] = await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId));
+
+    expect(await a.asignarSkuAccion({
+      dealId, skuId: catalogo[1].id, reemplazaLineaId: propuesta.id,
+    })).toMatchObject({ ok: true });
+    const trasReemplazo = await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId));
+    expect(trasReemplazo.find((linea) => linea.id === propuesta.id)?.anuladaEn).not.toBeNull();
+    const nueva = trasReemplazo.find((linea) => linea.skuId === catalogo[1].id)!;
+    expect(nueva.anuladaEn).toBeNull();
+
+    await db.insert(abonos).values({
+      dealId, lineaId: nueva.id, programId: programaA, fecha: "2026-11-19", monto: "20", moneda: "USD",
+    });
+    const rechazado = await a.asignarSkuAccion({
+      dealId, skuId: catalogo[2].id, reemplazaLineaId: nueva.id,
+    });
+    expect(rechazado).toEqual({ ok: false, error: "Una línea con abonos no se puede quitar; anúlala." });
+    expect((await db.select().from(dealLineas).where(eq(dealLineas.dealId, dealId)))
+      .filter((linea) => linea.skuId === catalogo[2].id)).toHaveLength(0);
+  });
+
   it("un closer NO asigna, edita, quita ni anula líneas de un deal ajeno y la base no se mueve", async () => {
     const dealId = await nuevoDeal(programaA, closerB);
     const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "C1", metaCupos: 5, precioUsd: "100" }).returning();

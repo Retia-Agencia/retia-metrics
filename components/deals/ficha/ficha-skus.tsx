@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EleccionDeReemplazo } from "@/components/deals/eleccion-de-reemplazo";
 import { usd } from "@/lib/format";
 import type { LineaDeDealVisible } from "@/lib/queries/lineas-de-deal";
 import { asignarSkuAccion, anularLineaAccion, editarValorLineaAccion, quitarLineaAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
@@ -19,7 +20,14 @@ export function FichaSkus({ dealId, lineas, skus, puedeTrabajar }: {
   puedeTrabajar: boolean;
 }) {
   const router = useRouter();
+  const propuestas = lineas
+    .filter((linea) => linea.estado === "propuesta")
+    .map((linea) => ({ id: linea.id, etiqueta: `${linea.skuNombre} · ${linea.cohorte}` }));
   const [skuId, setSkuId] = useState(skus[0]?.id ?? "");
+  const [reemplazoElegido, setReemplazoElegido] = useState<string | null>(propuestas[0]?.id ?? null);
+  const reemplazaLineaId = reemplazoElegido === null || propuestas.some((linea) => linea.id === reemplazoElegido)
+    ? reemplazoElegido
+    : (propuestas[0]?.id ?? null);
   const [pendiente, setPendiente] = useState(false);
   async function ejecutar(accion: () => Promise<{ ok: boolean; error?: string }>, exito: string) {
     setPendiente(true);
@@ -61,11 +69,17 @@ export function FichaSkus({ dealId, lineas, skus, puedeTrabajar }: {
           </table>
         </div>
       )}
-      {puedeTrabajar ? <div className="flex flex-wrap items-center gap-2">
-        <select className="h-8 rounded-md border bg-background px-2 text-sm" value={skuId} onChange={(e) => setSkuId(e.target.value)}>
-          {skus.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo} · {usd(Number(sku.precioListaUsd))}</option>)}
-        </select>
-        <Button size="sm" disabled={pendiente || !skuId} onClick={() => void ejecutar(() => asignarSkuAccion({ dealId, skuId }), "SKU asignado")}>Asignar SKU</Button>
+      {puedeTrabajar ? <div className="space-y-3">
+        {propuestas.length > 0 ? <EleccionDeReemplazo propuestas={propuestas} value={reemplazaLineaId} onChange={setReemplazoElegido} /> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <select className="h-8 rounded-md border bg-background px-2 text-sm" value={skuId} onChange={(e) => setSkuId(e.target.value)}>
+            {skus.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo} · {usd(Number(sku.precioListaUsd))}</option>)}
+          </select>
+          <Button size="sm" disabled={pendiente || !skuId} onClick={() => void ejecutar(
+            () => asignarSkuAccion({ dealId, skuId, reemplazaLineaId: reemplazaLineaId ?? undefined }),
+            "SKU asignado",
+          )}>Asignar SKU</Button>
+        </div>
       </div> : null}
     </CardContent>
   </Card>;

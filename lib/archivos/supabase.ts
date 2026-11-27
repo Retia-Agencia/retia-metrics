@@ -1,4 +1,5 @@
 import { BUCKET_ARCHIVOS, type Almacen } from "./almacen";
+import { ErrorDeApp } from "@/lib/errors";
 
 type RespuestaFirmada = { url?: string; signedURL?: string };
 
@@ -7,7 +8,13 @@ export function crearAlmacenSupabase(urlBase: string, clave: string): Almacen {
   const cabecerasDeAuth = { apikey: clave, Authorization: `Bearer ${clave}` };
 
   async function exigirRespuesta(respuesta: Response): Promise<Response> {
-    if (!respuesta.ok) throw new Error(`El almacén respondió con estado ${respuesta.status}.`);
+    if (!respuesta.ok) {
+      console.error("[almacen] respondio con estado", respuesta.status);
+      throw new ErrorDeApp(
+        "El almacén de archivos no responde ahora. Pega el link del comprobante en su lugar.",
+        503,
+      );
+    }
     return respuesta;
   }
 

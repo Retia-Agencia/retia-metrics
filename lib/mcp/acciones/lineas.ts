@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { puedeVerOperacion } from "@/lib/auth/roles";
 import { estadoParaAccionDeal } from "@/lib/deals/estado-para-accion";
-import { anularLinea, asignarLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
+import { actualizarVentaTrasCambiarLineas, anularLinea, asignarLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
 import {
   dealEditableParaLineas as dealEditable,
   estadoDeLineasParaAccion as estadoDeLineas,
@@ -84,14 +84,15 @@ export const asignarSkuMcp = accionDeLinea({
   objetivos: (entrada) => [{ id: entrada.deal_id, skuId: entrada.sku_id, valor: entrada.valor_vendido_usd }],
   async ejecutar(db, actor, objetivo) {
     const { deal, etiqueta } = await dealEditable(db, actor, objetivo.id);
-    return asignarLinea(db, {
+    const rastro = { actorId: actor.userId, etiqueta, origen: "mcp" as const };
+    const linea = await asignarLinea(db, {
       deal,
       skuId: objetivo.skuId as string,
       valorVendidoUsd: objetivo.valor as number | undefined,
-      actorId: actor.userId,
-      etiqueta,
-      origen: "mcp",
+      ...rastro,
     });
+    await actualizarVentaTrasCambiarLineas(db, deal.id, rastro);
+    return linea;
   },
 });
 
@@ -112,14 +113,14 @@ export const editarValorLineaMcp = accionDeLinea({
   objetivos: (entrada) => [{ id: entrada.deal_id, lineaId: entrada.linea_id, valor: entrada.valor_vendido_usd }],
   async ejecutar(db, actor, objetivo) {
     const { deal, etiqueta } = await dealEditable(db, actor, objetivo.id);
-    return editarValorDeLinea(db, {
+    const rastro = { actorId: actor.userId, etiqueta, origen: "mcp" as const };
+    await editarValorDeLinea(db, {
       deal,
       lineaId: objetivo.lineaId as string,
       valorVendidoUsd: objetivo.valor as number,
-      actorId: actor.userId,
-      etiqueta,
-      origen: "mcp",
+      ...rastro,
     });
+    await actualizarVentaTrasCambiarLineas(db, deal.id, rastro);
   },
 });
 

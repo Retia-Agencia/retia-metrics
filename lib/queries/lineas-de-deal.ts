@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { cohorts, dealLineas, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { saldosDeLineas } from "./saldo";
@@ -48,6 +48,6 @@ export async function lineasVisiblesDelDeal(db: Db, dealId: string): Promise<Lin
 export async function skusActivosDelPrograma(db: Db, programId: string) {
   return db.select({ id: skus.id, nombre: skus.nombre, codigo: skus.codigo, precioListaUsd: skus.precioListaUsd })
     .from(skus)
-    .where(and(eq(skus.programId, programId), eq(skus.activo, true)))
+    .where(and(eq(skus.programId, programId), eq(skus.activo, true), ne(skus.slug, "sin_clasificar")))
     .orderBy(asc(skus.nombre), asc(skus.codigo));
 }

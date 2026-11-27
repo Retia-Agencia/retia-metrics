@@ -98,6 +98,7 @@ export interface TarjetaDeal {
   emailLead: string;
   etapa: EtapaDeal;
   pendiente: PendienteDeal | null;
+  tieneCitaVigente: boolean;
   cohorteDestinoTexto: string | null;
   ownerUserId: string | null;
   ownerNombre: string | null;
@@ -536,6 +537,7 @@ export async function tableroKanban(
       emailLead: f.emailLead,
       etapa: f.etapa,
       pendiente: f.pendiente,
+      tieneCitaVigente: conCitaVigente.has(f.dealId),
       cohorteDestinoTexto: f.cohorteDestinoTexto,
       ownerUserId: f.ownerUserId,
       ownerNombre: f.ownerNombre,

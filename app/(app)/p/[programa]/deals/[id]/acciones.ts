@@ -12,7 +12,7 @@ import { configuraPrograma, esRolValido, trabajaLeads, type Rol } from "@/lib/au
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDealEnum, programs } from "@/lib/db/schema";
+import { abonos, calls, dealLineas, deals, etapaDealEnum, leadContactos, leads, pendienteDealEnum, programs } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
@@ -39,7 +39,7 @@ import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorr
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 import { dealEditableParaLineas } from "@/lib/deals/lineas-para-accion";
-import { asignarLinea, anularLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
+import { actualizarVentaTrasCambiarLineas, asignarLinea, anularLinea, editarValorDeLinea, quitarLinea } from "@/lib/deals/lineas";
 import { lineasVisiblesDelDeal, skusActivosDelPrograma } from "@/lib/queries/lineas-de-deal";
 
 /**
@@ -121,6 +121,7 @@ async function correr<T extends object>(
 const ROLES_ONBOARDING: readonly Rol[] = ["gerente", "closer", "customer_success"];
 
 const esquemaLinea = z.object({ dealId: z.string().uuid("Deal inválido."), lineaId: z.string().uuid("Línea inválida.") });
+type Transaccion = { transaction: <T>(fn: (tx: typeof db) => Promise<T>) => Promise<T> };
 
 export async function opcionesDeSkuDelDealAccion(entrada: { dealId: string }): Promise<
   | {
@@ -159,11 +160,32 @@ export async function opcionesDeSkuDelDealAccion(entrada: { dealId: string }): P
   }
 }
 
-export async function asignarSkuAccion(entrada: { dealId: string; skuId: string; valorVendidoUsd?: number }): Promise<ResultadoFicha> {
+export async function asignarSkuAccion(entrada: { dealId: string; skuId: string; valorVendidoUsd?: number; reemplazaLineaId?: string }): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
-    const datos = z.object({ dealId: z.string().uuid("Deal inválido."), skuId: z.string().uuid("SKU inválido."), valorVendidoUsd: z.number().nonnegative().optional() }).parse(entrada);
+    const datos = z.object({
+      dealId: z.string().uuid("Deal inválido."),
+      skuId: z.string().uuid("SKU inválido."),
+      valorVendidoUsd: z.number().nonnegative().optional(),
+      reemplazaLineaId: z.string().uuid("Línea inválida.").optional(),
+    }).parse(entrada);
     const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
-    await asignarLinea(db, { deal, skuId: datos.skuId, valorVendidoUsd: datos.valorVendidoUsd, actorId: ctx.actor.userId, etiqueta });
+    const actor = { actorId: ctx.actor.userId, etiqueta };
+    if (!datos.reemplazaLineaId) {
+      await asignarLinea(db, { deal, skuId: datos.skuId, valorVendidoUsd: datos.valorVendidoUsd, ...actor });
+      await actualizarVentaTrasCambiarLineas(db, deal.id, actor);
+      return {};
+    }
+    await (db as unknown as Transaccion).transaction(async (tx) => {
+      await asignarLinea(tx, { deal, skuId: datos.skuId, valorVendidoUsd: datos.valorVendidoUsd, ...actor });
+      const [reemplazada] = await tx.select({ id: dealLineas.id }).from(dealLineas).where(and(
+        eq(dealLineas.id, datos.reemplazaLineaId!),
+        eq(dealLineas.dealId, deal.id),
+        vigente(dealLineas),
+      ));
+      if (!reemplazada) throw new ErrorDeApp("La línea a reemplazar no es una línea vigente de este deal.", 409);
+      await quitarLinea(tx, { deal, lineaId: reemplazada.id, ...actor });
+      await actualizarVentaTrasCambiarLineas(tx, deal.id, actor);
+    });
     return {};
   });
 }
@@ -172,7 +194,9 @@ export async function editarValorLineaAccion(entrada: { dealId: string; lineaId:
   return correr(async (ctx) => {
     const datos = esquemaLinea.extend({ valorVendidoUsd: z.number().nonnegative() }).parse(entrada);
     const { deal, etiqueta } = await dealEditableParaLineas(db, ctx.actor, datos.dealId);
-    await editarValorDeLinea(db, { deal, lineaId: datos.lineaId, valorVendidoUsd: datos.valorVendidoUsd, actorId: ctx.actor.userId, etiqueta });
+    const actor = { actorId: ctx.actor.userId, etiqueta };
+    await editarValorDeLinea(db, { deal, lineaId: datos.lineaId, valorVendidoUsd: datos.valorVendidoUsd, ...actor });
+    await actualizarVentaTrasCambiarLineas(db, deal.id, actor);
     return {};
   });
 }

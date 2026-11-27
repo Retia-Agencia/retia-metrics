@@ -32,6 +32,10 @@ export interface Respuesta {
   accion: AccionDeRespuesta;
   /** Solo se ofrece cuando el deal ya tiene un pendiente (E9, y PC desde Agendado). */
   soloConPendiente?: boolean;
+  /** Solo con una cita vigente (llamada "agendada" sin anular): Terminó, Se movió, No asistió. */
+  soloConCita?: true;
+  /** Solo sin cita vigente (Calendly ya la canceló o se marcó fallida): Agendar nueva cita. */
+  soloSinCita?: true;
 }
 
 export interface PreguntaDeEtapa {
@@ -123,11 +127,11 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
   agendado: {
     pregunta: "¿Cómo va la cita?",
     respuestas: [
-      { id: "termino", etiqueta: "Terminó", accion: { tipo: "mover", a: "atendido", pendiente: null } },
-      { id: "se_movio", etiqueta: "Se movió", accion: { tipo: "llamada", uso: "reprogramar" } },
+      { id: "termino", etiqueta: "Terminó", accion: { tipo: "mover", a: "atendido", pendiente: null }, soloConCita: true },
+      { id: "se_movio", etiqueta: "Se movió", accion: { tipo: "llamada", uso: "reprogramar" }, soloConCita: true },
       // Con la cita ya fallida (Re-agenda) no hay cita que mover: se agenda una nueva (E7 limpia el pendiente).
-      { id: "agendar_nueva", etiqueta: "Agendar nueva cita", accion: { tipo: "llamada", uso: "agendar" }, soloConPendiente: true },
-      { id: "fallida", etiqueta: "No asistió o canceló", accion: { tipo: "llamada", uso: "fallida" } },
+      { id: "agendar_nueva", etiqueta: "Agendar nueva cita", accion: { tipo: "llamada", uso: "agendar" }, soloSinCita: true },
+      { id: "fallida", etiqueta: "No asistió o canceló", accion: { tipo: "llamada", uso: "fallida" }, soloConCita: true },
       proximaCohorte("agendado", true),
       dejarParaMasAdelante,
       descartar(),
@@ -180,9 +184,17 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
   },
 };
 
-/** Las respuestas que el deal puede tomar hoy, según tenga o no un pendiente. */
-export function respuestasDe(etapa: EtapaDeal, pendiente: PendienteDeal | null): Respuesta[] {
-  return PREGUNTA_DE_ETAPA[etapa].respuestas.filter((r) => !r.soloConPendiente || pendiente != null);
+/** Las respuestas que el deal puede tomar hoy, según tenga pendiente y cita vigente. */
+export function respuestasDe(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  tieneCitaVigente: boolean,
+): Respuesta[] {
+  return PREGUNTA_DE_ETAPA[etapa].respuestas.filter((r) =>
+    (!r.soloConPendiente || pendiente != null)
+    && (!r.soloConCita || tieneCitaVigente)
+    && (!r.soloSinCita || !tieneCitaVigente)
+  );
 }
 
 /** Si la respuesta deja la tarjeta en la columna `columna` del Kanban. */
@@ -262,12 +274,13 @@ export function queHace(
 export function respuestasPorDestino(
   etapa: EtapaDeal,
   pendiente: PendienteDeal | null,
+  tieneCitaVigente: boolean,
   orden: readonly EtapaDeal[],
 ): { destinos: GrupoDeRespuestas[]; sinCambio: Respuesta[] } {
   const grupos = new Map<ClaveDestino, Respuesta[]>();
   const sinCambio: Respuesta[] = [];
 
-  for (const respuesta of respuestasDe(etapa, pendiente)) {
+  for (const respuesta of respuestasDe(etapa, pendiente, tieneCitaVigente)) {
     if (respuesta.accion.tipo === "abono") {
       grupos.set("ganado", [...(grupos.get("ganado") ?? []), respuesta]);
       continue;
@@ -294,9 +307,14 @@ export function respuestasPorDestino(
  * Las respuestas que llevan la tarjeta a la columna donde se soltó (ADR 0072 punto 2).
  * Ninguna: la tarjeta vuelve. Una: se abre ya elegida. Varias: se escoge entre ellas.
  */
-export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | null, columna: EtapaDeal): Respuesta[] {
+export function respuestasHacia(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  tieneCitaVigente: boolean,
+  columna: EtapaDeal,
+): Respuesta[] {
   if (columna === etapa) return [];
-  return respuestasDe(etapa, pendiente).filter((r) => llevaA(r.accion, etapa, columna));
+  return respuestasDe(etapa, pendiente, tieneCitaVigente).filter((r) => llevaA(r.accion, etapa, columna));
 }
 
 /**
@@ -306,11 +324,12 @@ export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | nul
 export function respuestasHaciaColumna(
   etapa: EtapaDeal,
   pendiente: PendienteDeal | null,
+  tieneCitaVigente: boolean,
   desde: ColumnaDelTablero,
   hacia: ColumnaDelTablero,
 ): Respuesta[] {
   if (desde === hacia) return [];
-  return respuestasHacia(etapa, pendiente, hacia);
+  return respuestasHacia(etapa, pendiente, tieneCitaVigente, hacia);
 }
 
 /** Si la respuesta cambia la etapa del deal (va al grupo "Mover a" de Transición, ticket 176). */
@@ -379,9 +398,10 @@ export interface GruposDeTransicion {
 export function gruposDeTransicion(
   etapa: EtapaDeal,
   pendiente: PendienteDeal | null,
+  tieneCitaVigente: boolean,
   orden: readonly EtapaDeal[],
 ): GruposDeTransicion {
-  const { destinos, sinCambio } = respuestasPorDestino(etapa, pendiente, orden);
+  const { destinos, sinCambio } = respuestasPorDestino(etapa, pendiente, tieneCitaVigente, orden);
   // En "sinCambio" quedan los pendientes (mover a la misma etapa con pendiente) y las
   // actividades que no mueven; estas últimas se ofrecen por el botón de actividad, no sueltas.
   const enEspera = sinCambio.filter((respuesta) => respuesta.accion.tipo !== "actividad");

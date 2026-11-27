@@ -126,6 +126,20 @@ si más adelante recibe su primer abono pasa a vendida y el deal vuelve a parcia
 ganado completo es cuando ya todos los productos asociados se pagaron"; contar solo las vendidas es coherente con el
 punto 7 (una propuesta no es venta).
 
+### Enmienda del 27-nov-2026 (Mani): con el primer pago, todas las líneas del deal cuentan
+
+Reemplaza la excepción de las propuestas del párrafo anterior. **Mientras el deal no tiene abonos, sus líneas son propuestas
+y no venden. Desde su primer abono vigente, toda línea vigente del deal es vendida**, tenga o no abonos propios: Ganado
+completo es cuando todas quedaron en saldo 0 (o con sobrepago); si alguna debe, Ganado parcial. Una sola definición:
+`esLineaVendida` (`lib/deals/lineas.ts`); saldo, comisión, dinero de ventas y Students la siguen. Asignar, quitar, anular o
+cambiar el valor de una línea en un deal con abonos recalcula la etapa (por `moverEtapa`) y congela la comisión.
+
+Por qué: Mani, "completo solo es cuando ya todos los SKUs del deal se pagaron". El caso que motivó la excepción (la
+propuesta predeterminada de nacimiento que nadie compró) se resuelve en la entrada, no en la regla: al agregar un SKU a un
+deal con propuestas sin pagos, la app ofrece **reemplazar** la propuesta (opción por defecto) y dice explícitamente que
+conservar ambos es solo si el cliente de verdad compró los dos. Medido el 27-nov en producción: ningún deal en Ganado
+completo tenía propuestas; el único ganado con una (Tactical, `7b728cef…`, C3 pagada y C4 propuesta) ya estaba en parcial.
+
 **`cohorts.estado` se va.** Activa, futura y cerrada se calculan con una función de las fechas de la ventana y hoy en
 Bogotá; no puede ser columna generada porque depende de hoy. La columna, su índice y sus checks salen en la migración
 del corte 1.

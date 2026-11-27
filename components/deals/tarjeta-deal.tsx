@@ -61,7 +61,7 @@ export function TarjetaDealCard({
   onElegirRespuesta,
   onCorregir,
 }: TarjetaDealProps) {
-  const respuestas = respuestasDe(tarjeta.etapa, tarjeta.pendiente);
+  const respuestas = respuestasDe(tarjeta.etapa, tarjeta.pendiente, tarjeta.tieneCitaVigente);
 
   const avisos = tarjeta.avisos;
   const llamada = tarjeta.llamada;

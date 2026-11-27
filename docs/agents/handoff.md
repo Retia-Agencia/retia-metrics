@@ -35,6 +35,51 @@ esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pul
 ```
 ## Memory
 
+### 27-nov · Reportes de Maru: comprobante "Error interno", Agendado sin cita y SKUs del "+" (sesión de Mani)
+- **"Error interno" al registrar un pago:** no era el "+" sino la subida del comprobante. Supabase Storage del proyecto `CRM Retia`
+  (org "Agencia - Dani", plan **free**) responde 402 a toda petición desde ≤ 27-nov 09:00 UTC (último 200: 26-nov 20:10 UTC). No es
+  tamaño (Storage 10 MB, base 125 MB; el otro proyecto de la org, `pipeline-creacion-contenido`, 182 MB). Casi seguro una cuota de la
+  org (egress) superada: lo ve y lo resuelve el dueño de la org en Usage/Billing de Supabase (sin fuente verificada de la causa exacta).
+  Mientras siga, el cron `/api/cron/comprobantes` (09:00 UTC) también falla. Código: el 402 ahora queda en el log (`[almacen]`) y la
+  pantalla dice "El almacén de archivos no responde ahora. Pega el link del comprobante en su lugar." (`lib/archivos/supabase.ts`).
+- **Diagnóstico de egress (para resolver la base):** Storage no es (10 MB, 42 peticiones en los logs); el tráfico sale de la base
+  por Supavisor (28.380 líneas de log contra 43 de la API). `pg_stat_statements` (acumulado desde 23-sep) y peso medio por fila:
+  1. `submissions.respuestas` del programa completo (~0,9 KB por fila): 4.171 llamadas × 1.597 filas ≈ **6,3 GB**. Es la versión
+     sin `where` del barrido de Calendly, anterior al ticket 363 (30-oct); hoy solo la corre el cron sin acotar (`where $2`: 99
+     llamadas). Ya corregido; queda como historia.
+  2. Árbol de Meta completo (`arbolesDePauta`, `lib/pauta/arbol.ts`, desde 15-nov): 3.814 llamadas × 3.307 filas × ~100 B ≈
+     **1,25 GB en 12 días (~3 GB/mes)**. Lo llama `saludDeFuentes` (`lib/queries/salud-fuentes.ts:225`), que corre en
+     `/api/semaforo/envios`, Mi espacio, alertas, Nerd Stats y ficha de programa: ~318 veces al día. Es el consumo vivo más grande.
+  3. Otras lecturas del árbol de Meta por programa (`pauta_objetos` en origen, ROAS, traza, opciones de corte): ~1,3 GB acumulado.
+  4. `pg_type` (introspección del driver en cada conexión nueva): 29.100 conexiones; poco peso, pero muestra que no se reusan.
+  El MCP no es la causa medible: sus tablas propias suman 26 mil filas; sí reusa las consultas de las pantallas. Sus `POST
+  /api/mcp` que mueren a los 60 s cada minuto son otro problema (tiempo de Vercel, no egress de Supabase).
+  Plan free = 5 GB/mes de egress (sin fuente verificada en el repo). **Para medir el consumo actual:** foto de
+  `pg_stat_statements` el 27-nov en `~/Desktop/mani/work/retia/diagnosticos/pg_stat_statements-2026-11-27.csv`; tomar otra en
+  24 h y restar por `queryid`. **Arreglo candidato:** `saludDeFuentes` no necesita el árbol entero en cada llamada (cachearlo
+  o pedir solo los anuncios activos), y lo mismo para el resto de lectores de `pauta_objetos`.
+- **Agendado sin cita vigente (Natalia Aya):** Calendly ya había marcado la llamada `cancelada` (motivo del invitado) y dejado
+  `reagenda`; la métrica de canceladas la cuenta (`lib/queries/metricas-con-filas.ts:532`). El menú seguía ofreciendo Terminó / Se movió
+  / No asistió. Ahora esas tres piden cita vigente (`soloConCita`) y "Agendar nueva cita" la pide ausente (`soloSinCita`), con
+  `tieneCitaVigente` en `TarjetaDeal` y como parámetro obligatorio de `respuestasDe` y sus derivadas.
+- **SKUs:** el "+" del pago ya no ofrece `sin_clasificar` (`skusActivosDelPrograma`). En producción Comunicarte tiene 5 SKUs activos:
+  Programa virtual C1 (697), C2, C3, C4 (797, predeterminado) y 1:1 con Rosario C3 (1.431); los de ciclos cerrados siguen activos y
+  salen en el "+": decide gerencia si los desactiva. El precio de enero (C4) distinto lo crea gerencia como SKU nuevo.
+- **Regla nueva de venta (Mani, ADR 0137 enmienda 27-nov):** desde el primer abono, todas las líneas del deal cuentan;
+  Completo solo con todas pagadas. Predeterminados hoy: uno por programa (Comunicarte C4 797, Comunícate C2 800, LiderArte
+  C1 149, Tactical C4 1.500) y cada deal abierto nace con esa única propuesta. Al agregar otro SKU, la app ofrece reemplazar
+  la propuesta (por defecto) o conservar ambas "si de verdad compró los dos". **Pendiente con ok de Mani:** el deal de
+  Tactical `7b728cef…` (C3 pagada + C4 propuesta) pasa a deber USD 1.500 más con la regla nueva; quitarle la C4 si no la compró.
+- **Recorrido local** (`dev:local`, closer): menú con y sin cita, "+" sin `sin_clasificar`, Agregar SKU, sobrepago + Cambiar valor
+  vendido, registro del pago. El 402 se comprobó simulando la respuesta (en local el almacén es disco). Regla nueva:
+  reemplazar la propuesta y pagar completo → Completo; conservar ambos y pagar uno → Parcial; pagar el segundo → Completo
+  (historial sin rebotes, comisión congelada en las dos líneas); subir el valor de una línea en un Completo → Parcial; la
+  elección de reemplazo sale en el pago y en la sección SKUs de la ficha, y no sale cuando el deal ya tiene abonos. El
+  recálculo de etapa va solo en las acciones manuales (app y MCP), nunca dentro de `asignarLinea`/`editarValorDeLinea`,
+  que también corren dentro de `moverEtapa` y de los pagos.
+- **Regla nueva (Mani):** al trabajar en el repo, los datos de producción se leen directo con `.env.local` en read only
+  (`docs/agents/feedback-loops.md`), no con `consultar_datos` del MCP. Pendiente: exponer SKUs en el MCP para gerencia, pauta y closers.
+
 ### 21-nov · SKUs por deal en producción: 460, 461 paso 3, 462, 464 y 465 (sesión orquestadora de Mani, hijas en Sonnet)
 - **En main con CI verde (squash):** #62 (regla: ningún test en local, todo por PR; excepción: los archivos que el CI marque rojos, uno
   por uno), #63 (465: `heredarUmbrales` en `lib/catalogo/objetivos.ts`, por el molde, solo ciclos que empiezan antes), #64 (464 + 460:

@@ -148,13 +148,25 @@ describe("la pregunta de cada etapa coincide con el motor (ADR 0072)", () => {
 
 describe("respuestasDe: lo que depende del pendiente", () => {
   it("en Atendido, Agendó solo aparece con un pendiente (E9)", () => {
-    expect(respuestasDe("atendido", null).map((r) => r.id)).not.toContain("agendo");
-    expect(respuestasDe("atendido", "seguimiento").map((r) => r.id)).toContain("agendo");
+    expect(respuestasDe("atendido", null, false).map((r) => r.id)).not.toContain("agendo");
+    expect(respuestasDe("atendido", "seguimiento", false).map((r) => r.id)).toContain("agendo");
   });
 
   it("en Agendado, Próxima cohorte solo aparece con un pendiente (PC)", () => {
-    expect(respuestasDe("agendado", null).map((r) => r.id)).not.toContain("proxima_cohorte");
-    expect(respuestasDe("agendado", "reagenda").map((r) => r.id)).toContain("proxima_cohorte");
+    expect(respuestasDe("agendado", null, false).map((r) => r.id)).not.toContain("proxima_cohorte");
+    expect(respuestasDe("agendado", "reagenda", false).map((r) => r.id)).toContain("proxima_cohorte");
+  });
+
+  it("Agendado con la cita ya cancelada no ofrece Terminó/Se movió/No asistió y sí Agendar nueva cita; con cita vigente, al revés", () => {
+    const sinCita = respuestasDe("agendado", "reagenda", false).map((r) => r.id);
+    const conCita = respuestasDe("agendado", "reagenda", true).map((r) => r.id);
+
+    expect(sinCita).toContain("agendar_nueva");
+    expect(sinCita).not.toContain("termino");
+    expect(sinCita).not.toContain("se_movio");
+    expect(sinCita).not.toContain("fallida");
+    expect(conCita).toEqual(expect.arrayContaining(["termino", "se_movio", "fallida"]));
+    expect(conCita).not.toContain("agendar_nueva");
   });
 });
 
@@ -162,41 +174,41 @@ describe("respuestasHacia: soltar en una columna del Kanban (ADR 0072 punto 2)",
   const ids = (rs: Respuesta[]) => rs.map((r) => r.id);
 
   it("una flecha directa abre su respuesta ya elegida", () => {
-    expect(ids(respuestasHacia("contactado", null, "calificado"))).toEqual(["califica"]);
-    expect(ids(respuestasHacia("agendado", null, "atendido"))).toEqual(["termino"]);
+    expect(ids(respuestasHacia("contactado", null, false, "calificado"))).toEqual(["califica"]);
+    expect(ids(respuestasHacia("agendado", null, true, "atendido"))).toEqual(["termino"]);
   });
 
   it("a ganado solo se entra con un abono", () => {
-    expect(ids(respuestasHacia("atendido", null, "ganado_completo"))).toEqual(["abono"]);
-    expect(ids(respuestasHacia("agendado", null, "ganado_parcial"))).toEqual([]);
+    expect(ids(respuestasHacia("atendido", null, false, "ganado_completo"))).toEqual(["abono"]);
+    expect(ids(respuestasHacia("agendado", null, false, "ganado_parcial"))).toEqual([]);
   });
 
   it("el retroceso aparece en las tres columnas a las que el motor puede volver", () => {
     for (const columna of ["atendido", "contactado", "calificado"] as const) {
-      expect(ids(respuestasHacia("compromiso_verbal", null, columna))).toEqual(["retroceso"]);
+      expect(ids(respuestasHacia("compromiso_verbal", null, false, columna))).toEqual(["retroceso"]);
     }
   });
 
   it("desde Registrado, soltar en En gestión ofrece el contacto y 'Lo estoy trabajando' (ticket 228)", () => {
     // Contacto mueve a En gestión por la regla de actividad; "Lo estoy trabajando" lo hace por
     // la flecha E1 (ahora `ambos`). Las dos llevan a esa columna, así que las dos se ofrecen.
-    expect(ids(respuestasHacia("registrado", null, "en_gestion"))).toEqual(["contacto", "lo_estoy_trabajando"]);
-    expect(ids(respuestasHacia("en_gestion", null, "en_gestion"))).toEqual([]);
+    expect(ids(respuestasHacia("registrado", null, false, "en_gestion"))).toEqual(["contacto", "lo_estoy_trabajando"]);
+    expect(ids(respuestasHacia("en_gestion", null, false, "en_gestion"))).toEqual([]);
   });
 
   it("sin flecha hacia la columna, o en la misma columna, no hay respuesta y la tarjeta vuelve", () => {
-    expect(respuestasHacia("potencial", null, "atendido")).toEqual([]);
-    expect(respuestasHacia("calificado", null, "calificado")).toEqual([]);
-    expect(ids(respuestasHacia("atendido", null, "agendado"))).toEqual([]);
-    expect(ids(respuestasHacia("atendido", "reagenda", "agendado"))).toEqual(["agendo"]);
+    expect(respuestasHacia("potencial", null, false, "atendido")).toEqual([]);
+    expect(respuestasHacia("calificado", null, false, "calificado")).toEqual([]);
+    expect(ids(respuestasHacia("atendido", null, false, "agendado"))).toEqual([]);
+    expect(ids(respuestasHacia("atendido", "reagenda", false, "agendado"))).toEqual(["agendo"]);
   });
 });
 
 describe("respuestasPorDestino: Transición (ADR 0075)", () => {
   it("explica todas las respuestas y nombra el mismo destino que su grupo", () => {
     for (const etapa of ETAPAS) {
-      const grupos = respuestasPorDestino(etapa, "reagenda", ETAPAS);
-      for (const respuesta of respuestasDe(etapa, "reagenda")) {
+      const grupos = respuestasPorDestino(etapa, "reagenda", true, ETAPAS);
+      for (const respuesta of respuestasDe(etapa, "reagenda", true)) {
         const texto = queHace(etapa, "reagenda", respuesta, ETAPAS, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE);
         expect(texto, `${etapa}/${respuesta.id}`).not.toBe("");
         const grupo = grupos.destinos.find((candidato) => candidato.respuestas.includes(respuesta));
@@ -239,18 +251,18 @@ describe("etapaTrasActividad: la regla de registrarActividad", () => {
 
   it("cada respuesta que cambia de etapa cae en exactamente un botón", () => {
     for (const etapa of ETAPAS) {
-      const grupos = respuestasPorDestino(etapa, "reagenda", ETAPAS);
+      const grupos = respuestasPorDestino(etapa, "reagenda", true, ETAPAS);
       const agrupadas = grupos.destinos.flatMap((grupo) => grupo.respuestas);
-      for (const respuesta of respuestasDe(etapa, "reagenda")) {
+      for (const respuesta of respuestasDe(etapa, "reagenda", true)) {
         const cambia = respuesta.accion.tipo === "abono"
-          || ETAPAS.some((destino) => destino !== etapa && respuestasHacia(etapa, "reagenda", destino).includes(respuesta));
+          || ETAPAS.some((destino) => destino !== etapa && respuestasHacia(etapa, "reagenda", true, destino).includes(respuesta));
         expect(agrupadas.filter((r) => r === respuesta), `${etapa}/${respuesta.id}`).toHaveLength(cambia ? 1 : 0);
       }
     }
   });
 
   it("Pago Parcial y Completo forman un solo destino Ganado", () => {
-    const grupos = respuestasPorDestino("atendido", null, ETAPAS);
+    const grupos = respuestasPorDestino("atendido", null, false, ETAPAS);
     expect(grupos.destinos.filter((grupo) => grupo.destino === "ganado")).toMatchObject([
       { respuestas: [{ id: "abono" }] },
     ]);
@@ -265,10 +277,10 @@ describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)",
   it("ninguna respuesta que cambie la etapa queda fuera de 'Mover a'", () => {
     for (const etapa of ETAPAS) {
       for (const pendiente of [null, "reagenda"] as const) {
-        const { moverA, enEspera, actividades } = gruposDeTransicion(etapa, pendiente, ETAPAS);
+        const { moverA, enEspera, actividades } = gruposDeTransicion(etapa, pendiente, true, ETAPAS);
         const enMoverA = new Set(moverA.flatMap((grupo) => grupo.respuestas));
 
-        for (const respuesta of respuestasDe(etapa, pendiente)) {
+        for (const respuesta of respuestasDe(etapa, pendiente, true)) {
           if (!cambiaLaEtapa(etapa, respuesta.accion)) continue;
           expect(enMoverA.has(respuesta), `${etapa}/${pendiente}/${respuesta.id} debería estar en Mover a`).toBe(true);
           expect(enEspera.includes(respuesta), `${etapa}/${pendiente}/${respuesta.id} no debe estar en Dejar en espera`).toBe(false);
@@ -289,7 +301,7 @@ describe("gruposDeTransicion: guardián de 'Mover a' (ticket 176, decisión 1)",
   });
 
   it("en Potencial, Contacto es destino de Mover a y no queda como actividad", () => {
-    const { moverA, actividades } = gruposDeTransicion("potencial", null, ETAPAS);
+    const { moverA, actividades } = gruposDeTransicion("potencial", null, false, ETAPAS);
     const destinos = moverA.map((grupo) => grupo.destino);
     expect(destinos).toContain("contactado");
     // Contacto y nota humanos mueven, así que ninguno queda como actividad sin transición.
@@ -307,7 +319,7 @@ describe("gruposSinDueno: lo que un closer ofrece sobre un deal sin dueño (tick
 
   it("sin dueño: en Potencial y Registrado ofrece solo Registrar contacto y 'Lo estoy trabajando'", () => {
     for (const etapa of ["potencial", "registrado"] as const) {
-      const completos = gruposDeTransicion(etapa, null, ETAPAS);
+      const completos = gruposDeTransicion(etapa, null, false, ETAPAS);
       const sinDueno = gruposSinDueno(completos);
       // Los dos gestos que reclaman el deal solos (más Anotar, que la pantalla pone aparte).
       expect(idsDe(sinDueno)).toEqual(["contacto", "lo_estoy_trabajando"]);
@@ -325,7 +337,7 @@ describe("gruposSinDueno: lo que un closer ofrece sobre un deal sin dueño (tick
   it("con dueño: la vista completa es la de siempre (no se filtra nada)", () => {
     // El contrato de la pantalla: con dueño se usa `gruposDeTransicion` tal cual, y ahí sí
     // aparecen Descartar y los pendientes. `gruposSinDueno` NO se aplica en ese caso.
-    const completos = gruposDeTransicion("registrado", null, ETAPAS);
+    const completos = gruposDeTransicion("registrado", null, false, ETAPAS);
     const ids = completos.moverA.flatMap((grupo) => grupo.respuestas.map((r) => r.id));
     expect(ids).toContain("contacto");
     expect(ids).toContain("lo_estoy_trabajando");
@@ -335,14 +347,14 @@ describe("gruposSinDueno: lo que un closer ofrece sobre un deal sin dueño (tick
   it("en etapas sin ninguno de los dos gestos, no ofrece nada que mover", () => {
     // Un deal sin dueño en una etapa avanzada no debería ofrecer botones de Mover a: todos
     // piden dueño. Compromiso Verbal no tiene contacto ni "Lo estoy trabajando".
-    const sinDueno = gruposSinDueno(gruposDeTransicion("compromiso_verbal", null, ETAPAS));
+    const sinDueno = gruposSinDueno(gruposDeTransicion("compromiso_verbal", null, false, ETAPAS));
     expect(sinDueno.moverA).toEqual([]);
   });
 
   it("solo whitelist: ningún id fuera de RESPUESTAS_SIN_DUENO pasa el filtro, en ninguna etapa", () => {
     for (const etapa of ETAPAS) {
       for (const pendiente of [null, "reagenda"] as const) {
-        const sinDueno = gruposSinDueno(gruposDeTransicion(etapa, pendiente, ETAPAS));
+        const sinDueno = gruposSinDueno(gruposDeTransicion(etapa, pendiente, false, ETAPAS));
         for (const grupo of sinDueno.moverA) {
           for (const respuesta of grupo.respuestas) {
             expect(RESPUESTAS_SIN_DUENO, `${etapa}/${respuesta.id}`).toContain(respuesta.id);
@@ -357,12 +369,12 @@ describe("respuestasHaciaColumna: columnas por etapa (ticket 498, ADR 0142)", ()
   const ids = (rs: Respuesta[]) => rs.map((r) => r.id);
 
   it("no ofrece una transición al soltar en la etapa actual", () => {
-    expect(respuestasHaciaColumna("agendado", "reagenda", "agendado", "agendado")).toEqual([]);
-    expect(respuestasHaciaColumna("atendido", "seguimiento", "atendido", "atendido")).toEqual([]);
+    expect(respuestasHaciaColumna("agendado", "reagenda", false, "agendado", "agendado")).toEqual([]);
+    expect(respuestasHaciaColumna("atendido", "seguimiento", false, "atendido", "atendido")).toEqual([]);
   });
 
   it("las columnas de otra etapa siguen las respuestas de siempre", () => {
-    expect(ids(respuestasHaciaColumna("agendado", "reagenda", "agendado", "cierre_perdido"))).toEqual(["descartar"]);
-    expect(ids(respuestasHaciaColumna("agendado", null, "agendado", "atendido"))).toEqual(["termino"]);
+    expect(ids(respuestasHaciaColumna("agendado", "reagenda", false, "agendado", "cierre_perdido"))).toEqual(["descartar"]);
+    expect(ids(respuestasHaciaColumna("agendado", null, true, "agendado", "atendido"))).toEqual(["termino"]);
   });
 });

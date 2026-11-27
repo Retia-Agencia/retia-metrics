@@ -152,6 +152,7 @@ export function TableroKanban({
       fechaLimiteSugerida: t.cohortId ? (inicioDeClases[t.cohortId] ?? null) : inicioDeLaCohorteActiva,
       saldo: t.saldo,
       moneda: t.moneda,
+      tieneCitaVigente: t.tieneCitaVigente,
       llamada: t.llamada,
     };
   }
@@ -163,7 +164,13 @@ export function TableroKanban({
     setColumnaHover(null);
     if (!origen || origen.desde === columna) return;
     const { tarjeta, desde } = origen;
-    const respuestas = respuestasHaciaColumna(tarjeta.etapa, tarjeta.pendiente, desde, columna);
+    const respuestas = respuestasHaciaColumna(
+      tarjeta.etapa,
+      tarjeta.pendiente,
+      tarjeta.tieneCitaVigente,
+      desde,
+      columna,
+    );
     if (respuestas.length === 0) {
       toast.error(`Desde ${nombreDeColumna[desde]} no se pasa a ${nombreDeColumna[columna]}.`);
       return;
@@ -190,7 +197,13 @@ export function TableroKanban({
         {columnas.map((columna) => {
           const destinoPermitido =
             levantada != null
-            && respuestasHaciaColumna(levantada.tarjeta.etapa, levantada.tarjeta.pendiente, levantada.desde, columna.clave).length > 0;
+            && respuestasHaciaColumna(
+              levantada.tarjeta.etapa,
+              levantada.tarjeta.pendiente,
+              levantada.tarjeta.tieneCitaVigente,
+              levantada.desde,
+              columna.clave,
+            ).length > 0;
           const destinoProhibido = levantada != null && levantada.desde !== columna.clave && !destinoPermitido;
           const tarjetas = columna.tarjetas;
 

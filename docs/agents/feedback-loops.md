@@ -59,6 +59,12 @@ The agent should run these to get fast signal on whether code works. Keep them c
   (activo), SIN Google; existe unicamente con `AUTH_LOGIN_LOCAL=1` **y** una `DATABASE_URL` local
   (`lib/db/es-local.ts`, la unica respuesta a "¿es local?"), asi que en produccion no se registra y el rol
   sigue saliendo de la base por los callbacks de siempre.
+- **Revisar datos de produccion (Mani, 27-nov):** al trabajar en el repo, directo a la base con las variables de
+  `.env.local`, sin el filtro de rol ni de vistas: `psql "${DATABASE_URL_DIRECTA%%\?*}"` (psql no acepta el
+  `?pgbouncer=` de la URL) y cada consulta dentro de `begin read only; … rollback;`. La herramienta
+  `consultar_datos` del MCP es para los usuarios del CRM (ve solo `mcp_lectura` y lo que su rol permite), no
+  para diagnosticar. Logs de Storage y de la API: el conector de Supabase ya ve la organizacion "Agencia - Dani"
+  (proyecto `CRM Retia`). Escribir en produccion sigue pidiendo el ok de Mani.
 - **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada PR y en cada push a `main`.
   Desde el 25-nov `npm test` va en 6 shards (`--shard=i/6`, un runner cada uno) y typecheck, lint y build en
   otro job: en un solo job la suite llegó a 462 s y se cortó en los 480 s. El checkpoint es verde solo si
