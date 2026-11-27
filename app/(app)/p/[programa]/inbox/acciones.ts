@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
-import { asignaPagosDePasarela, AuthorizationError, esRolValido, type Rol } from "@/lib/auth/roles";
+import { asignaPagosDePasarela, AuthorizationError, esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
@@ -14,6 +14,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
 import { reclamarDeal, reclamarDealsPorSettear } from "@/lib/deals/reclamar";
+import { clasificarFilasDeReclamo, reclamarDealsDeCsv } from "@/lib/deals/reclamar-por-csv";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { completarAgendada } from "@/lib/deals/llamadas";
 import { asignarLlamadaSuelta, crearDealDesdeSuelta, descartarLlamadaSuelta, esquemaDescartarSuelta } from "@/lib/calendly/colgar-llamada";
@@ -161,6 +162,53 @@ export async function reclamarTodosPorSettearAccion(
     const { programId } = esquemaReclamarTodos.parse(entrada);
     await exigirProgramaVisible(ctx, programId);
     return reclamarDealsPorSettear(db, ctx.actor, programId);
+  });
+}
+
+const esquemaFilaReclamoCsv = z.object({
+  fila: z.number().int().positive(),
+  correoOriginal: z.string().max(320),
+  telefonoOriginal: z.string().max(320),
+  correo: z.string().max(320).nullable(),
+  telefono: z.string().max(320).nullable(),
+});
+const esquemaPrevisualizarReclamoCsv = z.object({
+  programId: id("Programa inválido."),
+  filas: z.array(esquemaFilaReclamoCsv).max(500),
+});
+
+/** Clasifica un lote sin escribir; usa contexto normal porque revela datos operativos. */
+export async function previsualizarReclamoCsvAccion(
+  entrada: z.input<typeof esquemaPrevisualizarReclamoCsv>,
+): Promise<ResultadoInbox<{ resultados: Awaited<ReturnType<typeof clasificarFilasDeReclamo>> }>> {
+  try {
+    const extra = await normalizando(async () => {
+      const ctx = await contextoDe();
+      const { programId, filas } = esquemaPrevisualizarReclamoCsv.parse(entrada);
+      await exigirProgramaVisible(ctx, programId);
+      if (!trabajaLeads(ctx.actor)) throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
+      return { resultados: await clasificarFilasDeReclamo(db, ctx.actor, programId, filas) };
+    });
+    return { ok: true, ...extra };
+  } catch (error) {
+    return aError(error);
+  }
+}
+
+const esquemaReclamarCsv = z.object({
+  programId: id("Programa inválido."),
+  dealIds: z.array(id("Deal inválido.")).max(500),
+});
+
+/** Reclama un lote y revalida alcance, capacidad y estado fresco de cada deal. */
+export async function reclamarDealsDeCsvAccion(
+  entrada: z.input<typeof esquemaReclamarCsv>,
+): Promise<ResultadoInbox<{ reclamados: string[]; saltados: string[] }>> {
+  return correr(async (ctx) => {
+    const { programId, dealIds } = esquemaReclamarCsv.parse(entrada);
+    await exigirProgramaVisible(ctx, programId);
+    if (!trabajaLeads(ctx.actor)) throw new ErrorDeApp("Reclamar un deal es de quien trabaja leads, no de quien administra.", 403);
+    return reclamarDealsDeCsv(db, ctx.actor, programId, dealIds);
   });
 }
 
