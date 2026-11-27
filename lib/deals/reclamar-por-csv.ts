@@ -145,12 +145,10 @@ export async function reclamarDealsDeCsv(
         programId: deals.programId,
         etapa: deals.etapa,
         ownerUserId: deals.ownerUserId,
-        anuladoEn: deals.anuladoEn,
-      }).from(deals).where(eq(deals.id, dealId)).for("update");
+      }).from(deals).where(and(eq(deals.id, dealId), vigente(deals))).for("update");
       if (
         !actual
         || actual.programId !== programId
-        || actual.anuladoEn !== null
         || actual.ownerUserId !== null
         || !ETAPAS_DE_SETTEO.includes(actual.etapa)
       ) {
