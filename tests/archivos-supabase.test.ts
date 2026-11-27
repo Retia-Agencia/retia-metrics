@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { crearAlmacenSupabase } from "@/lib/archivos/supabase";
+import { ErrorDeApp } from "@/lib/errors";
 
 const BASE = "https://proyecto.supabase.co";
 const CLAVE = "clave-super-secreta";
@@ -55,10 +56,15 @@ describe("almacén Supabase REST", () => {
     ]);
   });
 
-  it("los errores llevan el estado pero nunca la clave", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 500 })));
+  it("un error del almacén deja su estado en el log, a la pantalla un mensaje legible y nunca la clave", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 402 })));
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const promesa = crearAlmacenSupabase(BASE, CLAVE).leer(RUTA);
-    await expect(promesa).rejects.toThrow("estado 500");
+    await expect(promesa).rejects.toBeInstanceOf(ErrorDeApp);
+    await expect(promesa).rejects.toMatchObject({ status: 503, message: expect.stringContaining("Pega el link del comprobante") });
     await expect(promesa).rejects.not.toThrow(CLAVE);
+    expect(log).toHaveBeenCalledWith("[almacen] respondio con estado", 402);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(CLAVE);
+    log.mockRestore();
   });
 });

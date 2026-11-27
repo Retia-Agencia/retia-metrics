@@ -14,7 +14,10 @@ type Actor = {
   reversionId?: string;
 };
 
-/** Única definición de línea vendida (ADR 0137 puntos 7, 14 y 15). */
+/**
+ * Única definición de línea vendida: con algún abono vigente, todas las líneas vigentes
+ * del deal son vendidas; sin abonos, solo cuentan las de cupo en una etapa vendida.
+ */
 export function esLineaVendida(entrada: {
   etapa: EtapaDeal;
   cortesia: boolean;
@@ -23,9 +26,23 @@ export function esLineaVendida(entrada: {
   abonosVigentesDelDeal: number;
 }): boolean {
   if (entrada.cortesia) return false;
-  if (entrada.abonosVigentesDelDeal > 0) return entrada.abonosVigentes > 0;
+  if (entrada.abonosVigentesDelDeal > 0) return true;
   return entrada.cuentaComoCupo
     && (ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(entrada.etapa);
+}
+
+export async function actualizarVentaTrasCambiarLineas(tx: Db, dealId: string, actor: Actor): Promise<boolean> {
+  const [conteo] = await tx.select({ total: sql<number>`count(*)::int` }).from(abonos)
+    .where(and(eq(abonos.dealId, dealId), vigente(abonos)));
+  if (Number(conteo?.total ?? 0) === 0) return false;
+
+  const [deal] = await tx.select().from(deals)
+    .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
+  if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+  const { congelarComisionDeLineas } = await import("./comision-de-linea");
+  await congelarComisionDeLineas(tx, dealId, actor);
+  await recalcularEtapaTrasAnularAbono(tx, deal, actor.origen ?? "app");
+  return true;
 }
 
 export async function skuConCupoDeCohorte(tx: Db, programId: string, cohortId: string) {
@@ -279,6 +296,7 @@ export async function recalcularDealPorLineas(tx: Db, dealId: string, actor: Act
   await escribirDerivados(tx, dealId, actor);
 }
 
+/** Con cualquier abono vigente, el saldo y la etapa consideran todas las líneas vigentes. */
 export async function estadoDePagoPorLineas(tx: Db, dealId: string): Promise<{
   saldo: number;
   vendidas: number;

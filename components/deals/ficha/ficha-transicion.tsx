@@ -77,7 +77,12 @@ export function FichaTransicion({
   };
   // Con dueño (o administrando) se ofrece todo; sin dueño, solo los tres gestos que reclaman
   // el deal solos (ticket 229). `gruposSinDueno` recorta "Mover a" a esas respuestas.
-  const gruposCompletos = gruposDeTransicion(ficha.etapa, ficha.pendiente, ordenDeEtapas);
+  const gruposCompletos = gruposDeTransicion(
+    ficha.etapa,
+    ficha.pendiente,
+    ficha.tieneCitaVigente,
+    ordenDeEtapas,
+  );
   const { moverA } = puedeTrabajar ? gruposCompletos : gruposSinDueno(gruposCompletos);
   const etiquetasDestino = moverA.map((grupo) => grupo.destino === "ganado" ? "Ganado · registrar pago" : nombreDeEtapa[grupo.destino]);
   if (ficha.anulado) return null;

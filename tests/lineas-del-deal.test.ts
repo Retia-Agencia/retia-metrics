@@ -164,16 +164,13 @@ describe("líneas como fuente de verdad: el valor, el cupo y la comisión viven 
     expect(actual.cohortId).toBe(cohortId); // sin líneas de cupo, conserva el valor actual
   });
 
-  it("calcula D15 por líneas vendidas y no deja que una propuesta impida completo", async () => {
+  it("un deal con un SKU pagado completo y otro SKU sin abonos queda en Ganado parcial, no completo", async () => {
     const { deal } = await crearDeal();
     const virtual = await asignar(deal, virtual1, 100);
     const unoAUno = await asignar(deal, unoAUno1, 50);
-    const primero = await pago(deal.id, "40", virtual.id);
+    const primero = await pago(deal.id, "100", virtual.id);
     expect(primero.etapa).toBe("ganado_parcial");
-    await pago(deal.id, "20", unoAUno.id);
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].etapa).toBe("ganado_parcial");
-    await pago(deal.id, "60", virtual.id);
-    const ultimo = await pago(deal.id, "30", unoAUno.id);
+    const ultimo = await pago(deal.id, "50", unoAUno.id);
     expect(ultimo.etapa).toBe("ganado_completo");
 
     const propuesta = await asignar((await db.select().from(deals).where(eq(deals.id, deal.id)))[0], unoAUno1, 25);
@@ -184,7 +181,7 @@ describe("líneas como fuente de verdad: el valor, el cupo y la comisión viven 
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].etapa).toBe("ganado_parcial");
   });
 
-  it("ADR 0137 punto 15: la línea con cupo sin abonos solo vende en un deal ganado sin otros abonos", async () => {
+  it("sin abonos vende por etapa y con abonos vende todas las líneas vigentes", async () => {
     const ganado = await crearDeal("ganado_parcial");
     const cupoVendido = await asignar(ganado.deal, virtual1, 100);
     expect((await saldosDeLineas(db, [ganado.deal.id])).get(cupoVendido.id)).toMatchObject({
@@ -196,7 +193,7 @@ describe("líneas como fuente de verdad: el valor, el cupo y la comisión viven 
     const otraLinea = await asignar(conOtroAbono.deal, unoAUno1, 50);
     await pago(conOtroAbono.deal.id, "50", otraLinea.id);
     const saldosConAbono = await saldosDeLineas(db, [conOtroAbono.deal.id]);
-    expect(saldosConAbono.get(cupoPropuesto.id)?.vendida).toBe(false);
+    expect(saldosConAbono.get(cupoPropuesto.id)?.vendida).toBe(true);
     expect(saldosConAbono.get(otraLinea.id)?.vendida).toBe(true);
 
     const abierto = await crearDeal("atendido");

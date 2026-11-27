@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { hoyEnBogota, usd } from "@/lib/format";
 import { asignarSkuAccion, crearPlataformaParaAbonoAccion, editarValorLineaAccion, opcionesDeSkuDelDealAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { EleccionDeReemplazo } from "./eleccion-de-reemplazo";
 import { Campo, claseInput } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
@@ -46,6 +47,7 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   const [cargandoSku, setCargandoSku] = useState(true);
   const [skuNuevo, setSkuNuevo] = useState("");
   const [agregando, setAgregando] = useState(false);
+  const [reemplazaLineaId, setReemplazaLineaId] = useState<string | null>(null);
   const [skuRecienAgregado, setSkuRecienAgregado] = useState<string | null>(null);
   const [asignando, iniciarAsignacion] = useTransition();
   // Sube para volver a pedir los SKUs (tras asignar uno); el efecto solo escribe estado tras la respuesta.
@@ -76,6 +78,9 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
   const lineas = opcionesSku?.lineas ?? [];
   const skusActivos = opcionesSku?.skusActivos ?? [];
   const vigentes = lineas.filter((linea) => linea.estado !== "anulada");
+  const propuestas = vigentes
+    .filter((linea) => linea.estado === "propuesta")
+    .map((linea) => ({ id: linea.id, etiqueta: `${linea.skuNombre} · ${linea.cohorte}` }));
   const skuIdsVigentes = new Set(vigentes.map((linea) => linea.skuId));
   const disponibles = skusActivos.filter((sku) => !skuIdsVigentes.has(sku.id));
   // Con una sola línea vigente se preselecciona sin mutar lo que llega del padre.
@@ -115,23 +120,33 @@ export function FormularioAbono({ dealId, moneda, plataformas, datos: datosDelPa
           <option value="">Elige un SKU</option>
           {vigentes.map((linea) => <option key={linea.id} value={linea.id}>{linea.skuNombre} · {linea.cohorte} · {linea.porCobrarUsd == null ? "por cobrar —" : `por cobrar ${usd(linea.porCobrarUsd)}`}</option>)}
         </select>
-        {disponibles.length > 0 && !ticketDeshabilitado ? <Button type="button" variant="outline" size="icon" aria-label="Agregar otro SKU" title="Agregar otro SKU" onClick={() => setAgregando(true)}><Plus /></Button> : null}
+        {disponibles.length > 0 && !ticketDeshabilitado ? <Button type="button" variant="outline" size="icon" aria-label="Agregar otro SKU" title="Agregar otro SKU" onClick={() => {
+          setReemplazaLineaId(propuestas[0]?.id ?? null);
+          setAgregando(true);
+        }}><Plus /></Button> : null}
       </div> : null}
       {!cargandoSku && !errorSku && vigentes.length === 0 && disponibles.length > 0 ? <p className="text-sm">Este deal no tiene SKU. Agrega el que está pagando.</p> : null}
       {!cargandoSku && !errorSku && vigentes.length === 0 && skusActivos.length === 0 ? <p className="text-sm text-tono-alerta">Este programa no tiene SKUs activos.</p> : null}
       {ticketDeshabilitado ? <p className="text-xs text-tono-alerta">{motivoTicketDeshabilitado}</p> : null}
-      {!cargandoSku && !errorSku && disponibles.length > 0 && (agregando || vigentes.length === 0) ? <div className="flex gap-2">
-        <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{disponibles.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
-        <Button type="button" size="sm" disabled={!skuNuevo || asignando} onClick={() => iniciarAsignacion(async () => {
-          const resultado = await asignarSkuAccion({ dealId, skuId: skuNuevo });
-          if (!resultado.ok) { toast.error(resultado.error); return; }
-          toast.success("SKU agregado");
-          router.refresh();
-          setAgregando(false);
-          setSkuRecienAgregado(skuNuevo);
-          setVersionSku((v) => v + 1);
-        })}>Agregar</Button>
-        {vigentes.length > 0 ? <Button type="button" variant="ghost" size="sm" onClick={() => setAgregando(false)}>Cancelar</Button> : null}
+      {!cargandoSku && !errorSku && disponibles.length > 0 && (agregando || vigentes.length === 0) ? <div className="space-y-3">
+        {propuestas.length > 0 ? <EleccionDeReemplazo propuestas={propuestas} value={reemplazaLineaId} onChange={setReemplazaLineaId} /> : null}
+        <div className="flex gap-2">
+          <select className={claseInput} value={skuNuevo} onChange={(e) => setSkuNuevo(e.target.value)}>{disponibles.map((sku) => <option key={sku.id} value={sku.id}>{sku.nombre} · {sku.codigo}</option>)}</select>
+          <Button type="button" size="sm" disabled={!skuNuevo || asignando} onClick={() => iniciarAsignacion(async () => {
+            const resultado = await asignarSkuAccion({ dealId, skuId: skuNuevo, reemplazaLineaId: reemplazaLineaId ?? undefined });
+            if (!resultado.ok) { toast.error(resultado.error); return; }
+            toast.success("SKU agregado");
+            router.refresh();
+            setAgregando(false);
+            setReemplazaLineaId(null);
+            setSkuRecienAgregado(skuNuevo);
+            setVersionSku((v) => v + 1);
+          })}>Agregar</Button>
+          {vigentes.length > 0 ? <Button type="button" variant="ghost" size="sm" onClick={() => {
+            setAgregando(false);
+            setReemplazaLineaId(null);
+          }}>Cancelar</Button> : null}
+        </div>
       </div> : null}
       {!cargandoSku && !errorSku && opcionesSku && (agregando || vigentes.length === 0) ? (opcionesSku.rutaCatalogoSkus
         ? <Enlace precarga="nunca" href={opcionesSku.rutaCatalogoSkus} className="inline-block text-xs text-marca-texto underline-offset-2 hover:underline">¿Falta el SKU? Créalo en el catálogo</Enlace>

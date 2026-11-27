@@ -88,7 +88,7 @@ describe("propuestas de SKU y lineas del deal", () => {
     expect((await db.select().from(dealLineas).where(eq(dealLineas.id, linea.id)))[0].anuladaEn).not.toBeNull();
   });
 
-  it("con abonos la línea no se quita: solo se anula; una propuesta no suma y con su primer abono suma su valor", async () => {
+  it("con abonos la línea no se quita: solo se anula; antes del primer abono nada suma y desde él suman todas las líneas (ADR 0137, 27-nov)", async () => {
     const a = await sku("PAGADA", c1); const b = await sku("PROPUESTA", c2);
     const persona = await lead();
     const [deal] = await db.insert(deals).values({ leadId: persona.id, programId, etapa: "compromiso_verbal", ownerUserId: closerId }).returning();
@@ -100,8 +100,8 @@ describe("propuestas de SKU y lineas del deal", () => {
       dealId: deal.id, lineaId: la.id, fecha: "2026-11-20", monto: "10", moneda: "USD" as const,
       plataformaId, comprobanteUrl: "https://example.test/pago",
     });
-    // Solo la línea con abono vende y suma su valor completo; la propuesta no suma.
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("100.00");
+    // Con el primer abono del deal, toda línea vigente vende y suma su valor completo.
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("200.00");
     const actual = (await db.select().from(deals).where(eq(deals.id, deal.id)))[0];
     await expect(quitarLinea(db, { deal: actual, lineaId: la.id, actorId: closerId, etiqueta: "A" }))
       .rejects.toMatchObject({ status: 409 });
