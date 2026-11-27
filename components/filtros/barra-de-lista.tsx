@@ -231,14 +231,20 @@ function FilaDeFiltro({
           })
         }
       >
-        <SelectTrigger className="w-full" aria-label={filtro.etiqueta}>
+        {/* Un rótulo largo (un código de SKU) no se corta: el trigger lo trunca con el texto
+            completo en `title` y la lista crece hasta un tope y parte la línea. */}
+        <SelectTrigger
+          className="w-full min-w-0"
+          aria-label={filtro.etiqueta}
+          title={opciones.find((opcion) => opcion.value === valor)?.label ?? todos}
+        >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="w-auto min-w-(--anchor-width) max-w-[min(28rem,calc(100vw-2rem))]">
           <SelectItem value={TODOS}>{todos}</SelectItem>
           {opciones.map((opcion) => (
             <SelectItem key={opcion.value} value={opcion.value}>
-              {opcion.label}
+              <span className="whitespace-normal break-words">{opcion.label}</span>
             </SelectItem>
           ))}
         </SelectContent>
