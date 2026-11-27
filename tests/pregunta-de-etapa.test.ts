@@ -55,7 +55,8 @@ function desajustes(tabla: Tabla): string[] {
 
   for (const etapa of ETAPAS) {
     for (const r of tabla[etapa].respuestas) {
-      const pendienteAntes: PendienteDeal | null = r.soloConPendiente ? "reagenda" : null;
+      // Sin cita vigente en Agendado es, en el caso normal, una cita fallida: queda Re-agenda.
+      const pendienteAntes: PendienteDeal | null = r.soloConPendiente || r.soloSinCita ? "reagenda" : null;
       const donde = `${etapa}/${r.id}`;
       const a = r.accion;
       if (a.tipo === "mover" && a.a !== etapa) {

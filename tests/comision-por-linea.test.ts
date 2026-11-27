@@ -74,7 +74,7 @@ describe("comisión por línea", () => {
     expect((await comisionesDeDeals(db, [dealId])).get(dealId)).toBe(110);
   });
 
-  it("congelar toma el % del SKU solo en líneas con abono y no pisa lo ya congelado", async () => {
+  it("con un abono en el deal congela el % del SKU en todas sus líneas (ADR 0137, 27-nov) y no pisa lo ya congelado", async () => {
     const { dealId, ids } = await dealConLineas([
       { skuId: skuVirtual, valor: "1000", pct: "7", abonar: true },
       { skuId: skuUnoAUno, valor: "200", pct: null, abonar: false },
@@ -82,9 +82,9 @@ describe("comisión por línea", () => {
     await db.update(skus).set({ comisionPorcentaje: "12" }).where(eq(skus.id, skuVirtual));
     await db.transaction((tx) => congelarComisionDeLineas(tx as Db, dealId, { actorId: ownerUserId, etiqueta: "test" }));
     const [abonada] = await db.select().from(dealLineas).where(eq(dealLineas.id, ids[0]));
-    const [propuesta] = await db.select().from(dealLineas).where(eq(dealLineas.id, ids[1]));
+    const [sinAbono] = await db.select().from(dealLineas).where(eq(dealLineas.id, ids[1]));
     expect(abonada.comisionPorcentaje).toBe("7.00");
-    expect(propuesta.comisionPorcentaje).toBeNull();
+    expect(sinAbono.comisionPorcentaje).toBe("5.00");
   });
 
   it("la primera línea abonada se congela con el % vigente de su SKU", async () => {
